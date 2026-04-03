@@ -1,0 +1,121 @@
+@inject IGameStorageService Storage
+
+<div class="app-container">
+    <div class="app-bg"></div>
+    <div class="app-content fade-in">
+        @if (!_loaded)
+        {
+            <div class="loading-screen">
+                <div class="loading-suits">♠ ♥ ♣ ♦</div>
+                <div class="loading-text">Laden...</div>
+            </div>
+        }
+        else if (_view == View.List)
+        {
+            <GameList Games="_state.Games" OnSelect="SelectGame" OnNew="() => _view = View.NewGame" />
+        }
+        else if (_view == View.NewGame)
+        {
+            <NewGameForm KnownPlayers="_state.KnownPlayers" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
+        }
+        else if (_view == View.Detail && _selectedGame != null)
+        {
+            <GameDetail Game="_selectedGame"
+                        OnBack="() => _view = View.List"
+                        OnAddRound="() => _view = View.AddRound"
+                        OnDeleteRound="DeleteRound"
+                        OnFinishGame="FinishGame" />
+        }
+        else if (_view == View.AddRound && _selectedGame != null)
+        {
+            <AddRoundForm Game="_selectedGame" OnSave="AddRound" OnCancel="() => _view = View.Detail" />
+        }
+    </div>
+</div>
+
+@code {
+    enum View { List, NewGame, Detail, AddRound }
+
+    private AppState _state = new();
+    private View _view = View.List;
+    private Game? _selectedGame;
+    private bool _loaded;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _state = await Storage.LoadAsync();
+            _loaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Save()
+    {
+        await Storage.SaveAsync(_state);
+    }
+
+    private void SelectGame(long id)
+    {
+        _selectedGame = _state.Games.FirstOrDefault(g => g.Id == id);
+        _view = View.Detail;
+    }
+
+    private async Task AddGame(Game game)
+    {
+        foreach (var name in game.Players)
+        {
+            if (!string.IsNullOrWhiteSpace(name) &&
+                !_state.KnownPlayers.Contains(name, StringComparer.OrdinalIgnoreCase))
+                _state.KnownPlayers.Add(name);
+        }
+        _state.Games.Add(game);
+        _selectedGame = game;
+        _view = View.Detail;
+        await Save();
+    }
+
+    private async Task AddRound(Round round)
+    {
+        if (_selectedGame is null) return;
+        _selectedGame.Rounds.Add(round);
+
+        if (!_selectedGame.Finished)
+        {
+            bool targetReached = _selectedGame.Rules.TeamMode
+                ? _selectedGame.GetTeamTotals().Any(t => t >= _selectedGame.Rules.TargetScore)
+                : _selectedGame.GetPlayerTotals().Any(t => t >= _selectedGame.Rules.TargetScore);
+
+            if (targetReached)
+                _selectedGame.Finished = true;
+        }
+
+        _view = View.Detail;
+        await Save();
+    }
+
+    private async Task DeleteRound(int index)
+    {
+        if (_selectedGame != null && index >= 0 && index < _selectedGame.Rounds.Count)
+        {
+            _selectedGame.Rounds.RemoveAt(index);
+            await Save();
+        }
+    }
+
+    private async Task FinishGame()
+    {
+        if (_selectedGame != null)
+        {
+            _selectedGame.Finished = true;
+            await Save();
+        }
+    }
+
+    private async Task RemoveKnownPlayer(string name)
+    {
+        _state.KnownPlayers.Remove(name);
+        await Save();
+    }
+}

@@ -1,0 +1,77 @@
+@code {
+    [Parameter] public List<Game> Games { get; set; } = new();
+    [Parameter] public EventCallback<long> OnSelect { get; set; }
+    [Parameter] public EventCallback OnNew { get; set; }
+}
+
+<div>
+    <div class="header">
+        <div class="header-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/><rect x="8" y="2" width="14" height="18" rx="2" transform="rotate(6 8 2)"/></svg>
+            Binokel
+        </div>
+        <button class="btn" @onclick="OnNew">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+    </div>
+    <div class="section">
+        @if (Games.Count == 0)
+        {
+            <div class="empty-state">
+                <div class="empty-suits">♠ ♥ ♣ ♦</div>
+                <div class="empty-title">Noch keine Spiele</div>
+                <div class="empty-sub">Starte dein erstes Binokel-Spiel!</div>
+                <button class="btn-primary" style="max-width:200px;margin:0 auto" @onclick="OnNew">Neues Spiel</button>
+            </div>
+        }
+
+        @foreach (var g in Games.OrderByDescending(x => x.Date))
+        {
+            var totals = g.GetPlayerTotals();
+            var teamT = g.Rules.TeamMode ? g.GetTeamTotals() : null;
+            var maxScore = totals.Max();
+            var leader = Array.IndexOf(totals, maxScore);
+
+            <div class="game-card" @onclick="() => OnSelect.InvokeAsync(g.Id)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <span style="font-size:14px;font-weight:600">
+                        @(new DateTime(1970, 1, 1).AddMilliseconds(g.Date).ToLocalTime().ToString("dd.MM.yyyy · HH:mm"))
+                    </span>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <span class="chip chip-blue">@g.Rules.Name</span>
+                        <span class="chip @(g.Finished ? "chip-green" : "chip-accent")">
+                            @(g.Finished ? "Beendet" : $"{g.Rounds.Count} Rdn.")
+                        </span>
+                    </div>
+                </div>
+
+                @if (g.Rules.TeamMode && teamT != null)
+                {
+                    <div style="display:flex;gap:8px">
+                        @for (int ti = 0; ti < 2; ti++)
+                        {
+                            var score = teamT[ti];
+                            <div style="flex:1;text-align:center;padding:6px 4px;border-radius:8px">
+                                <div style="font-size:11px;color:var(--muted)">@g.Players[ti * 2] & @g.Players[ti * 2 + 1]</div>
+                                <div class="score-value @(score >= 0 ? "positive" : "negative")" style="font-size:20px">@score</div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div style="display:flex;gap:4px">
+                        @for (int i = 0; i < g.Players.Count; i++)
+                        {
+                            var idx = i;
+                            <div style="flex:1;text-align:center;padding:5px 3px;border-radius:8px;background:@(idx == leader && g.Rounds.Count > 0 ? "rgba(200,149,108,0.06)" : "transparent")">
+                                <div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@g.Players[idx]</div>
+                                <div class="score-value @(totals[idx] >= 0 ? "positive" : "negative")" style="font-size:18px">@totals[idx]</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

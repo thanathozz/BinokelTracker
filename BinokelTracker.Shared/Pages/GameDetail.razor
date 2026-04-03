@@ -1,0 +1,234 @@
+@code {
+    [Parameter] public Game Game { get; set; } = default!;
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnAddRound { get; set; }
+    [Parameter] public EventCallback<int> OnDeleteRound { get; set; }
+    [Parameter] public EventCallback OnFinishGame { get; set; }
+
+    private int[] Totals => Game.GetPlayerTotals();
+    private int[] DurchTotals => Game.GetDurchTotals();
+    private int[] TeamT => Game.Rules.TeamMode ? Game.GetTeamTotals() : new[] { 0, 0 };
+    private int Winner => Game.Finished ? Array.IndexOf(Totals, Totals.Max()) : -1;
+
+    private string FormatDate(long ts) =>
+        new DateTime(1970, 1, 1).AddMilliseconds(ts).ToLocalTime().ToString("dd.MM.yyyy");
+
+    private double Progress(int score) =>
+        Math.Min(100, Math.Max(0, (double)score / Game.Rules.TargetScore * 100));
+
+}
+
+<div>
+    <div class="header">
+        <button class="btn" @onclick="OnBack">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </button>
+        <span class="header-title">@FormatDate(Game.Date)</span>
+        <span class="chip chip-blue" style="font-size:10px">@Game.Rules.Name</span>
+        <span class="chip chip-green" style="font-size:10px">@Game.Einsatz</span>
+    </div>
+
+    <!-- Scoreboard -->
+    <div class="section" style="padding-bottom:6px">
+        @if (Game.Rules.TeamMode)
+        {
+            <div style="display:flex;gap:8px">
+                @for (int ti = 0; ti < 2; ti++)
+                {
+                    var score = TeamT[ti];
+                    var isW = Game.Finished && score >= Game.Rules.TargetScore;
+                    <div class="score-col @(isW ? "winner" : "")">
+                        @if (isW)
+                        {
+                            <div class="trophy-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round">
+                                    <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
+                                    <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+                                    <path d="M4 22h16"/>
+                                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/>
+                                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/>
+                                    <path d="M18 2H6v7a6 6 0 1012 0V2z"/>
+                                </svg>
+                            </div>
+                            <div style="font-size:12px;color:var(--accent);margin-bottom:4px">Gewinn: @(int.TryParse(Game.Einsatz, out var e1) ? e1 * Game.Players.Count : 0)</div>
+
+                        }
+                        <div class="score-name">@Game.Players[ti * 2] & @Game.Players[ti * 2 + 1]</div>
+                        <div class="score-value @(score >= 0 ? "positive" : "negative")"
+                             style="font-size:26px">@score</div>
+                        <div class="score-target">/ @Game.Rules.TargetScore</div>
+                        <div class="progress-bar" style="margin-top:8px;height:4px">
+                            <div class="progress-fill @(isW ? "winner" : "")" style="width:@(Progress(score))%"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="score-grid">
+                @for (int i = 0; i < Game.Players.Count; i++)
+                {
+                    var idx = i;
+                    var totals = Totals;
+                    var durchTotals = DurchTotals;
+                    <div class="score-col @(Winner == idx ? "winner" : "")">
+                        @if (Winner == idx)
+                        {
+                            <div class="trophy-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round">
+                                    <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
+                                    <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+                                    <path d="M4 22h16"/>
+                                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/>
+                                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/>
+                                    <path d="M18 2H6v7a6 6 0 1012 0V2z"/>
+                                </svg>
+                            </div>
+                            <div style="font-size:12px;color:var(--accent);margin-bottom:4px">Gewinn: @(int.TryParse(Game.Einsatz, out var e1) ? e1 * Game.Players.Count : 0)</div>
+
+                        }
+                        <div class="score-name">@Game.Players[idx]</div>
+                        <div class="score-value @(totals[idx] >= 0 ? "positive" : "negative")">@totals[idx]</div>
+                        <div class="score-target">/ @Game.Rules.TargetScore</div>
+                        @if (Game.Rules.DurchSeparate && durchTotals[idx] != 0)
+                        {
+                            <div class="score-durch">D: @(durchTotals[idx] > 0 ? "+" : "")@durchTotals[idx]</div>
+                        }
+                        <div class="progress-bar">
+                            <div class="progress-fill @(Winner == idx ? "winner" : "")"
+                                 style="width:@(Progress(totals[idx]))%"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Rule chips -->
+    <div class="rule-chips">
+        @if (Game.Rules.DoubleMinus)
+        {
+            <span class="chip chip-red">2× Minus</span>
+        }
+        @if (Game.Rules.AllowDurch)
+        {
+            <span class="chip chip-yellow">Durch</span>
+        }
+        @if (Game.Rules.AllowBettel)
+        {
+            <span class="chip chip-blue">Bettel</span>
+        }
+        @if (Game.Rules.AllowAbgehen)
+        {
+            <span class="chip chip-muted">Abgehen</span>
+        }
+    </div>
+
+    <!-- Rounds -->
+    <div class="section" style="padding-top:4px">
+        <span class="form-label" style="margin-bottom:10px;display:block">
+            @Game.Rounds.Count Runde@(Game.Rounds.Count != 1 ? "n" : "")
+        </span>
+
+        @if (Game.Rounds.Count == 0)
+        {
+            <div style="text-align:center;padding:28px 0;color:var(--dark);font-size:13px">Noch keine Runden gespielt
+            </div>
+        }
+
+        @for (int ri = 0; ri < Game.Rounds.Count; ri++)
+        {
+            var r = Game.Rounds[ri];
+            var roundIdx = ri;
+            var sc = r.CalcScores(Game.Rules);
+            var isSpecial = r.Type is RoundType.Durch or RoundType.Bettel;
+            var typeLabel = r.Type == RoundType.Durch ? "Durch" : r.Type == RoundType.Bettel ? "Bettel" : null;
+
+            <div class="round-card">
+                <div class="round-header">
+                    <div style="display:flex;align-items:center;gap:6px">
+                        <span class="round-num">R@(ri + 1)</span>
+                        @if (typeLabel != null)
+                        {
+                            <span class="chip chip-yellow">@typeLabel</span>
+                        }
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px">
+                        @if (!isSpecial)
+                        {
+                            <span class="chip @(r.Abgegangen ? "chip-muted" : r.Won ? "chip-green" : "chip-red")">
+                                @Game.Players[r.Bidder]: @r.Bid @(r.Abgegangen ? "↓" : r.Won ? "✓" : "✗")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="chip @(r.Won ? "chip-green" : "chip-red")">
+                                @Game.Players[r.Bidder] @(r.Won ? "✓" : "✗")
+                            </span>
+                        }
+                        @if (!Game.Finished)
+                        {
+                            <button class="btn" style="padding:3px;color:var(--dark)"
+                                    @onclick="() => OnDeleteRound.InvokeAsync(roundIdx)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                </svg>
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="round-scores">
+                    @for (int pi = 0; pi < Game.Players.Count; pi++)
+                    {
+                        var pIdx = pi;
+                        <div class="round-score-col">
+                            <div class="round-player-name">@Game.Players[pIdx]</div>
+                            <div class="round-score-val @(sc[pIdx] > 0 ? "pos" : sc[pIdx] < 0 ? "neg" : "zero")">
+                                @(sc[pIdx] > 0 ? "+" : "")@sc[pIdx]
+                            </div>
+                            @if (!isSpecial && !r.Abgegangen)
+                            {
+                                <div class="round-detail">
+                                    Gemeldet:@r.PlayerScores[pIdx].Meld Stiche:@r.PlayerScores[pIdx].Tricks</div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (!Game.Finished)
+        {
+            <div class="action-bar">
+                <button class="btn-primary" style="flex:2" @onclick="OnAddRound">+ Runde</button>
+                @if (Game.Rounds.Count > 0)
+                {
+                    <button class="btn-outline" style="flex:1" @onclick="OnFinishGame">Beenden</button>
+                }
+            </div>
+        }
+
+        @if (Game.Finished)
+        {
+            <div class="win-banner">
+                @if (Game.Rules.TeamMode)
+                {
+                    var winTeam = TeamT[0] >= TeamT[1] ? 0 : 1;
+                    <text>🏆 @Game.Players[winTeam * 2] & @Game.Players[winTeam * 2 + 1] gewinnen!</text>
+                }
+                else
+                {
+                    <text>🏆 @Game.Players[Winner] gewinnt mit @Totals[Winner] Punkten!</text>
+                }
+            </div>
+        }
+    </div>
+</div>

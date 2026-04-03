@@ -1,0 +1,196 @@
+namespace BinokelTracker.Models;
+
+public class RuleSet
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
+    public int Players { get; set; } = 3;
+    public bool TeamMode { get; set; }
+    public int TargetScore { get; set; } = 1000;
+    public bool DoubleMinus { get; set; }
+    public bool AllowDurch { get; set; }
+    public bool AllowBettel { get; set; }
+    public bool AllowAbgehen { get; set; } = true;
+    public bool BidderOnlyAbgehen { get; set; } = true;
+    public int DurchPoints { get; set; } = 1000;
+    public int BettelPoints { get; set; } = 1000;
+    public bool DurchSeparate { get; set; } = true;
+
+    public RuleSet Clone() => (RuleSet)MemberwiseClone();
+}
+
+public static class RulePresets
+{
+    public static readonly Dictionary<string, RuleSet> All = new()
+    {
+        ["schwaebisch_klassisch"] = new RuleSet
+        {
+            Id = "schwaebisch_klassisch",
+            Name = "Schwäbisch Klassisch",
+            Description = "3 Spieler, solo, Ziel 1000, einfach Minus",
+            Players = 3, TargetScore = 1000, AllowAbgehen = true
+        },
+        ["schwaebisch_scharf"] = new RuleSet
+        {
+            Id = "schwaebisch_scharf",
+            Name = "Schwäbisch Scharf",
+            Description = "3 Spieler, doppelt Minus bei Überreizen",
+            Players = 3, TargetScore = 1000, DoubleMinus = true,
+            AllowDurch = true, AllowAbgehen = true, BidderOnlyAbgehen = true
+        },
+        ["vierer_kreuz"] = new RuleSet
+        {
+            Id = "vierer_kreuz",
+            Name = "Vierer-Kreuz",
+            Description = "4 Spieler, 2 Teams, Ziel 1500",
+            Players = 4, TeamMode = true, TargetScore = 1500,
+            AllowAbgehen = true, BidderOnlyAbgehen = false
+        },
+        ["turnier"] = new RuleSet
+        {
+            Id = "turnier",
+            Name = "Turnier",
+            Description = "3 Spieler, Ziel 1500, mit Durch & Bettel",
+            Players = 3, TargetScore = 1500, DoubleMinus = true,
+            AllowDurch = true, AllowBettel = true, AllowAbgehen = true, BidderOnlyAbgehen = false
+        },
+        ["benutzerdefiniert"] = new RuleSet
+        {
+            Id = "benutzerdefiniert",
+            Name = "Benutzerdefiniert",
+            Description = "Alle Regeln frei einstellbar",
+            Players = 3, AllowDurch = true, AllowBettel = true, AllowAbgehen = true, BidderOnlyAbgehen = false
+        }
+    };
+}
+
+public class PlayerScore
+{
+    public int Meld { get; set; }
+    public int Tricks { get; set; }
+    public bool Abgegangen { get; set; }
+}
+
+public enum RoundType
+{
+    Normal,
+    Durch,
+    Bettel
+}
+
+public class Round
+{
+    public long Id { get; set; }
+    public RoundType Type { get; set; } = RoundType.Normal;
+    public int Bidder { get; set; }
+    public int Bid { get; set; }
+    public bool Won { get; set; } = true;
+    public List<PlayerScore> PlayerScores { get; set; } = new();
+
+    // Computed: true if the bidder abgegangen
+    public bool Abgegangen => PlayerScores.Count > Bidder && PlayerScores[Bidder].Abgegangen;
+
+    public int[] CalcScores(RuleSet rules)
+    {
+        var scores = new int[PlayerScores.Count];
+
+        if (Type == RoundType.Durch)
+        {
+            scores[Bidder] = Won ? rules.DurchPoints : -rules.DurchPoints;
+            return scores;
+        }
+
+        if (Type == RoundType.Bettel)
+        {
+            scores[Bidder] = Won ? rules.BettelPoints : -rules.BettelPoints;
+            return scores;
+        }
+
+        for (int i = 0; i < PlayerScores.Count; i++)
+        {
+            var ps = PlayerScores[i];
+            int total = ps.Meld + ps.Tricks;
+
+            var bidderAbgegangen = PlayerScores.Count > Bidder && PlayerScores[Bidder].Abgegangen;
+
+            if (i == Bidder)
+            {
+                if (ps.Abgegangen || total < Bid)
+                    scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
+                else
+                    scores[i] = total;
+            }
+            else
+            {
+                if (ps.Abgegangen || (ps.Tricks == 0 && ps.Meld > 0))
+                    scores[i] = 0;
+                else if (bidderAbgegangen)
+                    scores[i] = total + PlayerScores.Count * 10;
+                else
+                    scores[i] = total;
+            }
+        }
+
+        return scores;
+    }
+}
+
+public class Game
+{
+    public string Einsatz { get; set; }
+    public long Id { get; set; }
+    public long Date { get; set; }
+    public List<string> Players { get; set; } = new();
+    public RuleSet Rules { get; set; } = new();
+    public List<Round> Rounds { get; set; } = new();
+    public bool Finished { get; set; }
+
+    public int[] GetPlayerTotals()
+    {
+        var totals = new int[Players.Count];
+        foreach (var r in Rounds)
+        {
+            if (Rules.DurchSeparate && r.Type is RoundType.Durch or RoundType.Bettel)
+                continue;
+            var sc = r.CalcScores(Rules);
+            for (int i = 0; i < totals.Length; i++) totals[i] += sc[i];
+        }
+
+        return totals;
+    }
+
+    public int[] GetDurchTotals()
+    {
+        var totals = new int[Players.Count];
+        if (!Rules.DurchSeparate) return totals;
+        foreach (var r in Rounds)
+        {
+            if (r.Type is not (RoundType.Durch or RoundType.Bettel)) continue;
+            var sc = r.CalcScores(Rules);
+            for (int i = 0; i < totals.Length; i++) totals[i] += sc[i];
+        }
+
+        return totals;
+    }
+
+    public int[] GetTeamTotals()
+    {
+        if (!Rules.TeamMode || Players.Count != 4) return new[] { 0, 0 };
+        var t = new int[2];
+        foreach (var r in Rounds)
+        {
+            var sc = r.CalcScores(Rules);
+            t[0] += sc[0] + sc[2];
+            t[1] += sc[1] + sc[3];
+        }
+
+        return t;
+    }
+}
+
+public class AppState
+{
+    public List<Game> Games { get; set; } = new();
+    public List<string> KnownPlayers { get; set; } = new();
+}
