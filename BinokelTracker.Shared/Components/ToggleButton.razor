@@ -1,0 +1,15 @@
+<div class="toggle-row">
+    <button class="toggle-track @(Value ? "on" : "off")" @onclick="Toggle">
+        <div class="toggle-knob @(Value ? "on" : "off")"></div>
+    </button>
+    <span class="toggle-label @(Value ? "on" : "off")">@(Value ? OnLabel : OffLabel)</span>
+</div>
+
+@code {
+    [Parameter] public bool Value { get; set; }
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+    [Parameter] public string OnLabel { get; set; } = "Ja";
+    [Parameter] public string OffLabel { get; set; } = "Nein";
+
+    private Task Toggle() => ValueChanged.InvokeAsync(!Value);
+}

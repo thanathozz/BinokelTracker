@@ -1,0 +1,169 @@
+@code {
+    [Parameter] public List<string> KnownPlayers { get; set; } = new();
+    [Parameter] public EventCallback<Game> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private readonly List<string> _players = new();
+    private string _newName = "";
+    private int _winnerIndex = -1;
+    private string _dateStr = DateTime.Today.ToString("yyyy-MM-dd");
+    private string _einsatz = "0";
+
+    private bool CanSave =>
+        _players.Count >= 2 &&
+        _winnerIndex >= 0 && _winnerIndex < _players.Count;
+
+    private void ToggleKnownPlayer(string name)
+    {
+        var idx = _players.IndexOf(name);
+        if (idx >= 0)
+        {
+            RemovePlayer(idx);
+        }
+        else
+        {
+            _players.Add(name);
+        }
+    }
+
+    private void AddNewPlayer()
+    {
+        var name = _newName.Trim();
+        if (string.IsNullOrWhiteSpace(name) || _players.Contains(name)) return;
+        _players.Add(name);
+        _newName = "";
+    }
+
+    private void RemovePlayer(int idx)
+    {
+        _players.RemoveAt(idx);
+        if (_winnerIndex == idx)        _winnerIndex = -1;
+        else if (_winnerIndex > idx)    _winnerIndex--;
+    }
+
+    private long ParseDate()
+    {
+        if (DateTime.TryParse(_dateStr, out var d))
+            return new DateTimeOffset(d, TimeSpan.Zero).ToUnixTimeMilliseconds();
+        return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    }
+
+    private void OnNewNameKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") AddNewPlayer();
+    }
+
+    private async Task Save()
+    {
+        if (!CanSave) return;
+        var ts = ParseDate();
+        var game = new Game
+        {
+            Id          = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Date        = ts,
+            Players     = _players.ToList(),
+            Rules       = new RuleSet { Name = "Schnelleintrag", Players = _players.Count },
+            Einsatz     = _einsatz,
+            Rounds      = new(),
+            Finished    = true,
+            QuickWinner = _winnerIndex
+        };
+        await OnSave.InvokeAsync(game);
+    }
+}
+
+<div>
+    <div class="header">
+        <button class="btn" @onclick="OnCancel">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </button>
+        <span class="header-title">Schnelleintrag</span>
+        <div style="width:36px"></div>
+    </div>
+
+    <div class="section">
+
+        <!-- Date -->
+        <label class="form-label">Datum</label>
+        <input class="form-input" type="date" value="@_dateStr"
+               @onchange="e => _dateStr = e.Value?.ToString() ?? _dateStr"
+               style="margin-bottom:16px"/>
+
+        <!-- Einsatz -->
+        <label class="form-label">Einsatz pro Spieler (€)</label>
+        <input class="form-input" type="number" inputmode="decimal" value="@_einsatz"
+               placeholder="0"
+               @oninput="e => _einsatz = e.Value?.ToString() ?? string.Empty"
+               style="margin-bottom:20px"/>
+
+        <!-- Known players -->
+        @if (KnownPlayers.Count > 0)
+        {
+            <label class="form-label">Bekannte Spieler</label>
+            <div class="pill-group known-players-group" style="margin-bottom:14px">
+                @foreach (var name in KnownPlayers)
+                {
+                    var n = name;
+                    <button class="pill @(_players.Contains(n) ? "active" : "")"
+                            @onclick="() => ToggleKnownPlayer(n)">@n</button>
+                }
+            </div>
+        }
+
+        <!-- Add new player -->
+        <label class="form-label">Neuer Spieler</label>
+        <div style="display:flex;gap:8px;margin-bottom:20px">
+            <input class="form-input" style="flex:1" placeholder="Name eingeben"
+                   value="@_newName"
+                   @oninput="e => _newName = e.Value?.ToString() ?? string.Empty"
+                   @onkeydown="OnNewNameKey"/>
+            <button class="btn-outline" style="padding:0 14px" @onclick="AddNewPlayer">+</button>
+        </div>
+
+        <!-- Selected players list -->
+        @if (_players.Count > 0)
+        {
+            <label class="form-label">Teilnehmer (@_players.Count)</label>
+            <div style="margin-bottom:20px">
+                @for (int i = 0; i < _players.Count; i++)
+                {
+                    var idx = i;
+                    <div class="quick-player-row">
+                        <span class="quick-player-name">@_players[idx]</span>
+                        <button class="btn quick-player-remove"
+                                @onclick="() => RemovePlayer(idx)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2.5" stroke-linecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Winner selection -->
+        @if (_players.Count >= 2)
+        {
+            <label class="form-label">Gewinner</label>
+            <div class="pill-group" style="margin-bottom:24px">
+                @for (int i = 0; i < _players.Count; i++)
+                {
+                    var idx = i;
+                    <button class="pill @(_winnerIndex == idx ? "active" : "")"
+                            @onclick="() => _winnerIndex = idx">
+                        @_players[idx]
+                    </button>
+                }
+            </div>
+        }
+
+        <button class="btn-primary" disabled="@(!CanSave)" @onclick="Save">
+            Eintrag speichern
+        </button>
+    </div>
+</div>
