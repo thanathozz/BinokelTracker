@@ -1,0 +1,253 @@
+@code {
+    [Parameter] public AppState State { get; set; } = default!;
+    [Parameter] public EventCallback OnBack { get; set; }
+
+    private enum Tab { Players, Charts }
+    private Tab _tab = Tab.Players;
+    private GlobalStats _stats = default!;
+
+    protected override void OnParametersSet()
+        => _stats = StatisticsService.Compute(State.Games);
+
+    private static string Pct(double v) => $"{v:F0}%";
+    private static string Avg(double v) => $"{v:F0}";
+
+    // Chart data helpers — sorted descending by value
+    private IReadOnlyList<(string, double)> ChartWins =>
+        _stats.Players
+              .OrderByDescending(p => p.GamesWon)
+              .Select(p => (p.Name, (double)p.GamesWon))
+              .ToList();
+
+    private IReadOnlyList<(string, double)> ChartWinRate =>
+        _stats.Players
+              .Where(p => p.RoundsAsBidder > 0)
+              .OrderByDescending(p => p.BidderWinRate)
+              .Select(p => (p.Name, p.BidderWinRate))
+              .ToList();
+
+    private IReadOnlyList<(string, double)> ChartAvgBid =>
+        _stats.Players
+              .Where(p => p.BidCountNotAbg > 0)
+              .OrderByDescending(p => p.AvgBidValue)
+              .Select(p => (p.Name, p.AvgBidValue))
+              .ToList();
+
+    private IReadOnlyList<(string, double)> ChartAbgegangen =>
+        _stats.Players
+              .Where(p => p.BidderAbgegangen > 0)
+              .OrderByDescending(p => p.BidderAbgegangen)
+              .Select(p => (p.Name, (double)p.BidderAbgegangen))
+              .ToList();
+
+    private IReadOnlyList<(string, double)> ChartBidderLosses =>
+        _stats.Players
+              .Where(p => p.BidderLosses > 0)
+              .OrderByDescending(p => p.BidderLosses)
+              .Select(p => (p.Name, (double)p.BidderLosses))
+              .ToList();
+
+    private IReadOnlyList<(string, double)> ChartDurch =>
+        _stats.Players
+              .Where(p => p.DurchPlayed > 0)
+              .OrderByDescending(p => p.DurchWon)
+              .Select(p => (p.Name, (double)p.DurchWon))
+              .ToList();
+
+    private IReadOnlyList<(string, double)> ChartMoney =>
+        _stats.Players
+              .Where(p => p.MoneyBalance != 0)
+              .OrderByDescending(p => p.MoneyBalance)
+              .Select(p => (p.Name, (double)p.MoneyBalance))
+              .ToList();
+
+    private bool HasMoney => _stats.Players.Any(p => p.MoneyBalance != 0);
+
+    private static Func<double, string> MoneyColor =>
+        v => v >= 0 ? "var(--green)" : "var(--red)";
+
+    private static string FormatMoney(decimal v)
+    {
+        var sign = v > 0 ? "+" : "";
+        return $"{sign}{v:F2} €";
+    }
+}
+
+<div>
+    <div class="header">
+        <button class="btn" @onclick="OnBack">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </button>
+        <span class="header-title">Statistiken</span>
+        <div style="width:36px"></div>
+    </div>
+
+    <!-- Global summary -->
+    <div class="stats-summary-row">
+        <div class="stats-summary-cell">
+            <div class="stats-summary-value">@_stats.TotalGames</div>
+            <div class="stats-summary-label">Spiele</div>
+        </div>
+        <div class="stats-summary-cell">
+            <div class="stats-summary-value">@_stats.FinishedGames</div>
+            <div class="stats-summary-label">Beendet</div>
+        </div>
+        <div class="stats-summary-cell">
+            <div class="stats-summary-value">@_stats.TotalRounds</div>
+            <div class="stats-summary-label">Runden</div>
+        </div>
+        <div class="stats-summary-cell">
+            <div class="stats-summary-value">@_stats.Players.Count</div>
+            <div class="stats-summary-label">Spieler</div>
+        </div>
+    </div>
+
+    <!-- Tab strip -->
+    <div class="mode-toggle-bar">
+        <button class="pill pill-sm @(_tab == Tab.Players ? "active" : "")"
+                @onclick="() => _tab = Tab.Players">Spieler</button>
+        <button class="pill pill-sm @(_tab == Tab.Charts ? "active" : "")"
+                @onclick="() => _tab = Tab.Charts">Diagramme</button>
+    </div>
+
+    @if (_stats.Players.Count == 0)
+    {
+        <div class="section" style="padding-top:8px">
+            <div class="empty-state">
+                <div class="empty-suits">♠ ♥ ♣ ♦</div>
+                <div class="empty-title">Noch keine Daten</div>
+                <div class="empty-sub">Spiele erst ein paar Runden!</div>
+            </div>
+        </div>
+    }
+    else if (_tab == Tab.Players)
+    {
+        <!-- ════ SPIELER-KARTEN ════ -->
+        <div class="section" style="padding-top:8px">
+            @foreach (var (p, rank) in _stats.Players.Select((p, i) => (p, i + 1)))
+            {
+                <div class="stats-card">
+                    <div class="stats-card-header">
+                        <div class="stats-card-rank">
+                            @if (rank == 1 && p.GamesWon > 0)
+                            {
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="none">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                            }
+                            else
+                            {
+                                <span class="stats-rank-num">@rank</span>
+                            }
+                        </div>
+                        <div class="stats-card-name">@p.Name</div>
+                        <div class="stats-card-wins">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
+                                <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+                                <path d="M4 22h16"/>
+                                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/>
+                                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/>
+                                <path d="M18 2H6v7a6 6 0 1012 0V2z"/>
+                            </svg>
+                            <span>@p.GamesWon / @p.GamesPlayed</span>
+                        </div>
+                    </div>
+
+                    @if (p.MoneyBalance != 0)
+                    {
+                        <div class="stats-money-badge @(p.MoneyBalance >= 0 ? "pos" : "neg")">
+                            @FormatMoney(p.MoneyBalance)
+                        </div>
+                    }
+
+                    <div class="stats-grid">
+                        <div class="stats-cell">
+                            <div class="stats-cell-value">@p.RoundsAsBidder</div>
+                            <div class="stats-cell-label">Als Reizer</div>
+                        </div>
+                        <div class="stats-cell">
+                            <div class="stats-cell-value @(p.BidderWinRate >= 50 ? "stats-val-good" : p.BidderWinRate > 0 ? "stats-val-warn" : "")">
+                                @if (p.RoundsAsBidder > 0) { @Pct(p.BidderWinRate) } else { <text>—</text> }
+                            </div>
+                            <div class="stats-cell-label">Reiz-Quote</div>
+                        </div>
+                        <div class="stats-cell">
+                            <div class="stats-cell-value">
+                                @if (p.BidCountNotAbg > 0) { @Avg(p.AvgBidValue) } else { <text>—</text> }
+                            </div>
+                            <div class="stats-cell-label">Ø Reizwert</div>
+                        </div>
+                        <div class="stats-cell">
+                            <div class="stats-cell-value @(p.BidderAbgegangen > 0 ? "stats-val-warn" : "")">
+                                @p.BidderAbgegangen×
+                            </div>
+                            <div class="stats-cell-label">Abgegangen</div>
+                        </div>
+                    </div>
+
+                    @if (p.DurchPlayed > 0 || p.BettelPlayed > 0)
+                    {
+                        <div class="stats-special-row">
+                            @if (p.DurchPlayed > 0)  { <span class="chip chip-yellow">Durch @p.DurchWon/@p.DurchPlayed</span> }
+                            @if (p.BettelPlayed > 0) { <span class="chip chip-blue">Bettel @p.BettelWon/@p.BettelPlayed</span> }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- ════ DIAGRAMME ════ -->
+        <div class="section" style="padding-top:12px">
+
+            @if (HasMoney)
+            {
+                <BarChart Title="Gewinn / Verlust (€)"
+                          Data="ChartMoney"
+                          Unit=" €"
+                          ColorResolver="MoneyColor" />
+            }
+
+            <BarChart Title="Siege"
+                      Data="ChartWins"
+                      Color="var(--green)" />
+
+            <BarChart Title="Reizquote"
+                      Data="ChartWinRate"
+                      Unit="%"
+                      FixedMax="100"
+                      Color="var(--accent-light)" />
+
+            <BarChart Title="Ø Reizwert"
+                      Data="ChartAvgBid"
+                      Color="var(--accent)" />
+
+            @if (ChartAbgegangen.Count > 0)
+            {
+                <BarChart Title="Abgegangen"
+                          Data="ChartAbgegangen"
+                          Color="var(--dark)" />
+            }
+
+            @if (ChartBidderLosses.Count > 0)
+            {
+                <BarChart Title="Überreizt"
+                          Data="ChartBidderLosses"
+                          Color="var(--red)" />
+            }
+
+            @if (ChartDurch.Count > 0)
+            {
+                <BarChart Title="Durch — Siege"
+                          Data="ChartDurch"
+                          Color="var(--yellow, #d4a017)" />
+            }
+
+        </div>
+    }
+</div>

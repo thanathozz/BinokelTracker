@@ -1,0 +1,48 @@
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public IReadOnlyList<(string Label, double Value)> Data { get; set; } = Array.Empty<(string, double)>();
+    [Parameter] public string Unit { get; set; } = "";
+    [Parameter] public double? FixedMax { get; set; }
+    [Parameter] public string Color { get; set; } = "var(--accent)";
+    /// <summary>When set, overrides Color per bar based on the bar's value.</summary>
+    [Parameter] public Func<double, string>? ColorResolver { get; set; }
+
+    // Max is always based on absolute values so negative bars render correctly
+    private double EffMax => FixedMax ?? (Data.Count > 0 ? Data.Max(d => Math.Abs(d.Value)) : 1);
+
+    private string WidthPct(double v) =>
+        EffMax > 0
+            ? $"{Math.Min(100, Math.Abs(v) / EffMax * 100).ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}%"
+            : "0%";
+
+    private string BarColor(double v) =>
+        ColorResolver != null ? ColorResolver(v) : Color;
+
+    private string FormatVal(double v)
+    {
+        var abs = Math.Abs(v);
+        var digits = abs == Math.Floor(abs) ? 0 : 2;
+        var sign   = v < 0 ? "−" : (ColorResolver != null && v > 0 ? "+" : "");
+        return $"{sign}{abs.ToString($"F{digits}", System.Globalization.CultureInfo.InvariantCulture)}{Unit}";
+    }
+}
+
+@if (Data.Count > 0)
+{
+    <div class="chart-block">
+        @if (!string.IsNullOrEmpty(Title))
+        {
+            <div class="chart-title">@Title</div>
+        }
+        @foreach (var (label, value) in Data)
+        {
+            <div class="chart-row">
+                <div class="chart-label" title="@label">@label</div>
+                <div class="chart-track">
+                    <div class="chart-fill" style="width:@WidthPct(value);background:@BarColor(value)"></div>
+                </div>
+                <div class="chart-value">@FormatVal(value)</div>
+            </div>
+        }
+    </div>
+}
