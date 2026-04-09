@@ -183,9 +183,9 @@
             <!-- Schritt-Inhalt -->
             <div class="step-content @(_vm.Forward ? "slide-in-right" : "slide-in-left")" @key="_vm.Step">
 
-                @if (_vm.Step == 0)
+                @if (_vm.CurrentStep == FormStep.Spielart)
                 {
-                    <!-- Schritt 0: Spielart + Reizer/Spieler auswählen -->
+                    <!-- Spielart (Normal/Durch/Bettel) + Reizer/Spieler auswählen -->
                     @if (_vm.ShowGameTypeSelector)
                     {
                         <div class="form-group">
@@ -216,27 +216,9 @@
                         }
                     </div>
                 }
-                else if (_vm.Step == 1 && _vm.IsSpecial)
+                else if (_vm.CurrentStep == FormStep.Reizwert)
                 {
-                    <!-- Schritt 1 (Durch/Bettel): Ergebnis -->
-                    <label class="form-label">@_vm.SpecialResultLabel</label>
-                    <div class="toggle-row" style="margin-bottom:12px">
-                        <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon">
-                            <div class="toggle-knob @_vm.WonClass"></div>
-                        </button>
-                        <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
-                    </div>
-                    <div class="score-preview @(_vm.Won ? "won" : "lost")">
-                        <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
-                        @if (Game.Rules.DurchSeparate)
-                        {
-                            <span class="score-preview-note">(separat)</span>
-                        }
-                    </div>
-                }
-                else if (_vm.Step == 1 && !_vm.IsSpecial)
-                {
-                    <!-- Schritt 1 (Normal): Reizwert + ggf. Abgehen -->
+                    <!-- Reizwert eingeben + ggf. Abgehen des Reizers -->
                     <input class="form-input bid-input" type="number" inputmode="numeric" value="@_vm.Bid"
                            placeholder="z.B. 150"
                            @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty"/>
@@ -263,9 +245,9 @@
                         }
                     }
                 }
-                else if (_vm.Step == 2)
+                else if (_vm.CurrentStep == FormStep.Melden)
                 {
-                    <!-- Schritt 2: Melden pro Spieler -->
+                    <!-- Melden pro Spieler — Reizer ist gesperrt wenn abgegangen -->
                     @for (int i = 0; i < Game.Players.Count; i++)
                     {
                         var idx = i;
@@ -288,9 +270,9 @@
                         </div>
                     }
                 }
-                else if (_vm.Step == 3)
+                else if (_vm.CurrentStep == FormStep.Stiche)
                 {
-                    <!-- Schritt 3: Stiche pro Spieler -->
+                    <!-- Stiche pro Spieler (entfällt automatisch wenn Reizer abgegangen) -->
                     @for (int i = 0; i < Game.Players.Count; i++)
                     {
                         var idx = i;
@@ -305,9 +287,27 @@
                         </div>
                     }
                 }
-                else if (_vm.Step == 4)
+                else if (_vm.CurrentStep == FormStep.Ergebnis && _vm.IsSpecial)
                 {
-                    <!-- Schritt 4: Ergebnis — Abgehen (falls erlaubt) + Punkteauflistung -->
+                    <!-- Ergebnis (Durch/Bettel): Gewonnen/Verloren + Punkte-Vorschau -->
+                    <label class="form-label">@_vm.SpecialResultLabel</label>
+                    <div class="toggle-row" style="margin-bottom:12px">
+                        <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon">
+                            <div class="toggle-knob @_vm.WonClass"></div>
+                        </button>
+                        <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
+                    </div>
+                    <div class="score-preview @(_vm.Won ? "won" : "lost")">
+                        <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
+                        @if (Game.Rules.DurchSeparate)
+                        {
+                            <span class="score-preview-note">(separat)</span>
+                        }
+                    </div>
+                }
+                else if (_vm.CurrentStep == FormStep.Ergebnis)
+                {
+                    <!-- Ergebnis (Normal): ggf. Abgehen aller + detaillierte Punkteauflistung -->
                     @if (Game.Rules.AllowAbgehen && !_vm.BidderOnlyAbgehen)
                     {
                         <label class="form-label" style="margin-bottom:10px">Abgegangen?</label>

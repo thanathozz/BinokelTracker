@@ -6,6 +6,12 @@ namespace BinokelTracker.ViewModels;
 public enum InputMode { Overview, StepByStep }
 
 /// <summary>
+/// Alle möglichen Formularschritte im Schritt-für-Schritt-Modus.
+/// Die aktive Reihenfolge wird in ActiveSteps festgelegt — dort eine Zeile ändern genügt.
+/// </summary>
+public enum FormStep { Spielart, Reizwert, Melden, Stiche, Ergebnis }
+
+/// <summary>
 /// Hält den gesamten Zustand des Rundenformulars und berechnet,
 /// was wann angezeigt wird. Das Razor-Template enthält keine Spiellogik.
 /// </summary>
@@ -65,22 +71,33 @@ public class AddRoundViewModel
     // Schritt-Navigation
     // ══════════════════════════════════════════════════════════════════════
 
-    /// Anzahl Schritte im Schritt-für-Schritt-Modus
-    /// Normal: 5 Schritte — außer Reizer hat abgegangen (dann nur 2)
-    public int TotalSteps => IsSpecial ? 2
-        : (BidderOnlyAbgehen && BidderAbgegangen ? 2 : 5);
+    /// Aktive Schrittfolge — hier die Reihenfolge ändern, um Schritte umzusortieren.
+    /// Beim Abgehen des Reizers entfällt nur "Stiche", Melden bleibt für alle anderen.
+    public IReadOnlyList<FormStep> ActiveSteps => IsSpecial
+        ? new[] { FormStep.Spielart,  FormStep.Ergebnis }
+        : BidderAbgegangen
+            ? new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Ergebnis }
+            : new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Stiche, FormStep.Ergebnis };
 
-    public string[] StepLabels => IsSpecial
-        ? new[] { "Spieler", "Ergebnis" }
-        : (BidderOnlyAbgehen && BidderAbgegangen
-            ? new[] { "Reizer", "Reizwert" }
-            : new[] { "Reizer", "Reizwert", "Gemeldet", "Stiche", "Ergebnis" });
+    public int      TotalSteps   => ActiveSteps.Count;
+    public FormStep CurrentStep  => ActiveSteps[Step];
+    public string[] StepLabels   => ActiveSteps.Select(StepLabel).ToArray();
+
+    private static string StepLabel(FormStep s) => s switch
+    {
+        FormStep.Spielart => "Spieler",
+        FormStep.Reizwert => "Reizwert",
+        FormStep.Melden   => "Gemeldet",
+        FormStep.Stiche   => "Stiche",
+        FormStep.Ergebnis => "Ergebnis",
+        _                 => ""
+    };
 
     /// Darf der Benutzer zum nächsten Schritt?
-    public bool CanAdvance => Step switch
+    public bool CanAdvance => CurrentStep switch
     {
-        1 when !IsSpecial => BidValue > 0,  // Reizwert muss eingegeben sein
-        _                 => true
+        FormStep.Reizwert when !IsSpecial => BidValue > 0,  // Reizwert muss eingegeben sein
+        _                                 => true
     };
 
     // ══════════════════════════════════════════════════════════════════════
