@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinokelTracker.Shared", "Bi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinokelTracker.Web", "BinokelTracker.Web\BinokelTracker.Web.csproj", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BinokelTracker.Tests", "BinokelTracker.Tests\BinokelTracker.Tests.csproj", "{2AA232DE-1A06-4187-A979-F4D0643CC4B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinokelTracker.Tests", "BinokelTracker.Tests\BinokelTracker.Tests.csproj", "{2AA232DE-1A06-4187-A979-F4D0643CC4B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
