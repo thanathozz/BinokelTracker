@@ -138,13 +138,15 @@ public class Round
 
 public class Game
 {
-    public string Einsatz { get; set; }
+    public string Einsatz { get; set; } = "";
     public long Id { get; set; }
     public long Date { get; set; }
     public List<string> Players { get; set; } = new();
     public RuleSet Rules { get; set; } = new();
     public List<Round> Rounds { get; set; } = new();
     public bool Finished { get; set; }
+    /// <summary>Set for quick-entry games (no rounds). Index into Players.</summary>
+    public int? QuickWinner { get; set; }
 
     public int[] GetPlayerTotals()
     {
