@@ -288,6 +288,10 @@ html, body {
     border: 1px solid rgba(200,149,108,0.15);
 }
 .bidder-name { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 7px; display: flex; align-items: center; gap: 4px; }
+.bidder-name.is-player { color: var(--muted); }
+
+/* ═══ Form spacing ═══ */
+.form-group { margin-bottom: 16px; }
 .player-row { padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; border: 1px solid transparent; }
 
 /* ═══ Rule summary ═══ */
@@ -350,3 +354,163 @@ html, body {
 /* ═══ Transitions ═══ */
 .fade-in { animation: fadeIn 0.2s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ═══ Step indicator ═══ */
+.step-indicator { display: flex; align-items: center; justify-content: center; padding: 12px 0 4px; }
+.step-dot-wrap  { display: flex; align-items: center; }
+.step-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--border); transition: background .25s;
+}
+.step-dot.done   { background: var(--accent); }
+.step-dot.active { background: var(--accent-light); box-shadow: 0 0 0 3px rgba(200,149,108,.2); }
+.step-line { width: 28px; height: 2px; background: var(--border); transition: background .25s; }
+.step-line.done  { background: var(--accent); }
+.step-label {
+    text-align: center; font-size: 13px; font-weight: 600;
+    color: var(--muted); padding: 6px 0 14px;
+}
+.step-content { animation: slideInRight .22s ease-out; }
+.step-nav { display: flex; gap: 10px; margin-top: 20px; }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes slideInLeft  { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+.slide-in-right { animation: slideInRight .22s ease-out; }
+.slide-in-left  { animation: slideInLeft  .22s ease-out; }
+
+/* ═══ Score breakdown (round preview) ═══ */
+.bd-row       { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
+.bd-row-total {
+    border-top: 1px solid var(--border); margin-top: 4px; padding-top: 6px;
+    font-weight: 700;
+}
+.bd-label  { font-size: 13px; color: var(--muted); }
+.bd-note   { color: var(--dark); font-style: italic; font-size: 11px; }
+.bd-val    { font-family: var(--font-mono); font-weight: 600; }
+.bd-val.pos   { color: var(--green); }
+.bd-val.neg   { color: var(--red); }
+.bd-val.zero  { color: var(--dark); }
+.bd-val.muted { color: var(--dark); text-decoration: line-through; }
+
+/* ═══ Score preview values ═══ */
+.score-preview-value { font-size: 14px; font-weight: 700; font-family: var(--font-mono); }
+.score-preview-value.green { color: var(--green); }
+.score-preview-value.red   { color: var(--red); }
+.score-preview-note { font-size: 12px; color: var(--muted); margin-left: 8px; }
+
+/* ═══ Game list card ═══ */
+.game-card-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+}
+.game-card-date  { font-size: 14px; font-weight: 600; }
+.game-card-chips { display: flex; gap: 6px; align-items: center; }
+.game-card-scores { display: flex; gap: 4px; }
+.game-card-score-col {
+    flex: 1; text-align: center; padding: 5px 3px; border-radius: 8px;
+}
+.game-card-score-col.leading { background: rgba(200,149,108,0.06); }
+.game-card-player-name {
+    font-size: 11px; color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ═══ Round list ═══ */
+.round-header-left  { display: flex; align-items: center; gap: 6px; }
+.round-header-right { display: flex; align-items: center; gap: 6px; }
+.btn-delete-round   { padding: 3px; color: var(--dark); }
+.empty-rounds       { text-align: center; padding: 28px 0; color: var(--dark); font-size: 13px; }
+
+/* ═══ Score win label ═══ */
+.score-win-label { font-size: 12px; color: var(--accent); margin-bottom: 4px; }
+
+/* ═══ Form helpers ═══ */
+.btn-centered        { max-width: 200px; margin: 0 auto; }
+.player-inputs       { display: flex; gap: 8px; align-items: flex-end; }
+.abgehen-col         { flex: none; padding-bottom: 2px; }
+.abgegangen-note     { font-size: 13px; color: var(--dark); font-style: italic; }
+.input-error-hint    { color: var(--red); font-size: 10px; text-align: center; margin-top: 2px; }
+.mode-toggle-bar     { padding: 0 16px 4px; display: flex; gap: 6px; }
+.known-players-group { flex-wrap: wrap; margin-bottom: 10px; }
+.known-player-pill   { display: inline-flex; align-items: center; gap: 4px; user-select: none; }
+.known-player-delete-btn {
+    background: none; border: none; padding: 0; margin-left: 2px;
+    cursor: pointer; color: inherit; font-size: 0.9em; line-height: 1;
+}
+.bid-input               { font-size: 22px; text-align: center; padding: 14px; }
+.rule-summary-highlight  { color: var(--accent-light); font-weight: 600; }
+.rule-summary-danger     { color: var(--red); }
+
+/* ═══ Quick game form ═══ */
+.quick-player-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;
+    background: var(--surface-2, var(--card-alt)); border: 1px solid var(--border);
+}
+.quick-player-name   { font-size: 15px; font-weight: 600; }
+.quick-player-remove { padding: 4px; color: var(--dark); }
+
+/* ═══ Bar chart component ═══ */
+.chart-block  { margin-bottom: 24px; }
+.chart-title  {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .07em; margin-bottom: 10px;
+}
+.chart-row    { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.chart-label  {
+    font-size: 13px; font-weight: 600; width: 76px; flex-shrink: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text);
+}
+.chart-track  {
+    flex: 1; height: 20px;
+    background: var(--surface-2, var(--card-alt));
+    border-radius: 4px; overflow: hidden;
+}
+.chart-fill   { height: 100%; border-radius: 4px; transition: width .45s cubic-bezier(.4,0,.2,1); }
+.chart-value  {
+    font-size: 12px; font-family: var(--font-mono); font-weight: 700;
+    width: 46px; text-align: right; flex-shrink: 0; color: var(--muted);
+}
+
+/* ═══ Statistics dashboard ═══ */
+.stats-summary-row {
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 14px 16px 10px; gap: 8px;
+}
+.stats-summary-cell  { text-align: center; flex: 1; }
+.stats-summary-value {
+    font-size: 26px; font-weight: 700; font-family: var(--font-mono);
+    color: var(--accent-light);
+}
+.stats-summary-label {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+    text-transform: uppercase; letter-spacing: .04em;
+}
+.stats-card {
+    background: var(--card); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 12px;
+    border: 1px solid var(--border);
+}
+.stats-card-header   { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.stats-card-rank     { width: 24px; text-align: center; flex-shrink: 0; }
+.stats-rank-num      { font-size: 13px; font-weight: 700; color: var(--muted); }
+.stats-card-name     { font-size: 17px; font-weight: 700; flex: 1; color: var(--text); }
+.stats-card-wins     { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.stats-grid          { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.stats-cell          { text-align: center; padding: 6px 4px; }
+.stats-cell-value    { font-size: 18px; font-weight: 700; font-family: var(--font-mono); color: var(--text); }
+.stats-cell-label    {
+    font-size: 10px; color: var(--muted); margin-top: 2px;
+    text-transform: uppercase; letter-spacing: .03em;
+}
+.stats-val-good { color: var(--green); }
+.stats-val-warn { color: var(--accent-light); }
+.stats-special-row {
+    display: flex; gap: 8px; margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+.stats-money-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; font-family: var(--font-mono);
+    margin-bottom: 10px;
+}
+.stats-money-badge.pos { background: rgba(76,175,80,.15);  color: var(--green); }
+.stats-money-badge.neg { background: rgba(229,57,53,.12);  color: var(--red);   }

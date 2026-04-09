@@ -3,113 +3,18 @@
     [Parameter] public EventCallback<Round> OnSave { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 
-    private enum InputMode
-    {
-        Overview,
-        StepByStep
-    }
-
-    private InputMode _mode = InputMode.StepByStep;
-
-    private RoundType _type = RoundType.Normal;
-    private int _bidder;
-    private string _bid = "";
-
-    private bool _won = true;
-
-    //  private List<bool> _abgegangen = new();
-    private List<bool> _abgegangen = new();
-    private List<string> _meld = new();
-    private List<string> _tricks = new();
-
-    // step-by-step
-    private int _step;
-    private bool _forward = true; // for slide direction
+    private AddRoundViewModel _vm = default!;
 
     protected override void OnParametersSet()
-    {
-        _abgegangen = Game.Players.Select(_ => false).ToList();
-        _meld = Game.Players.Select(_ => "").ToList();
-        _tricks = Game.Players.Select(_ => "").ToList();
-    }
-
-    private bool IsSpecial => _type is RoundType.Durch or RoundType.Bettel;
-    private int BidValue => int.TryParse(_bid, out var v) ? v : 0;
-    private string MinusPreview => Game.Rules.DoubleMinus ? $"−{BidValue * 2} (doppelt)" : $"−{BidValue}";
-    private bool BidderAbgegangen => _abgegangen.Count > _bidder && _abgegangen[_bidder];
-    private bool BidderOnlyAbgehen => Game.Rules.AllowAbgehen && Game.Rules.BidderOnlyAbgehen;
-
-    private int BidderTotal =>
-        (int.TryParse(_meld.ElementAtOrDefault(_bidder) ?? "", out var m) ? m : 0) +
-        (int.TryParse(_tricks.ElementAtOrDefault(_bidder) ?? "", out var t) ? t : 0);
-
-    private bool BidderWon => !BidderAbgegangen && BidValue > 0 && BidderTotal >= BidValue;
-
-    // Normal:  0=Reizer, 1=Reizwert[+Abgehen], 2=Gemeldet, 3=Stiche, 4=Ergebnis
-    // Normal (abgegangen): 0=Reizer, 1=Reizwert → Speichern
-    // Special: 0=Spieler, 1=Ergebnis
-    private int TotalSteps => IsSpecial ? 2 : (BidderOnlyAbgehen && BidderAbgegangen ? 2 : 5);
-
-    private string[] StepLabels => IsSpecial
-        ? new[] { "Spieler", "Ergebnis" }
-        : (BidderOnlyAbgehen && BidderAbgegangen
-            ? new[] { "Reizer", "Reizwert" }
-            : new[] { "Reizer", "Reizwert", "Gemeldet", "Stiche", "Ergebnis" });
-
-    private bool CanAdvance => _step switch
-    {
-        1 when !IsSpecial => BidValue > 0,
-        _ => true
-    };
-
-    private void GoNext()
-    {
-        if (!CanAdvance || _step >= TotalSteps - 1) return;
-        _forward = true;
-        _step++;
-    }
-
-    private void GoPrev()
-    {
-        if (_step == 0) return;
-        _forward = false;
-        _step--;
-    }
-
-    private void SetMode(InputMode mode)
-    {
-        _mode = mode;
-        _step = 0;
-        _forward = true;
-    }
-
-    private void SetType(RoundType t)
-    {
-        _type = t;
-        _step = 0;
-        _won = true;
-        _abgegangen = Game.Players.Select(_ => false).ToList();
-    }
+        => _vm = new AddRoundViewModel(Game);
 
     private async Task Save()
-    {
-        var round = new Round
-        {
-            Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Type = _type,
-            Bidder = _bidder,
-            Bid = BidValue,
-            Won = IsSpecial ? _won : BidderWon,
-            PlayerScores = Game.Players.Select((_, i) => new PlayerScore
-            {
-                Meld = (i == _bidder && BidderAbgegangen) ? 0 : (int.TryParse(_meld[i], out var m) ? m : 0),
-                Tricks = int.TryParse(_tricks[i], out var t) ? t : 0,
-                Abgegangen = _abgegangen[i],
-            }).ToList()
-        };
-        await OnSave.InvokeAsync(round);
-    }
+        => await OnSave.InvokeAsync(_vm.BuildRound());
 
+    // Stern-Icon für den Reizer — einmal definiert, mehrfach genutzt
+    private RenderFragment StarIcon => @<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>;
 }
 
 <div>
@@ -124,141 +29,127 @@
         <div style="width:36px"></div>
     </div>
 
-    <!-- Mode toggle -->
-    <div style="padding:0 16px 4px;display:flex;gap:6px">
-        <button class="pill pill-sm @(_mode == InputMode.Overview ? "active" : "")"
-                @onclick="() => SetMode(InputMode.Overview)">Übersicht
-        </button>
-        <button class="pill pill-sm @(_mode == InputMode.StepByStep ? "active" : "")"
-                @onclick="() => SetMode(InputMode.StepByStep)">Schritt für Schritt
-        </button>
+    <div class="mode-toggle-bar">
+        <button class="pill pill-sm @(_vm.Mode == InputMode.Overview ? "active" : "")"
+                @onclick="() => _vm.SetMode(InputMode.Overview)">Übersicht</button>
+        <button class="pill pill-sm @(_vm.Mode == InputMode.StepByStep ? "active" : "")"
+                @onclick="() => _vm.SetMode(InputMode.StepByStep)">Schritt für Schritt</button>
     </div>
 
     <div class="section">
 
-        @if (_mode == InputMode.Overview)
+        @if (_vm.Mode == InputMode.Overview)
         {
-            <!-- ════ OVERVIEW MODE ════ -->
-            @if (Game.Rules.AllowDurch || Game.Rules.AllowBettel)
+            <!-- ════ ÜBERSICHT-MODUS ════ -->
+
+            @if (_vm.ShowGameTypeSelector)
             {
-                <div style="margin-bottom:16px">
+                <div class="form-group">
                     <label class="form-label">Spielart</label>
                     <div class="pill-group">
-                        <button class="pill @(_type == RoundType.Normal ? "active" : "")"
-                                @onclick="() => _type = RoundType.Normal">Normal
-                        </button>
+                        <button class="pill @(_vm.Type == RoundType.Normal ? "active" : "")"
+                                @onclick="() => _vm.SetType(RoundType.Normal)">Normal</button>
                         @if (Game.Rules.AllowDurch)
                         {
-                            <button class="pill @(_type == RoundType.Durch ? "active" : "")"
-                                    @onclick="() => _type = RoundType.Durch">Durch
-                            </button>
+                            <button class="pill @(_vm.Type == RoundType.Durch ? "active" : "")"
+                                    @onclick="() => _vm.SetType(RoundType.Durch)">Durch</button>
                         }
                         @if (Game.Rules.AllowBettel)
                         {
-                            <button class="pill @(_type == RoundType.Bettel ? "active" : "")"
-                                    @onclick="() => _type = RoundType.Bettel">Bettel
-                            </button>
+                            <button class="pill @(_vm.Type == RoundType.Bettel ? "active" : "")"
+                                    @onclick="() => _vm.SetType(RoundType.Bettel)">Bettel</button>
                         }
                     </div>
                 </div>
             }
 
-            <label class="form-label">@(IsSpecial ? "Spieler" : "Reizer")</label>
-            <div class="pill-group" style="margin-bottom:16px">
-                @for (int i = 0; i < Game.Players.Count; i++)
-                {
-                    var idx = i;
-                    <button class="pill @(_bidder == idx ? "active" : "")" @onclick="() => _bidder = idx">
-                        @Game.Players[idx]
-                    </button>
-                }
+            <div class="form-group">
+                <label class="form-label">@_vm.BidderLabel</label>
+                <div class="pill-group">
+                    @for (int i = 0; i < Game.Players.Count; i++)
+                    {
+                        var idx = i;
+                        <button class="pill @(_vm.IsBidder(idx) ? "active" : "")"
+                                @onclick="() => _vm.SetBidder(idx)">@Game.Players[idx]</button>
+                    }
+                </div>
             </div>
 
-            @if (IsSpecial)
+            @if (_vm.IsSpecial)
             {
-                <div style="margin-bottom:20px">
-                    <label
-                        class="form-label">@(_type == RoundType.Durch ? "Alle Stiche gemacht?" : "Keinen Stich gemacht?")</label>
+                <!-- Durch / Bettel: Ergebnis-Toggle + Punkte-Vorschau -->
+                <div class="form-group">
+                    <label class="form-label">@_vm.SpecialResultLabel</label>
                     <div class="toggle-row">
-                        <button class="toggle-track @(_won ? "on" : "off")" @onclick="() => _won = !_won">
-                            <div class="toggle-knob @(_won ? "on" : "off")"></div>
+                        <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon">
+                            <div class="toggle-knob @_vm.WonClass"></div>
                         </button>
-                        <span
-                            class="toggle-label @(_won ? "on" : "off")">@(_won ? "Geschafft" : "Nicht geschafft")</span>
+                        <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
                     </div>
-                    <div class="score-preview @(_won ? "won" : "lost")" style="margin-top:10px">
-                        <span
-                            style="font-size:14px;font-weight:700;font-family:var(--font-mono);color:var(@(_won ? "--green" : "--red"))">
-                            @(_won ? "+" : "")@(_won ? Game.Rules.DurchPoints : -Game.Rules.DurchPoints) Punkte
-                        </span>
+                    <div class="score-preview @(_vm.Won ? "won" : "lost")" style="margin-top:10px">
+                        <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
                         @if (Game.Rules.DurchSeparate)
                         {
-                            <span style="font-size:12px;color:var(--muted);margin-left:8px">(separat)</span>
+                            <span class="score-preview-note">(separat)</span>
                         }
                     </div>
                 </div>
             }
             else
             {
-                <div style="margin-bottom:14px">
+                <!-- Normal: Reizwert, Gewonnen/Verloren, Punkte pro Spieler -->
+                <div class="form-group">
                     <label class="form-label">Reizwert</label>
-                    <input class="form-input" type="number" inputmode="numeric" value="@_bid"
-                           placeholder="z.B. 150" @oninput="e => _bid = e.Value?.ToString() ?? string.Empty"/>
+                    <input class="form-input" type="number" inputmode="numeric" value="@_vm.Bid"
+                           placeholder="z.B. 150"
+                           @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty"/>
                 </div>
 
-                <div style="margin-bottom:18px">
+                <div class="form-group">
                     <div class="toggle-row">
-                        <button class="toggle-track @(_won ? "on" : "off")" @onclick="() => _won = !_won">
-                            <div class="toggle-knob @(_won ? "on" : "off")"></div>
+                        <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon">
+                            <div class="toggle-knob @_vm.WonClass"></div>
                         </button>
-                        <span
-                            class="toggle-label @(_won ? "on" : "off")">@(_won ? "Geschafft" : "Nicht geschafft")</span>
+                        <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
                     </div>
-                    @if (!_won)
+                    @if (!_vm.Won)
                     {
                         <div class="score-preview lost" style="margin-top:8px">
-                            <span
-                                style="font-size:13px;font-family:var(--font-mono);color:var(--red)">@MinusPreview</span>
+                            <span class="score-preview-value red">@_vm.MinusPreview</span>
                         </div>
                     }
                 </div>
 
-                <label class="form-label" style="margin-bottom:10px">Punkte pro Spieler</label>
+                <label class="form-label">Punkte pro Spieler</label>
                 @for (int i = 0; i < Game.Players.Count; i++)
                 {
                     var idx = i;
-                    <div class="@(idx == _bidder ? "bidder-highlight" : "player-row")">
-                        <div class="bidder-name" style="color:var(@(idx == _bidder ? "--accent" : "--muted"))">
+                    <div class="@_vm.PlayerRowClass(idx)">
+                        <div class="@_vm.PlayerNameClass(idx)">
                             @Game.Players[idx]
-                            @if (idx == _bidder)
-                            {
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                    <path
-                                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                </svg>
-                            }
+                            @if (_vm.IsBidder(idx)) { @StarIcon }
                         </div>
-                        <div style="display:flex;gap:8px;align-items:flex-end">
+                        <div class="player-inputs">
                             <div style="flex:1">
                                 <label class="form-label form-label-sm">Melden</label>
                                 <input class="form-input form-input-center" type="number" inputmode="numeric"
-                                       value="@_meld[idx]" placeholder="0"
-                                       @oninput="e => _meld[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                       value="@_vm.Meld[idx]" placeholder="0"
+                                       @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty"/>
                             </div>
                             <div style="flex:1">
                                 <label class="form-label form-label-sm">Stiche</label>
                                 <input class="form-input form-input-center" type="number" inputmode="numeric"
-                                       value="@_tricks[idx]" placeholder="0"
-                                       @oninput="e => _tricks[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                       value="@_vm.Tricks[idx]" placeholder="0"
+                                       @oninput="e => _vm.Tricks[idx] = e.Value?.ToString() ?? string.Empty"/>
                             </div>
-                            @if (Game.Rules.AllowAbgehen && (!BidderOnlyAbgehen || idx == _bidder))
+                            @if (_vm.ShowAbgehenFor(idx))
                             {
-                                <div style="flex:none;padding-bottom:2px">
+                                <div class="abgehen-col">
                                     <label class="form-label form-label-sm">Abg.</label>
-                                    <button class="toggle-track @(_abgegangen[idx] ? "on" : "off")"
+                                    <button class="toggle-track @_vm.AbgehenClass(idx)"
                                             style="margin-top:4px"
-                                            @onclick="() => _abgegangen[idx] = !_abgegangen[idx]">
-                                        <div class="toggle-knob @(_abgegangen[idx] ? "on" : "off")"></div>
+                                            @onclick="() => _vm.ToggleAbgegangen(idx)">
+                                        <div class="toggle-knob @_vm.AbgehenClass(idx)"></div>
                                     </button>
                                 </div>
                             }
@@ -271,318 +162,242 @@
         }
         else
         {
-            <!-- ════ STEP-BY-STEP MODE ════ -->
+            <!-- ════ SCHRITT-FÜR-SCHRITT-MODUS ════ -->
 
-            <!-- Step indicator -->
+            <!-- Schritt-Indikator -->
             <div class="step-indicator">
-                @for (int i = 0; i < TotalSteps; i++)
+                @for (int i = 0; i < _vm.TotalSteps; i++)
                 {
                     var si = i;
                     <div class="step-dot-wrap">
-                        <div class="step-dot @(si < _step ? "done" : si == _step ? "active" : "")"></div>
-                        @if (si < TotalSteps - 1)
+                        <div class="step-dot @(si < _vm.Step ? "done" : si == _vm.Step ? "active" : "")"></div>
+                        @if (si < _vm.TotalSteps - 1)
                         {
-                            <div class="step-line @(si < _step ? "done" : "")"></div>
+                            <div class="step-line @(si < _vm.Step ? "done" : "")"></div>
                         }
                     </div>
                 }
             </div>
-            <div class="step-label">@StepLabels[_step]</div>
+            <div class="step-label">@_vm.StepLabels[_vm.Step]</div>
 
-            <!-- Step content -->
-            <div class="step-content @(_forward ? "slide-in-right" : "slide-in-left")" @key="_step">
+            <!-- Schritt-Inhalt -->
+            <div class="step-content @(_vm.Forward ? "slide-in-right" : "slide-in-left")" @key="_vm.Step">
 
-                @if (_step == 0)
+                @if (_vm.Step == 0)
                 {
-                    <!-- Step 0: Spielart + Reizer -->
-                    @if (Game.Rules.AllowDurch || Game.Rules.AllowBettel)
+                    <!-- Schritt 0: Spielart + Reizer/Spieler auswählen -->
+                    @if (_vm.ShowGameTypeSelector)
                     {
-                        <div style="margin-bottom:20px">
+                        <div class="form-group">
                             <label class="form-label">Spielart</label>
                             <div class="pill-group">
-                                <button class="pill @(_type == RoundType.Normal ? "active" : "")"
-                                        @onclick="() => SetType(RoundType.Normal)">Normal
-                                </button>
+                                <button class="pill @(_vm.Type == RoundType.Normal ? "active" : "")"
+                                        @onclick="() => _vm.SetType(RoundType.Normal)">Normal</button>
                                 @if (Game.Rules.AllowDurch)
                                 {
-                                    <button class="pill @(_type == RoundType.Durch ? "active" : "")"
-                                            @onclick="() => SetType(RoundType.Durch)">Durch
-                                    </button>
+                                    <button class="pill @(_vm.Type == RoundType.Durch ? "active" : "")"
+                                            @onclick="() => _vm.SetType(RoundType.Durch)">Durch</button>
                                 }
                                 @if (Game.Rules.AllowBettel)
                                 {
-                                    <button class="pill @(_type == RoundType.Bettel ? "active" : "")"
-                                            @onclick="() => SetType(RoundType.Bettel)">Bettel
-                                    </button>
+                                    <button class="pill @(_vm.Type == RoundType.Bettel ? "active" : "")"
+                                            @onclick="() => _vm.SetType(RoundType.Bettel)">Bettel</button>
                                 }
                             </div>
                         </div>
                     }
-
-                    <label class="form-label">@(IsSpecial ? "Spieler" : "Reizer")</label>
+                    <label class="form-label">@_vm.BidderLabel</label>
                     <div class="pill-group">
                         @for (int i = 0; i < Game.Players.Count; i++)
                         {
                             var idx = i;
-                            <button class="pill @(_bidder == idx ? "active" : "")" @onclick="() => _bidder = idx">
-                                @Game.Players[idx]
-                            </button>
+                            <button class="pill @(_vm.IsBidder(idx) ? "active" : "")"
+                                    @onclick="() => _vm.SetBidder(idx)">@Game.Players[idx]</button>
                         }
                     </div>
                 }
-                else if (_step == 1 && IsSpecial)
+                else if (_vm.Step == 1 && _vm.IsSpecial)
                 {
-                    <!-- Step 1 (Special): Ergebnis -->
-                    <label
-                        class="form-label">@(_type == RoundType.Durch ? "Alle Stiche gemacht?" : "Keinen Stich gemacht?")</label>
+                    <!-- Schritt 1 (Durch/Bettel): Ergebnis -->
+                    <label class="form-label">@_vm.SpecialResultLabel</label>
                     <div class="toggle-row" style="margin-bottom:12px">
-                        <button class="toggle-track @(_won ? "on" : "off")" @onclick="() => _won = !_won">
-                            <div class="toggle-knob @(_won ? "on" : "off")"></div>
+                        <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon">
+                            <div class="toggle-knob @_vm.WonClass"></div>
                         </button>
-                        <span
-                            class="toggle-label @(_won ? "on" : "off")">@(_won ? "Geschafft" : "Nicht geschafft")</span>
+                        <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
                     </div>
-                    <div class="score-preview @(_won ? "won" : "lost")">
-                        <span
-                            style="font-size:16px;font-weight:700;font-family:var(--font-mono);color:var(@(_won ? "--green" : "--red"))">
-                            @(_won ? "+" : "")@(_won ? Game.Rules.DurchPoints : -Game.Rules.DurchPoints) Punkte
-                        </span>
+                    <div class="score-preview @(_vm.Won ? "won" : "lost")">
+                        <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
                         @if (Game.Rules.DurchSeparate)
                         {
-                            <span style="font-size:12px;color:var(--muted);margin-left:8px">(separat)</span>
+                            <span class="score-preview-note">(separat)</span>
                         }
                     </div>
                 }
-                else if (_step == 1 && !IsSpecial)
+                else if (_vm.Step == 1 && !_vm.IsSpecial)
                 {
-                    <!-- Step 1 (Normal): Reizwert [+ Abgehen wenn BidderOnly] -->
-                    <label class="form-label">Reizwert</label>
-                    <input class="form-input" type="number" inputmode="numeric" value="@_bid"
-                           placeholder="z.B. 150" @oninput="e => _bid = e.Value?.ToString() ?? string.Empty"
-                           style="font-size:22px;text-align:center;padding:14px"/>
-                    @if (BidderOnlyAbgehen)
+                    <!-- Schritt 1 (Normal): Reizwert + ggf. Abgehen -->
+                    <input class="form-input bid-input" type="number" inputmode="numeric" value="@_vm.Bid"
+                           placeholder="z.B. 150"
+                           @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty"/>
+
+                    @if (_vm.BidderOnlyAbgehen)
                     {
-                        <label class="form-label" style="margin-top:18px">@Game.Players[_bidder] abgegangen?</label>
+                        <label class="form-label" style="margin-top:18px">
+                            @Game.Players[_vm.Bidder] abgegangen?
+                        </label>
                         <div class="toggle-row">
-                            <button class="toggle-track @(BidderAbgegangen ? "on" : "off")"
-                                    @onclick="() => _abgegangen[_bidder] = !_abgegangen[_bidder]">
-                                <div class="toggle-knob @(BidderAbgegangen ? "on" : "off")"></div>
+                            <button class="toggle-track @_vm.AbgehenClass(_vm.Bidder)"
+                                    @onclick="() => _vm.ToggleAbgegangen(_vm.Bidder)">
+                                <div class="toggle-knob @_vm.AbgehenClass(_vm.Bidder)"></div>
                             </button>
-                            <span class="toggle-label @(BidderAbgegangen ? "on" : "off")">
-                                @(BidderAbgegangen ? "Ja — abgegangen" : "Nein — spielt weiter")
+                            <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">
+                                @_vm.BidderAbgehenLabel
                             </span>
                         </div>
-                        @if (BidderAbgegangen && BidValue > 0)
+                        @if (_vm.BidderAbgegangen && _vm.BidValue > 0)
                         {
                             <div class="score-preview lost" style="margin-top:10px">
-                                <span
-                                    style="font-size:15px;font-family:var(--font-mono);color:var(--red)">@MinusPreview</span>
+                                <span class="score-preview-value red">@_vm.MinusPreview</span>
                             </div>
                         }
                     }
                 }
-                else if (_step == 2)
+                else if (_vm.Step == 2)
                 {
-                    <!-- Step 2: Meld per player (bidder locked when abgegangen) -->
+                    <!-- Schritt 2: Melden pro Spieler -->
                     @for (int i = 0; i < Game.Players.Count; i++)
                     {
                         var idx = i;
-                        var isBidderAbg = idx == _bidder && BidderAbgegangen;
-                        <div class="@(idx == _bidder ? "bidder-highlight" : "player-row")">
-                            <div class="bidder-name" style="color:var(@(idx == _bidder ? "--accent" : "--muted"))">
+                        var bidderAbg = _vm.IsBidder(idx) && _vm.BidderAbgegangen;
+                        <div class="@_vm.PlayerRowClass(idx)">
+                            <div class="@_vm.PlayerNameClass(idx)">
                                 @Game.Players[idx]
-                                @if (idx == _bidder)
-                                {
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                        <path
-                                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                    </svg>
-                                }
+                                @if (_vm.IsBidder(idx)) { @StarIcon }
                             </div>
-                            @if (isBidderAbg)
+                            @if (bidderAbg)
                             {
-                                <div style="font-size:13px;color:var(--dark);font-style:italic">Kein Melden
-                                    (abgegangen)
-                                </div>
+                                <div class="abgegangen-note">Kein Melden (abgegangen)</div>
                             }
                             else
                             {
                                 <input class="form-input form-input-center" type="number" inputmode="numeric"
-                                       value="@_meld[idx]" placeholder="0"
-                                       @oninput="e => _meld[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                       value="@_vm.Meld[idx]" placeholder="0"
+                                       @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty"/>
                             }
                         </div>
                     }
                 }
-                else if (_step == 3)
+                else if (_vm.Step == 3)
                 {
-                    <!-- Step 3: Tricks per player -->
+                    <!-- Schritt 3: Stiche pro Spieler -->
                     @for (int i = 0; i < Game.Players.Count; i++)
                     {
                         var idx = i;
-                        <div class="@(idx == _bidder ? "bidder-highlight" : "player-row")">
-                            <div class="bidder-name" style="color:var(@(idx == _bidder ? "--accent" : "--muted"))">
+                        <div class="@_vm.PlayerRowClass(idx)">
+                            <div class="@_vm.PlayerNameClass(idx)">
                                 @Game.Players[idx]
-                                @if (idx == _bidder)
-                                {
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                        <path
-                                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                    </svg>
-                                }
+                                @if (_vm.IsBidder(idx)) { @StarIcon }
                             </div>
                             <input class="form-input form-input-center" type="number" inputmode="numeric"
-                                   value="@_tricks[idx]" placeholder="0"
-                                   @oninput="e => _tricks[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                   value="@_vm.Tricks[idx]" placeholder="0"
+                                   @oninput="e => _vm.Tricks[idx] = e.Value?.ToString() ?? string.Empty"/>
                         </div>
                     }
                 }
-                else if (_step == 4)
+                else if (_vm.Step == 4)
                 {
-                    <!-- Step 4: Abgegangen (non-BidderOnly) + detaillierte Punkteauflistung -->
-                    @if (Game.Rules.AllowAbgehen && !BidderOnlyAbgehen)
+                    <!-- Schritt 4: Ergebnis — Abgehen (falls erlaubt) + Punkteauflistung -->
+                    @if (Game.Rules.AllowAbgehen && !_vm.BidderOnlyAbgehen)
                     {
                         <label class="form-label" style="margin-bottom:10px">Abgegangen?</label>
                         @for (int i = 0; i < Game.Players.Count; i++)
                         {
                             var idx = i;
-                            <div class="@(idx == _bidder ? "bidder-highlight" : "player-row")"
-                                 style="margin-bottom:8px">
+                            <div class="@_vm.PlayerRowClass(idx)" style="margin-bottom:8px">
                                 <div class="toggle-row">
-                                    <div class="bidder-name"
-                                         style="flex:1;color:var(@(idx == _bidder ? "--accent" : "--muted"))">
+                                    <div class="@_vm.PlayerNameClass(idx)" style="flex:1">
                                         @Game.Players[idx]
-                                        @if (idx == _bidder)
-                                        {
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"
-                                                 stroke="none">
-                                                <path
-                                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                            </svg>
-                                        }
+                                        @if (_vm.IsBidder(idx)) { @StarIcon }
                                     </div>
-                                    <button class="toggle-track @(_abgegangen[idx] ? "on" : "off")"
-                                            @onclick="() => _abgegangen[idx] = !_abgegangen[idx]">
-                                        <div class="toggle-knob @(_abgegangen[idx] ? "on" : "off")"></div>
+                                    <button class="toggle-track @_vm.AbgehenClass(idx)"
+                                            @onclick="() => _vm.ToggleAbgegangen(idx)">
+                                        <div class="toggle-knob @_vm.AbgehenClass(idx)"></div>
                                     </button>
                                 </div>
                             </div>
                         }
                     }
 
-                    <!-- Punkteauflistung pro Spieler -->
+                    <!-- Punkteauflistung — berechnet vom ViewModel -->
+                    @foreach (var (p, i) in _vm.GetScorePreviews().Select((x, idx) => (x, idx)))
                     {
-                        var abgBonus = Game.Players.Count * 10;
+                        <div class="@_vm.PlayerRowClass(i)" style="margin-bottom:10px">
+                            <div class="@_vm.PlayerNameClass(i)" style="margin-bottom:6px">
+                                @Game.Players[i]
+                                @if (_vm.IsBidder(i)) { @StarIcon }
+                            </div>
 
-                        for (int i = 0; i < Game.Players.Count; i++)
-                        {
-                            var idx = i;
-                            var mVal = int.TryParse(_meld.ElementAtOrDefault(idx) ?? "", out var mvi) ? mvi : 0;
-                            var tVal = int.TryParse(_tricks.ElementAtOrDefault(idx) ?? "", out var tvi) ? tvi : 0;
-                            var pAbg = _abgegangen.ElementAtOrDefault(idx);
-                            bool isBidder = idx == _bidder;
-
-                            int finalScore;
-                            bool isLoss;
-                            string? lossReason = null;
-
-                            if (isBidder)
+                            @if (p.IsAbgegangen && _vm.IsBidder(i))
                             {
-                                if (BidderAbgegangen)
+                                <!-- Reizer abgegangen -->
+                                <div class="bd-row">
+                                    <span class="bd-label">Abgegangen</span>
+                                    <span class="bd-val neg">@_vm.MinusPreview</span>
+                                </div>
+                            }
+                            else if (p.LossReason is "Abgegangen" or "Kein Stich — Meldung verfallen")
+                            {
+                                <!-- Meldung verfallen oder Mitspieler abgegangen -->
+                                @if (p.Meld > 0)
                                 {
-                                    finalScore = Game.Rules.DoubleMinus ? -(BidValue * 2) : -BidValue;
-                                    isLoss = true;
-                                    lossReason = "Abgegangen";
+                                    <div class="bd-row">
+                                        <span class="bd-label">Gemeldet</span>
+                                        <span class="bd-val muted">+@p.Meld (verfallen)</span>
+                                    </div>
                                 }
-                                else if (mVal + tVal < BidValue)
+                                @if (p.Tricks > 0)
                                 {
-                                    finalScore = Game.Rules.DoubleMinus ? -(BidValue * 2) : -BidValue;
-                                    isLoss = true;
-                                    lossReason = Game.Rules.DoubleMinus ? "Reizwert nicht erreicht → doppelt Minus" : "Reizwert nicht erreicht";
+                                    <div class="bd-row">
+                                        <span class="bd-label">Stiche</span>
+                                        <span class="bd-val">+@p.Tricks</span>
+                                    </div>
                                 }
-                                else
-                                {
-                                    finalScore = mVal + tVal;
-                                    isLoss = false;
-                                }
+                                <div class="bd-row bd-row-total">
+                                    <span class="bd-label">@p.LossReason</span>
+                                    <span class="bd-val zero">= 0</span>
+                                </div>
                             }
                             else
                             {
-                                if (pAbg || (tVal == 0 && mVal > 0))
-                                {
-                                    finalScore = 0;
-                                    isLoss = false;
-                                    lossReason = pAbg ? "Abgegangen" : "Kein Stich — Meldung verfallen";
-                                }
-                                else
-                                {
-                                    finalScore = mVal + tVal + (BidderAbgegangen ? abgBonus : 0);
-                                    isLoss = false;
-                                }
-                            }
-
-                            <div class="@(isBidder ? "bidder-highlight" : "player-row")" style="margin-bottom:10px">
-                                <div class="bidder-name"
-                                     style="color:var(@(isBidder ? "--accent" : "--muted"));margin-bottom:6px">
-                                    @Game.Players[idx]
-                                    @if (isBidder)
-                                    {
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"
-                                             stroke="none">
-                                            <path
-                                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                        </svg>
-                                    }
+                                <!-- Normales Ergebnis -->
+                                <div class="bd-row">
+                                    <span class="bd-label">Gemeldet</span>
+                                    <span class="bd-val">+@p.Meld</span>
                                 </div>
-                                @if (isBidder && BidderAbgegangen)
+                                <div class="bd-row">
+                                    <span class="bd-label">Stiche</span>
+                                    <span class="bd-val">+@p.Tricks</span>
+                                </div>
+                                @if (p.Bonus > 0)
                                 {
-                                    <div class="bd-row"><span class="bd-label">Abgegangen</span><span
-                                            class="bd-val neg">@(Game.Rules.DoubleMinus ? MinusPreview : $"−{BidValue}")</span>
+                                    <div class="bd-row">
+                                        <span class="bd-label">Bonus (Reizer abgegangen)</span>
+                                        <span class="bd-val pos">+@p.Bonus</span>
                                     </div>
                                 }
-                                else if (lossReason == "Abgegangen" || lossReason == "Kein Stich — Meldung verfallen")
+                                @if (p.LossReason != null)
                                 {
-                                    @if (mVal > 0)
-                                    {
-                                        <div class="bd-row"><span class="bd-label">Gemeldet</span><span
-                                                class="bd-val muted">+@mVal (verfallen)</span></div>
-                                    }
-
-                                    @if (tVal > 0)
-                                    {
-                                        <div class="bd-row"><span class="bd-label">Stiche</span><span
-                                                class="bd-val">+@tVal</span></div>
-                                    }
-
-                                    <div class="bd-row bd-row-total"><span class="bd-label">@lossReason</span><span
-                                            class="bd-val zero">= 0</span></div>
+                                    <div class="bd-row"><span class="bd-label bd-note">@p.LossReason</span></div>
                                 }
-                                else
-                                {
-                                    <div class="bd-row"><span class="bd-label">Gemeldet</span><span
-                                            class="bd-val">+@mVal</span></div>
-                                    <div class="bd-row"><span class="bd-label">Stiche</span><span
-                                            class="bd-val">+@tVal</span></div>
-                                    @if (!isBidder && BidderAbgegangen)
-                                    {
-                                        <div class="bd-row"><span class="bd-label">Bonus</span><span class="bd-val pos">+@abgBonus</span>
-                                        </div>
-                                    }
-
-                                    @if (lossReason != null)
-                                    {
-                                        <div class="bd-row"><span class="bd-label bd-note">@lossReason</span></div>
-                                    }
-
-                                    <div class="bd-row bd-row-total">
-                                        <span class="bd-label">Gesamt</span>
-                                        <span class="bd-val @(isLoss ? "neg" : finalScore > 0 ? "pos" : "zero")">
-                                        @(isLoss || finalScore < 0 ? "" : "+")@finalScore
+                                <div class="bd-row bd-row-total">
+                                    <span class="bd-label">Gesamt</span>
+                                    <span class="bd-val @(p.IsLoss ? "neg" : p.FinalScore > 0 ? "pos" : "zero")">
+                                        @(p.IsLoss || p.FinalScore < 0 ? "" : "+")@p.FinalScore
                                     </span>
-                                    </div>
-                                }
-                            </div>
-                        }
+                                </div>
+                            }
+                        </div>
                     }
                 }
 
@@ -590,14 +405,12 @@
 
             <!-- Navigation -->
             <div class="step-nav">
-                <button class="btn-outline" style="flex:1;opacity:@(_step == 0 ? "0.3" : "1")"
-                        disabled="@(_step == 0)" @onclick="GoPrev">Zurück
-                </button>
-                @if (_step < TotalSteps - 1)
+                <button class="btn-outline" style="flex:1;opacity:@(_vm.Step == 0 ? "0.3" : "1")"
+                        disabled="@(_vm.Step == 0)" @onclick="_vm.GoPrev">Zurück</button>
+                @if (_vm.Step < _vm.TotalSteps - 1)
                 {
-                    <button class="btn-primary" style="flex:2;opacity:@(CanAdvance ? "1" : "0.4")"
-                            disabled="@(!CanAdvance)" @onclick="GoNext">Weiter
-                    </button>
+                    <button class="btn-primary" style="flex:2;opacity:@(_vm.CanAdvance ? "1" : "0.4")"
+                            disabled="@(!_vm.CanAdvance)" @onclick="_vm.GoNext">Weiter</button>
                 }
                 else
                 {
@@ -610,143 +423,26 @@
 
 <style>
     .step-indicator {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0;
-        margin-bottom: 6px;
+        display: flex; align-items: center; justify-content: center;
+        gap: 0; margin-bottom: 6px;
     }
-
-    .step-dot-wrap {
-        display: flex;
-        align-items: center;
-    }
-
+    .step-dot-wrap { display: flex; align-items: center; }
     .step-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: var(--border);
-        transition: background 0.2s, transform 0.2s;
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--border); transition: background 0.2s, transform 0.2s;
     }
-
-    .step-dot.active {
-        background: var(--accent);
-        transform: scale(1.3);
-    }
-
-    .step-dot.done {
-        background: var(--accent-dim);
-    }
-
-    .step-line {
-        width: 28px;
-        height: 2px;
-        background: var(--border);
-        transition: background 0.2s;
-    }
-
-    .step-line.done {
-        background: var(--accent-dim);
-    }
-
+    .step-dot.active { background: var(--accent); transform: scale(1.3); }
+    .step-dot.done   { background: var(--accent-dim); }
+    .step-line { width: 28px; height: 2px; background: var(--border); transition: background 0.2s; }
+    .step-line.done { background: var(--accent-dim); }
     .step-label {
-        text-align: center;
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--accent-light);
-        margin-bottom: 20px;
-        letter-spacing: 0.01em;
+        text-align: center; font-size: 18px; font-weight: 700;
+        color: var(--accent-light); margin-bottom: 20px; letter-spacing: 0.01em;
     }
-
-    .step-content {
-        animation-duration: 0.22s;
-        animation-fill-mode: both;
-        animation-timing-function: ease-out;
-    }
-
-    .step-content.slide-in-right {
-        animation-name: step-from-right;
-    }
-
-    .step-content.slide-in-left {
-        animation-name: step-from-left;
-    }
-
-    @@keyframes step-from-right {
-        from {
-            opacity: 0;
-            transform: translateX(32px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    @@keyframes step-from-left {
-        from {
-            opacity: 0;
-            transform: translateX(-32px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    .step-nav {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-
-    /* ── Score breakdown ── */
-    .bd-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        padding: 2px 0;
-        font-size: 13px;
-    }
-
-    .bd-row-total {
-        border-top: 1px solid var(--border);
-        margin-top: 4px;
-        padding-top: 5px;
-        font-size: 15px;
-        font-weight: 700;
-    }
-
-    .bd-label {
-        color: var(--muted);
-    }
-
-    .bd-note {
-        color: var(--dark);
-        font-style: italic;
-        font-size: 11px;
-    }
-
-    .bd-val {
-        font-family: var(--font-mono);
-        font-weight: 600;
-    }
-
-    .bd-val.pos {
-        color: var(--green);
-    }
-
-    .bd-val.neg {
-        color: var(--red);
-    }
-
-    .bd-val.zero {
-        color: var(--dark);
-    }
-
-    .bd-val.muted {
-        color: var(--dark);
-        text-decoration: line-through;
-    }
+    .step-content { animation-duration: 0.22s; animation-fill-mode: both; animation-timing-function: ease-out; }
+    .step-content.slide-in-right { animation-name: step-from-right; }
+    .step-content.slide-in-left  { animation-name: step-from-left; }
+    @@keyframes step-from-right { from { opacity: 0; transform: translateX(32px); }  to { opacity: 1; transform: translateX(0); } }
+    @@keyframes step-from-left  { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: translateX(0); } }
+    .step-nav { display: flex; gap: 10px; margin-top: 20px; }
 </style>

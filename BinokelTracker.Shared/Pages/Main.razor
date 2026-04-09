@@ -12,7 +12,7 @@
         }
         else if (_view == View.List)
         {
-            <GameList Games="_state.Games" OnSelect="SelectGame" OnNew="() => _view = View.NewGame" />
+            <GameList Games="_state.Games" OnSelect="SelectGame" OnNew="() => _view = View.NewGame" OnQuickGame="() => _view = View.QuickGame" OnStats="() => _view = View.Statistics" />
         }
         else if (_view == View.NewGame)
         {
@@ -30,11 +30,19 @@
         {
             <AddRoundForm Game="_selectedGame" OnSave="AddRound" OnCancel="() => _view = View.Detail" />
         }
+        else if (_view == View.QuickGame)
+        {
+            <QuickGameForm KnownPlayers="_state.KnownPlayers" OnSave="AddQuickGame" OnCancel="() => _view = View.List" />
+        }
+        else if (_view == View.Statistics)
+        {
+            <Statistics State="_state" OnBack="() => _view = View.List" />
+        }
     </div>
 </div>
 
 @code {
-    enum View { List, NewGame, Detail, AddRound }
+    enum View { List, NewGame, Detail, AddRound, QuickGame, Statistics }
 
     private AppState _state = new();
     private View _view = View.List;
@@ -111,6 +119,19 @@
             _selectedGame.Finished = true;
             await Save();
         }
+    }
+
+    private async Task AddQuickGame(Game game)
+    {
+        foreach (var name in game.Players)
+        {
+            if (!string.IsNullOrWhiteSpace(name) &&
+                !_state.KnownPlayers.Contains(name, StringComparer.OrdinalIgnoreCase))
+                _state.KnownPlayers.Add(name);
+        }
+        _state.Games.Add(game);
+        _view = View.List;
+        await Save();
     }
 
     private async Task RemoveKnownPlayer(string name)
