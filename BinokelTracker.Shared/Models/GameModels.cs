@@ -123,8 +123,11 @@ public class Round
             }
             else
             {
+                bool isPartner = rules.TeamMode && PlayerScores.Count == 4 && i == (Bidder + 2) % 4;
                 if (ps.Abgegangen || (ps.Tricks == 0 && ps.Meld > 0))
                     scores[i] = 0;
+                else if (bidderAbgegangen && isPartner)
+                    scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
                 else if (bidderAbgegangen)
                     scores[i] = total + PlayerScores.Count * 10;
                 else

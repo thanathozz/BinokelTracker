@@ -104,6 +104,25 @@ public class ScoringCalculatorTests
     }
 
     [Fact]
+    public void Team_Reizer_abgegangen_bestraft_auch_Partner()
+    {
+        // 4 Spieler, TeamMode: Bidder=0, Partner=2, Gegner=1,3
+        // Bonus = 4 × 10 = 40
+        var round = Build.NormalRound(
+            bidder: 0, bid: 300,
+            meld:   new[] { 0, 100, 50, 80 },
+            tricks: new[] { 0,   0,  0,  0 },
+            abgegangen: new[] { true, false, false, false });
+
+        var scores = ScoringCalculator.CalcRoundScores(round, Build.Rules.TeamMode());
+
+        scores[0].Should().Be(-300);        // Reizer zahlt Reizwert
+        scores[2].Should().Be(-300);        // Partner zahlt ebenfalls Reizwert
+        scores[1].Should().Be(100 + 40);    // Gegner: Meld + Bonus
+        scores[3].Should().Be( 80 + 40);    // Gegner: Meld + Bonus
+    }
+
+    [Fact]
     public void Mitspieler_abgegangen_bekommt_null_Punkte()
     {
         // AllCanAbgehen: auch andere Spieler können abgehen

@@ -308,27 +308,6 @@
                 else if (_vm.CurrentStep == FormStep.Ergebnis)
                 {
                     <!-- Ergebnis (Normal): ggf. Abgehen aller + detaillierte Punkteauflistung -->
-                    @if (_vm.ShowOtherPlayersAbgehenInErgebnis)
-                    {
-                        <label class="form-label" style="margin-bottom:10px">Abgegangen?</label>
-                        @for (int i = 0; i < Game.Players.Count; i++)
-                        {
-                            var idx = i;
-                            if (_vm.IsBidder(idx)) continue; // Reizer hatte Toggle bereits im Reizwert-Schritt
-                            <div class="@_vm.PlayerRowClass(idx)" style="margin-bottom:8px">
-                                <div class="toggle-row">
-                                    <div class="@_vm.PlayerNameClass(idx)" style="flex:1">
-                                        @Game.Players[idx]
-                                    </div>
-                                    <button class="toggle-track @_vm.AbgehenClass(idx)"
-                                            @onclick="() => _vm.ToggleAbgegangen(idx)">
-                                        <div class="toggle-knob @_vm.AbgehenClass(idx)"></div>
-                                    </button>
-                                </div>
-                            </div>
-                        }
-                    }
-
                     <!-- Punkteauflistung — berechnet vom ViewModel -->
                     @foreach (var (p, i) in _vm.GetScorePreviews().Select((x, idx) => (x, idx)))
                     {
@@ -343,6 +322,14 @@
                                 <!-- Reizer abgegangen -->
                                 <div class="bd-row">
                                     <span class="bd-label">Abgegangen</span>
+                                    <span class="bd-val neg">@_vm.MinusPreview</span>
+                                </div>
+                            }
+                            else if (p.LossReason == "Reizer abgegangen" && !_vm.IsBidder(i))
+                            {
+                                <!-- Team-Mitspieler: gleiche Strafe wie Reizer -->
+                                <div class="bd-row bd-row-total">
+                                    <span class="bd-label">Reizer abgegangen</span>
                                     <span class="bd-val neg">@_vm.MinusPreview</span>
                                 </div>
                             }
