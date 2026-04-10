@@ -37,10 +37,12 @@ public static class ScoringCalculator
             }
             else
             {
-                if (bidderAbgegangen)
-                    scores[i] = ps.Meld + abgBonus;  // Reizer abgegangen → keine Stiche
+                if (ps.Abgegangen)                        // Mitspieler abgegangen → 0
+                    scores[i] = 0;
+                else if (bidderAbgegangen)
+                    scores[i] = ps.Meld + abgBonus;       // Reizer abgegangen → Meld + Bonus
                 else if (ps.Tricks == 0 && ps.Meld > 0)
-                    scores[i] = 0;                   // kein Stich → Meldung verfallen
+                    scores[i] = 0;                        // kein Stich → Meldung verfallen
                 else
                     scores[i] = ps.Meld + ps.Tricks;
             }
