@@ -99,6 +99,8 @@
         _open = false;
         _players = null;
         _onAssign = null;
+        _counts = new int[5];
+        _letzterStich = false;
     }
 
     private void Reset()
@@ -110,9 +112,8 @@
     private void Assign(int playerIdx)
     {
         _onAssign?.Invoke(playerIdx, Total);
-        _open = false;
-        _players = null;
-        _onAssign = null;
+        _counts = new int[5];
+        _letzterStich = false;
     }
 
     private void Add(int i) => _counts[i]++;
