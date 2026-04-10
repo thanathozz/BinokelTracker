@@ -9,7 +9,7 @@ public enum InputMode { Overview, StepByStep }
 /// Alle möglichen Formularschritte im Schritt-für-Schritt-Modus.
 /// Die aktive Reihenfolge wird in ActiveSteps festgelegt — dort eine Zeile ändern genügt.
 /// </summary>
-public enum FormStep { Spielart, Reizwert, Melden, Stiche, Ergebnis }
+public enum FormStep { Spielart, Reizwert, Melden, Stiche, LetzterStich, Ergebnis }
 
 /// <summary>
 /// Hält den gesamten Zustand des Rundenformulars und berechnet,
@@ -35,9 +35,10 @@ public class AddRoundViewModel
     public string    Bid     { get; set; } = "";
     public bool      Won     { get; set; } = true;
 
-    public List<bool>   Abgegangen { get; private set; } = new();
-    public List<string> Meld       { get; private set; } = new();
-    public List<string> Tricks     { get; private set; } = new();
+    public List<bool>   Abgegangen      { get; private set; } = new();
+    public List<string> Meld            { get; private set; } = new();
+    public List<string> Tricks          { get; private set; } = new();
+    public int          LastTrickWinner { get; private set; }
 
     // Navigation (Schritt-für-Schritt)
     public int  Step    { get; private set; }
@@ -77,10 +78,10 @@ public class AddRoundViewModel
     /// Aktive Schrittfolge — hier die Reihenfolge ändern, um Schritte umzusortieren.
     /// Beim Abgehen des Reizers entfällt nur "Stiche", Melden bleibt für alle anderen.
     public IReadOnlyList<FormStep> ActiveSteps => IsSpecial
-        ? new[] { FormStep.Spielart,  FormStep.Ergebnis }
+        ? new[] { FormStep.Spielart, FormStep.Ergebnis }
         : BidderAbgegangen
             ? new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Ergebnis }
-            : new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Stiche, FormStep.Ergebnis };
+            : new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Stiche, FormStep.LetzterStich, FormStep.Ergebnis };
 
     public int      TotalSteps   => ActiveSteps.Count;
     public FormStep CurrentStep  => ActiveSteps[Step];
@@ -91,8 +92,9 @@ public class AddRoundViewModel
         FormStep.Spielart => "Spieler",
         FormStep.Reizwert => "Reizwert",
         FormStep.Melden   => "Gemeldet",
-        FormStep.Stiche   => "Stiche",
-        FormStep.Ergebnis => "Ergebnis",
+        FormStep.Stiche       => "Stiche",
+        FormStep.LetzterStich => "Letzter Stich",
+        FormStep.Ergebnis     => "Ergebnis",
         _                 => ""
     };
 
@@ -165,6 +167,8 @@ public class AddRoundViewModel
 
     public void SetBidder(int idx) => Bidder = idx;
 
+    public void SetLastTrickWinner(int idx) => LastTrickWinner = idx;
+
     public void ToggleAbgegangen(int idx) => Abgegangen[idx] = !Abgegangen[idx];
 
     public void ToggleWon() => Won = !Won;
@@ -208,18 +212,20 @@ public class AddRoundViewModel
         var meld   = Meld.Select(m => int.TryParse(m, out var v) ? v : 0).ToArray();
         var tricks = Tricks.Select(t => int.TryParse(t, out var v) ? v : 0).ToArray();
         return ScoringCalculator.CalcNormalPreview(
-            Bidder, BidValue, Abgegangen.ToArray(), meld, tricks, _game.Rules);
+            Bidder, BidValue, Abgegangen.ToArray(), meld, tricks, _game.Rules,
+            BidderAbgegangen ? -1 : LastTrickWinner);
     }
 
     /// Baut das fertige Round-Objekt zum Speichern
     public Round BuildRound() => new Round
     {
-        Id     = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        Type   = Type,
-        Bidder = Bidder,
-        Bid    = BidValue,
-        Won    = IsSpecial ? Won : BidderWon,
-        PlayerScores = _game.Players.Select((_, i) => new PlayerScore
+        Id              = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        Type            = Type,
+        Bidder          = Bidder,
+        Bid             = BidValue,
+        Won             = IsSpecial ? Won : BidderWon,
+        LastTrickWinner = (IsSpecial || BidderAbgegangen) ? -1 : LastTrickWinner,
+        PlayerScores    = _game.Players.Select((_, i) => new PlayerScore
         {
             Meld       = (i == Bidder && BidderAbgegangen) ? 0 : (int.TryParse(Meld[i],   out var m) ? m : 0),
             Tricks     = BidderAbgegangen                  ? 0 : (int.TryParse(Tricks[i], out var t) ? t : 0),

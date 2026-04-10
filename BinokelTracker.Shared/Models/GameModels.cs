@@ -87,6 +87,8 @@ public class Round
     public int Bid { get; set; }
     public bool Won { get; set; } = true;
     public List<PlayerScore> PlayerScores { get; set; } = new();
+    /// <summary>Index des Spielers mit dem letzten Stich. -1 = kein Stich gespielt (Reizer abgegangen).</summary>
+    public int LastTrickWinner { get; set; } = -1;
 
     // Computed: true if the bidder abgegangen
     public bool Abgegangen => PlayerScores.Count > Bidder && PlayerScores[Bidder].Abgegangen;
@@ -134,6 +136,9 @@ public class Round
                     scores[i] = total;
             }
         }
+
+        if (LastTrickWinner >= 0 && LastTrickWinner < scores.Length)
+            scores[LastTrickWinner] += GameConstants.LastTrickBonus;
 
         return scores;
     }

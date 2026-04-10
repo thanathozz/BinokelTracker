@@ -158,6 +158,23 @@
                 }
             }
 
+            @if (!_vm.IsSpecial && !_vm.BidderAbgegangen)
+            {
+                <div class="form-group" style="margin-top:10px">
+                    <label class="form-label">Letzter Stich</label>
+                    <div class="pill-group">
+                        @for (int i = 0; i < Game.Players.Count; i++)
+                        {
+                            var idx = i;
+                            <button class="pill @(_vm.LastTrickWinner == idx ? "active" : "")"
+                                    @onclick="() => _vm.SetLastTrickWinner(idx)">
+                                @Game.Players[idx]
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+
             <button class="btn-primary" style="margin-top:14px" @onclick="Save">Runde speichern</button>
         }
         else
@@ -287,6 +304,24 @@
                         </div>
                     }
                 }
+                else if (_vm.CurrentStep == FormStep.LetzterStich)
+                {
+                    <!-- Wer hat den letzten Stich gemacht? -->
+                    <label class="form-label">Wer hat den letzten Stich?</label>
+                    <div class="pill-group">
+                        @for (int i = 0; i < Game.Players.Count; i++)
+                        {
+                            var idx = i;
+                            <button class="pill @(_vm.LastTrickWinner == idx ? "active" : "")"
+                                    @onclick="() => _vm.SetLastTrickWinner(idx)">
+                                @Game.Players[idx]
+                            </button>
+                        }
+                    </div>
+                    <div class="score-preview won" style="margin-top:14px">
+                        <span class="score-preview-value green">+10 Punkte für @Game.Players[_vm.LastTrickWinner]</span>
+                    </div>
+                }
                 else if (_vm.CurrentStep == FormStep.Ergebnis && _vm.IsSpecial)
                 {
                     <!-- Ergebnis (Durch/Bettel): Gewonnen/Verloren + Punkte-Vorschau -->
@@ -371,6 +406,13 @@
                                     <div class="bd-row">
                                         <span class="bd-label">Bonus (Reizer abgegangen)</span>
                                         <span class="bd-val pos">+@p.Bonus</span>
+                                    </div>
+                                }
+                                @if (p.LastTrickBonus > 0)
+                                {
+                                    <div class="bd-row">
+                                        <span class="bd-label">Letzter Stich</span>
+                                        <span class="bd-val pos">+@p.LastTrickBonus</span>
                                     </div>
                                 }
                                 @if (p.LossReason != null)

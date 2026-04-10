@@ -19,13 +19,13 @@ public class AddRoundViewModelTests
     // ══════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void Normale_Runde_hat_fuenf_Schritte()
+    public void Normale_Runde_hat_sechs_Schritte()
     {
         var vm = ForGame();
 
         vm.ActiveSteps.Should().Equal(
             FormStep.Spielart, FormStep.Reizwert, FormStep.Melden,
-            FormStep.Stiche,   FormStep.Ergebnis);
+            FormStep.Stiche,   FormStep.LetzterStich, FormStep.Ergebnis);
     }
 
     [Fact]
@@ -70,8 +70,9 @@ public class AddRoundViewModelTests
         vm.ToggleAbgegangen(0);  // abgegangen
         vm.ToggleAbgegangen(0);  // wieder zurück
 
-        vm.TotalSteps.Should().Be(5);
+        vm.TotalSteps.Should().Be(6);
         vm.ActiveSteps.Should().Contain(FormStep.Stiche);
+        vm.ActiveSteps.Should().Contain(FormStep.LetzterStich);
     }
 
     // ══════════════════════════════════════════════════════════════════════
