@@ -187,6 +187,7 @@ html, body {
     transition: border-color 0.2s;
 }
 .form-input:focus { border-color: var(--accent-dim); }
+.form-input:disabled { opacity: 0.35; cursor: not-allowed; }
 .form-input-center { text-align: center; padding: 8px 10px; font-size: 15px; }
 .form-select {
     background: var(--card); border: 1px solid var(--border); border-radius: 10px;
