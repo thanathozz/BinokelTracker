@@ -1,11 +1,19 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.Maui.Media;
-using Microsoft.Maui.ApplicationModel.Communication;
-using BinokelTracker.Models;
 
 namespace BinokelTracker.Services;
 
 public class FeedbackService : IFeedbackService
 {
+    private readonly HttpClient _http;
+    private const string FormspreeEndpoint = "https://formspree.io/f/xkoplyag";
+
+    public FeedbackService(HttpClient http)
+    {
+        _http = http;
+    }
+
     public async Task<byte[]?> CaptureScreenshotAsync()
     {
         try
@@ -31,27 +39,23 @@ public class FeedbackService : IFeedbackService
         try
         {
             var timestamp = DateTime.Now.ToString("dd.MM.yyyy HH:mm");
-            var subject = $"[Binokel Tracker] Bug Report – {timestamp}";
             var body = string.IsNullOrWhiteSpace(comment)
                 ? "(Kein Kommentar)"
                 : comment;
 
-            var message = new EmailMessage
+            if (screenshot is not null)
+                body += "\n\n[Screenshot wurde aufgenommen]";
+
+            var payload = new
             {
-                Subject = subject,
-                Body = body,
-                To = new List<string>(){"masterflyn@gmx.de"}
+                _subject = $"[Binokel Tracker] Bug Report – {timestamp}",
+                message = body,
+                timestamp
             };
 
-            if (screenshot is not null)
-            {
-                var fileName = $"screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png";
-                var path = Path.Combine(FileSystem.CacheDirectory, fileName);
-                await File.WriteAllBytesAsync(path, screenshot);
-                message.Attachments.Add(new EmailAttachment(path, "image/png"));
-            }
-
-            await Email.Default.ComposeAsync(message);
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            await _http.PostAsync(FormspreeEndpoint, content);
         }
         catch (Exception ex)
         {
