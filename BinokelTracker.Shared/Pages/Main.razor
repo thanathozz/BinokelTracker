@@ -12,7 +12,7 @@
         }
         else if (_view == View.List)
         {
-            <GameList Games="_state.Games" OnSelect="SelectGame" OnNew="() => _view = View.NewGame" OnQuickGame="() => _view = View.QuickGame" OnStats="() => _view = View.Statistics" OnRules="() => _rulesDialog!.Open()" />
+            <GameList Games="_state.Games" OnSelect="SelectGame" OnNew="() => _view = View.NewGame" OnQuickGame="() => _view = View.QuickGame" OnStats="() => _view = View.Statistics" OnRules="() => _rulesDialog!.Open()" OnCalculator="() => _calculatorDialog!.Open()" />
         }
         else if (_view == View.NewGame)
         {
@@ -40,6 +40,7 @@
         }
     </div>
     <RulesDialog @ref="_rulesDialog" />
+    <AugenCalculator @ref="_calculatorDialog" />
     <FeedbackDialog />
 </div>
 
@@ -51,6 +52,7 @@
     private Game? _selectedGame;
     private bool _loaded;
     private RulesDialog? _rulesDialog;
+    private AugenCalculator? _calculatorDialog;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
