@@ -1,0 +1,236 @@
+@if (_open)
+{
+    <div class="calc-overlay" @onclick="Close">
+        <div class="calc-dialog" @onclick:stopPropagation>
+
+            <div class="calc-header">
+                <span class="calc-title">Augen Rechner</span>
+                <div style="display:flex;gap:6px">
+                    <button class="btn" @onclick="Reset" style="padding:4px 10px;font-size:13px">Reset</button>
+                    <button class="btn" @onclick="Close" style="padding:4px">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="calc-total">
+                <div class="calc-total-value">@Total</div>
+                <div class="calc-total-label">Gesamtpunkte</div>
+            </div>
+
+            <div class="calc-rows">
+                @for (int i = 0; i < Cards.Length; i++)
+                {
+                    var idx = i;
+                    <div class="calc-row">
+                        <div class="calc-card-label">
+                            <span class="calc-card-name">@Cards[idx].Name</span>
+                            <span class="calc-card-value">@Cards[idx].Value Pkt.</span>
+                        </div>
+                        <div class="calc-counter">
+                            <button class="calc-btn calc-btn-minus" @onclick="() => Sub(idx)" disabled="@(_counts[idx] == 0)">−</button>
+                            <span class="calc-count">@_counts[idx]</span>
+                            <button class="calc-btn calc-btn-plus" @onclick="() => Add(idx)">+</button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="calc-last-trick">
+                <div>
+                    <span class="calc-card-name">Letzter Stich</span>
+                    <span class="calc-card-value">+10 Pkt.</span>
+                </div>
+                <button class="toggle-btn @(_letzterStich ? "on" : "off")" @onclick="() => _letzterStich = !_letzterStich">
+                    @(_letzterStich ? "Ja" : "Nein")
+                </button>
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    private bool _open;
+    private int[] _counts = new int[5];
+    private bool _letzterStich;
+
+    private static readonly (string Name, int Value)[] Cards =
+    {
+        ("Ass",   11),
+        ("Zehn",  10),
+        ("König",  4),
+        ("Dame",   3),
+        ("Bube",   2),
+    };
+
+    private int Total =>
+        _counts.Select((c, i) => c * Cards[i].Value).Sum()
+        + (_letzterStich ? 10 : 0);
+
+    public void Open()
+    {
+        _open = true;
+        StateHasChanged();
+    }
+
+    private void Close() => _open = false;
+
+    private void Reset()
+    {
+        _counts = new int[5];
+        _letzterStich = false;
+    }
+
+    private void Add(int i) => _counts[i]++;
+
+    private void Sub(int i) { if (_counts[i] > 0) _counts[i]--; }
+}
+
+<style>
+    .calc-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 400;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+    }
+
+    .calc-dialog {
+        background: var(--card);
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        width: 100%;
+        max-width: 480px;
+        padding: 20px 20px 36px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .calc-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .calc-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .calc-total {
+        text-align: center;
+        padding: 12px 0 4px;
+    }
+
+    .calc-total-value {
+        font-size: 52px;
+        font-weight: 800;
+        color: var(--accent);
+        line-height: 1;
+    }
+
+    .calc-total-label {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 4px;
+    }
+
+    .calc-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 4px 0;
+    }
+
+    .calc-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .calc-rows .calc-row:last-child {
+        border-bottom: none;
+    }
+
+    .calc-card-label {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    .calc-card-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .calc-card-value {
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    .calc-counter {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .calc-count {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text);
+        min-width: 28px;
+        text-align: center;
+    }
+
+    .calc-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.15s;
+    }
+
+    .calc-btn:disabled {
+        opacity: 0.3;
+        cursor: default;
+    }
+
+    .calc-btn-minus {
+        background: var(--surface);
+        color: var(--text);
+    }
+
+    .calc-btn-plus {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    .calc-last-trick {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        background: var(--surface);
+        border-radius: 12px;
+    }
+</style>
