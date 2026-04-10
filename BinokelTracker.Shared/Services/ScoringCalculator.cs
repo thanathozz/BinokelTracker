@@ -52,6 +52,9 @@ public static class ScoringCalculator
             }
         }
 
+        if (round.LastTrickWinner >= 0 && round.LastTrickWinner < scores.Length)
+            scores[round.LastTrickWinner] += GameConstants.LastTrickBonus;
+
         return scores;
     }
 
@@ -104,7 +107,8 @@ public static class ScoringCalculator
         bool[] abgegangen,
         int[] meld,
         int[] tricks,
-        RuleSet rules)
+        RuleSet rules,
+        int lastTrickWinner = -1)
     {
         int playerCount = meld.Length;
         bool bidderAbgegangen = abgegangen.ElementAtOrDefault(bidder);
@@ -178,7 +182,9 @@ public static class ScoringCalculator
                 }
             }
 
-            result[i] = new ScoreBreakdown(finalScore, isLoss, lossReason, mVal, tVal, pAbg, bonus);
+            int letzterStichBonus = (!isLoss && lastTrickWinner == i) ? GameConstants.LastTrickBonus : 0;
+            if (letzterStichBonus > 0) finalScore += letzterStichBonus;
+            result[i] = new ScoreBreakdown(finalScore, isLoss, lossReason, mVal, tVal, pAbg, bonus, letzterStichBonus);
         }
 
         return result;

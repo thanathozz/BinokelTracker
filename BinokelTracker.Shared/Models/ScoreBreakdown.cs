@@ -10,5 +10,6 @@ public record ScoreBreakdown(
     int Meld,
     int Tricks,
     bool IsAbgegangen,
-    int Bonus
+    int Bonus,
+    int LastTrickBonus = 0
 );
