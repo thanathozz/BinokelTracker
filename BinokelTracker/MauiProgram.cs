@@ -14,8 +14,8 @@ public static class MauiProgram
             });
 
         builder.Services.AddMauiBlazorWebView();
-        builder.Services.AddSingleton<Services.IGameStorageService, Services.GameStorageService>();
         builder.Services.AddSingleton<Services.IGameService, Services.GameService>();
+        builder.Services.AddHttpClient<Services.IGameStorageService, Services.SupabaseGameStorageService>();
         builder.Services.AddHttpClient<Services.IFeedbackService, Services.FeedbackService>();
 
 #if DEBUG
