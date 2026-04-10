@@ -48,6 +48,20 @@
                 </button>
             </div>
 
+            @if (_players != null && _onAssign != null)
+            {
+                <div class="calc-assign">
+                    <div class="calc-assign-label">Punkte übertragen an:</div>
+                    <div class="pill-group" style="flex-wrap:wrap">
+                        @for (int i = 0; i < _players.Count; i++)
+                        {
+                            var idx = i;
+                            <button class="pill" style="flex:1;min-width:80px" @onclick="() => Assign(idx)">@_players[idx]</button>
+                        }
+                    </div>
+                </div>
+            }
+
         </div>
     </div>
 }
@@ -56,6 +70,8 @@
     private bool _open;
     private int[] _counts = new int[5];
     private bool _letzterStich;
+    private IReadOnlyList<string>? _players;
+    private Action<int, int>? _onAssign;
 
     private static readonly (string Name, int Value)[] Cards =
     {
@@ -70,18 +86,33 @@
         _counts.Select((c, i) => c * Cards[i].Value).Sum()
         + (_letzterStich ? 10 : 0);
 
-    public void Open()
+    public void Open(IReadOnlyList<string>? players = null, Action<int, int>? onAssign = null)
     {
         _open = true;
+        _players = players;
+        _onAssign = onAssign;
         StateHasChanged();
     }
 
-    private void Close() => _open = false;
+    private void Close()
+    {
+        _open = false;
+        _players = null;
+        _onAssign = null;
+    }
 
     private void Reset()
     {
         _counts = new int[5];
         _letzterStich = false;
+    }
+
+    private void Assign(int playerIdx)
+    {
+        _onAssign?.Invoke(playerIdx, Total);
+        _open = false;
+        _players = null;
+        _onAssign = null;
     }
 
     private void Add(int i) => _counts[i]++;
@@ -232,5 +263,23 @@
         padding: 10px 16px;
         background: var(--surface);
         border-radius: 12px;
+    }
+
+    .calc-assign {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px 16px;
+        background: var(--surface);
+        border-radius: 12px;
+        border: 1px solid var(--accent);
+    }
+
+    .calc-assign-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent-light);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 </style>
