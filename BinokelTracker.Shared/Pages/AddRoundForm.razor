@@ -223,7 +223,7 @@
                            placeholder="z.B. 150"
                            @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty"/>
 
-                    @if (_vm.BidderOnlyAbgehen)
+                    @if (_vm.ShowBidderAbgehenInReizwert)
                     {
                         <label class="form-label" style="margin-top:18px">
                             @Game.Players[_vm.Bidder] abgegangen?
@@ -308,17 +308,17 @@
                 else if (_vm.CurrentStep == FormStep.Ergebnis)
                 {
                     <!-- Ergebnis (Normal): ggf. Abgehen aller + detaillierte Punkteauflistung -->
-                    @if (Game.Rules.AllowAbgehen && !_vm.BidderOnlyAbgehen)
+                    @if (_vm.ShowOtherPlayersAbgehenInErgebnis)
                     {
                         <label class="form-label" style="margin-bottom:10px">Abgegangen?</label>
                         @for (int i = 0; i < Game.Players.Count; i++)
                         {
                             var idx = i;
+                            if (_vm.IsBidder(idx)) continue; // Reizer hatte Toggle bereits im Reizwert-Schritt
                             <div class="@_vm.PlayerRowClass(idx)" style="margin-bottom:8px">
                                 <div class="toggle-row">
                                     <div class="@_vm.PlayerNameClass(idx)" style="flex:1">
                                         @Game.Players[idx]
-                                        @if (_vm.IsBidder(idx)) { @StarIcon }
                                     </div>
                                     <button class="toggle-track @_vm.AbgehenClass(idx)"
                                             @onclick="() => _vm.ToggleAbgegangen(idx)">
