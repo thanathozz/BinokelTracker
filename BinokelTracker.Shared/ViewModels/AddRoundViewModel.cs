@@ -56,8 +56,14 @@ public class AddRoundViewModel
     /// Hat der Reizer abgegangen?
     public bool BidderAbgegangen => Abgegangen.Count > Bidder && Abgegangen[Bidder];
 
-    /// Kann nur der Reizer abgehen (Regeloption)
-    public bool BidderOnlyAbgehen => _game.Rules.AllowAbgehen && _game.Rules.BidderOnlyAbgehen;
+    /// Abgehen-Toggle für den Reizer im Schritt "Reizwert" anzeigen?
+    /// Der Reizer kann immer abgehen, außer im benutzerdefinierten Spiel mit AllowAbgehen = false.
+    public bool ShowBidderAbgehenInReizwert =>
+        _game.Rules.Id != "benutzerdefiniert" || _game.Rules.AllowAbgehen;
+
+    /// Abgehen-Toggles für Mitspieler (nicht Reizer) im Schritt "Ergebnis" anzeigen?
+    public bool ShowOtherPlayersAbgehenInErgebnis =>
+        _game.Rules.AllowAbgehen && !_game.Rules.BidderOnlyAbgehen;
 
     /// Meld + Stiche des Reizers (für Gewinnprüfung)
     private int BidderTotal =>
@@ -136,9 +142,13 @@ public class AddRoundViewModel
         ? "Ja — abgegangen"
         : "Nein — spielt weiter";
 
-    /// Soll der Abgehen-Toggle für diesen Spieler angezeigt werden?
-    public bool ShowAbgehenFor(int idx) =>
-        _game.Rules.AllowAbgehen && (!BidderOnlyAbgehen || idx == Bidder);
+    /// Soll der Abgehen-Toggle für diesen Spieler angezeigt werden? (Übersicht-Modus)
+    public bool ShowAbgehenFor(int idx)
+    {
+        if (idx == Bidder)
+            return _game.Rules.Id != "benutzerdefiniert" || _game.Rules.AllowAbgehen;
+        return _game.Rules.AllowAbgehen && !_game.Rules.BidderOnlyAbgehen;
+    }
 
     /// CSS-Klasse für die Spieler-Zeile (Reizer hervorgehoben)
     public string PlayerRowClass(int idx) => idx == Bidder ? "bidder-highlight" : "player-row";
