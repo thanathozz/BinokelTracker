@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0" />
     <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
     <ProjectReference Include="..\BinokelTracker.Shared\BinokelTracker.Shared.csproj" />
   </ItemGroup>
 </Project>
