@@ -107,7 +107,7 @@
             }
             else
             {
-                <!-- Normal: Reizwert, Gewonnen/Verloren, Punkte pro Spieler -->
+                <!-- Normal: Reizwert, Abgehen, Punkte pro Spieler -->
                 <div class="form-group">
                     <label class="form-label">Reizwert</label>
                     <input class="form-input" type="number" inputmode="numeric" value="@_vm.Bid"
@@ -115,20 +115,27 @@
                            @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty"/>
                 </div>
 
-                <div class="form-group">
-                    <div class="toggle-row">
-                        <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon">
-                            <div class="toggle-knob @_vm.WonClass"></div>
-                        </button>
-                        <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
-                    </div>
-                    @if (!_vm.Won)
-                    {
-                        <div class="score-preview lost" style="margin-top:8px">
-                            <span class="score-preview-value red">@_vm.MinusPreview</span>
+                @if (_vm.ShowBidderAbgehenInReizwert)
+                {
+                    <div class="form-group">
+                        <label class="form-label">@Game.Players[_vm.Bidder] abgegangen?</label>
+                        <div class="toggle-row">
+                            <button class="toggle-track @_vm.AbgehenClass(_vm.Bidder)"
+                                    @onclick="() => _vm.ToggleAbgegangen(_vm.Bidder)">
+                                <div class="toggle-knob @_vm.AbgehenClass(_vm.Bidder)"></div>
+                            </button>
+                            <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">
+                                @_vm.BidderAbgehenLabel
+                            </span>
                         </div>
-                    }
-                </div>
+                        @if (_vm.BidderAbgegangen && _vm.BidValue > 0)
+                        {
+                            <div class="score-preview lost" style="margin-top:8px">
+                                <span class="score-preview-value red">@_vm.MinusPreview</span>
+                            </div>
+                        }
+                    </div>
+                }
 
                 <label class="form-label">Punkte pro Spieler</label>
                 @for (int i = 0; i < Game.Players.Count; i++)
