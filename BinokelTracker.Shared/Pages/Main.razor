@@ -28,7 +28,8 @@
         }
         else if (_view == View.AddRound && _selectedGame != null)
         {
-            <AddRoundForm Game="_selectedGame" OnSave="AddRound" OnCancel="() => _view = View.Detail" />
+            <AddRoundForm Game="_selectedGame" OnSave="AddRound" OnCancel="() => _view = View.Detail"
+                          OnOpenCalculator="(players, assign) => _calculatorDialog!.Open(players, assign)" />
         }
         else if (_view == View.QuickGame)
         {
