@@ -37,10 +37,14 @@ public static class ScoringCalculator
             }
             else
             {
-                if (ps.Abgegangen)                        // Mitspieler abgegangen → 0
+                bool isPartner = rules.TeamMode && round.PlayerScores.Count == 4
+                                 && i == (round.Bidder + 2) % 4;
+                if (ps.Abgegangen)
                     scores[i] = 0;
+                else if (bidderAbgegangen && isPartner)   // Team-Mitspieler → gleiche Strafe wie Reizer
+                    scores[i] = rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid;
                 else if (bidderAbgegangen)
-                    scores[i] = ps.Meld + abgBonus;       // Reizer abgegangen → Meld + Bonus
+                    scores[i] = ps.Meld + abgBonus;       // Gegner → Meld + Bonus
                 else if (ps.Tricks == 0 && ps.Meld > 0)
                     scores[i] = 0;                        // kein Stich → Meldung verfallen
                 else
@@ -144,10 +148,19 @@ public static class ScoringCalculator
             }
             else
             {
-                if (bidderAbgegangen)
+                bool isPartner = rules.TeamMode && playerCount == 4 && i == (bidder + 2) % 4;
+                if (bidderAbgegangen && isPartner)
+                {
+                    finalScore = rules.DoubleMinus ? -(bidValue * 2) : -bidValue;
+                    isLoss = true;
+                    lossReason = "Reizer abgegangen";
+                    mVal = 0;
+                    tVal = 0;
+                }
+                else if (bidderAbgegangen)
                 {
                     bonus = abgBonus;
-                    finalScore = mVal + bonus;   // Reizer abgegangen → keine Stiche
+                    finalScore = mVal + bonus;
                     isLoss = false;
                     lossReason = null;
                 }

@@ -61,9 +61,6 @@ public class AddRoundViewModel
     public bool ShowBidderAbgehenInReizwert =>
         _game.Rules.Id != "benutzerdefiniert" || _game.Rules.AllowAbgehen;
 
-    /// Abgehen-Toggles für Mitspieler (nicht Reizer) im Schritt "Ergebnis" anzeigen?
-    public bool ShowOtherPlayersAbgehenInErgebnis =>
-        _game.Rules.AllowAbgehen && !_game.Rules.BidderOnlyAbgehen;
 
     /// Meld + Stiche des Reizers (für Gewinnprüfung)
     private int BidderTotal =>
