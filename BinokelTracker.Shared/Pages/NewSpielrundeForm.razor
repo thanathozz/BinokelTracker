@@ -1,0 +1,100 @@
+@code {
+    [Parameter] public EventCallback<Spielrunde> OnSave       { get; set; }
+    [Parameter] public EventCallback             OnCancel     { get; set; }
+    [Parameter] public List<string>              KnownPlayers { get; set; } = new();
+
+    private string       _name            = "";
+    private List<string> _players         = new();
+    private bool         _usePassword;
+    private string       _password        = "";
+    private string       _passwordConfirm = "";
+
+    private bool CanSave =>
+        !string.IsNullOrWhiteSpace(_name) &&
+        (!_usePassword || (_password.Length >= 1 && _password == _passwordConfirm));
+
+    private void TogglePlayer(string name)
+    {
+        if (_players.Contains(name)) _players.Remove(name);
+        else _players.Add(name);
+    }
+
+    private async Task Save()
+    {
+        if (!CanSave) return;
+        var s = new Spielrunde
+        {
+            Id           = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Name         = _name.Trim(),
+            Players      = _players.ToList(),
+            PasswordHash = _usePassword ? PasswordHelper.Hash(_password) : null
+        };
+        await OnSave.InvokeAsync(s);
+    }
+}
+
+<div>
+    <div class="header">
+        <button class="btn" @onclick="OnCancel">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </button>
+        <span class="header-title">Neue Spielrunde</span>
+        <div style="width:36px"></div>
+    </div>
+
+    <div class="section">
+        <label class="form-label">Name</label>
+        <div style="margin-bottom:16px">
+            <input class="form-input" placeholder="z.B. Freitagsrunde"
+                   @bind="_name" @bind:event="oninput" />
+        </div>
+
+        @if (KnownPlayers.Count > 0)
+        {
+            <label class="form-label" style="margin-bottom:10px">Spieler</label>
+            <div class="pill-group" style="flex-wrap:wrap;margin-bottom:16px">
+                @foreach (var name in KnownPlayers)
+                {
+                    var n = name;
+                    var selected = _players.Contains(n);
+                    <span class="pill @(selected ? "active" : "")"
+                          style="user-select:none"
+                          @onclick="() => TogglePlayer(n)">
+                        @n
+                    </span>
+                }
+            </div>
+        }
+
+        <div class="toggle-row" style="margin-bottom:16px">
+            <button class="toggle-track @(_usePassword ? "on" : "off")" @onclick="() => _usePassword = !_usePassword">
+                <div class="toggle-knob @(_usePassword ? "on" : "off")"></div>
+            </button>
+            <span class="toggle-label @(_usePassword ? "on" : "off")">Passwort schützen</span>
+        </div>
+
+        @if (_usePassword)
+        {
+            <div style="margin-bottom:10px">
+                <input class="form-input" type="password" placeholder="Passwort"
+                       @bind="_password" @bind:event="oninput" />
+            </div>
+            <div style="margin-bottom:16px">
+                <input class="form-input" type="password" placeholder="Passwort bestätigen"
+                       @bind="_passwordConfirm" @bind:event="oninput" />
+                @if (_usePassword && _password.Length > 0 && _passwordConfirm.Length > 0 && _password != _passwordConfirm)
+                {
+                    <div style="color:var(--red);font-size:13px;margin-top:6px">Passwörter stimmen nicht überein.</div>
+                }
+            </div>
+        }
+
+        <button class="btn-primary" style="margin-top:8px;opacity:@(CanSave ? "1" : "0.4")" disabled="@(!CanSave)"
+                @onclick="Save">
+            Spielrunde erstellen
+        </button>
+    </div>
+</div>

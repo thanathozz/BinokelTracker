@@ -10,13 +10,35 @@
                 <div class="loading-text">Laden...</div>
             </div>
         }
+        else if (_view == View.SpielrundeList)
+        {
+            <SpielrundeList
+                Spielrunden="_state.Spielrunden"
+                AllGames="_state.Games"
+                OnEnter="EnterSpielrunde"
+                OnNew="() => _view = View.NewSpielrunde" />
+        }
+        else if (_view == View.NewSpielrunde)
+        {
+            <NewSpielrundeForm
+                OnSave="AddSpielrunde"
+                OnCancel="() => _view = View.SpielrundeList" />
+        }
         else if (_view == View.List)
         {
-            <GameList Games="_state.Games" OnSelect="SelectGame" OnNew="() => _view = View.NewGame" OnQuickGame="() => _view = View.QuickGame" OnStats="() => _view = View.Statistics" OnRules="() => _rulesDialog!.Open()" OnCalculator="() => _calculatorDialog!.Open()" />
+            <GameList Games="SessionGames"
+                      SessionTitle="@_activeSession?.Name"
+                      OnBack="() => _view = View.SpielrundeList"
+                      OnSelect="SelectGame"
+                      OnNew="() => _view = View.NewGame"
+                      OnQuickGame="() => _view = View.QuickGame"
+                      OnStats="() => _view = View.Statistics"
+                      OnRules="() => _rulesDialog!.Open()"
+                      OnCalculator="() => _calculatorDialog!.Open()" />
         }
         else if (_view == View.NewGame)
         {
-            <NewGameForm KnownPlayers="_state.KnownPlayers" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
+            <NewGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
         }
         else if (_view == View.Detail && _selectedGame != null)
         {
@@ -33,11 +55,11 @@
         }
         else if (_view == View.QuickGame)
         {
-            <QuickGameForm KnownPlayers="_state.KnownPlayers" OnSave="AddQuickGame" OnCancel="() => _view = View.List" />
+            <QuickGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" OnSave="AddQuickGame" OnCancel="() => _view = View.List" />
         }
         else if (_view == View.Statistics)
         {
-            <Statistics State="_state" OnBack="() => _view = View.List" />
+            <Statistics Games="SessionGames" OnBack="() => _view = View.List" />
         }
     </div>
     <RulesDialog @ref="_rulesDialog" />
@@ -46,14 +68,18 @@
 </div>
 
 @code {
-    enum View { List, NewGame, Detail, AddRound, QuickGame, Statistics }
+    enum View { SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics }
 
     private AppState _state = new();
-    private View _view = View.List;
+    private View _view = View.SpielrundeList;
     private Game? _selectedGame;
+    private Spielrunde? _activeSession;
     private bool _loaded;
     private RulesDialog? _rulesDialog;
     private AugenCalculator? _calculatorDialog;
+
+    private List<Game> SessionGames =>
+        _state.Games.Where(g => g.SpielrundeId == _activeSession?.Id).ToList();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -70,6 +96,20 @@
         await Storage.SaveAsync(_state);
     }
 
+    private void EnterSpielrunde(Spielrunde s)
+    {
+        _activeSession = s;
+        _view = View.List;
+    }
+
+    private async Task AddSpielrunde(Spielrunde s)
+    {
+        _state.Spielrunden.Add(s);
+        _activeSession = s;
+        _view = View.List;
+        await Save();
+    }
+
     private void SelectGame(long id)
     {
         _selectedGame = _state.Games.FirstOrDefault(g => g.Id == id);
@@ -78,12 +118,17 @@
 
     private async Task AddGame(Game game)
     {
-        foreach (var name in game.Players)
+        // Spieler in die aktive Spielrunde aufnehmen (nicht global)
+        if (_activeSession != null)
         {
-            if (!string.IsNullOrWhiteSpace(name) &&
-                !_state.KnownPlayers.Contains(name, StringComparer.OrdinalIgnoreCase))
-                _state.KnownPlayers.Add(name);
+            foreach (var name in game.Players)
+            {
+                if (!string.IsNullOrWhiteSpace(name) &&
+                    !_activeSession.Players.Contains(name, StringComparer.OrdinalIgnoreCase))
+                    _activeSession.Players.Add(name);
+            }
         }
+        game.SpielrundeId = _activeSession?.Id;
         _state.Games.Add(game);
         _selectedGame = game;
         _view = View.Detail;
@@ -129,12 +174,16 @@
 
     private async Task AddQuickGame(Game game)
     {
-        foreach (var name in game.Players)
+        if (_activeSession != null)
         {
-            if (!string.IsNullOrWhiteSpace(name) &&
-                !_state.KnownPlayers.Contains(name, StringComparer.OrdinalIgnoreCase))
-                _state.KnownPlayers.Add(name);
+            foreach (var name in game.Players)
+            {
+                if (!string.IsNullOrWhiteSpace(name) &&
+                    !_activeSession.Players.Contains(name, StringComparer.OrdinalIgnoreCase))
+                    _activeSession.Players.Add(name);
+            }
         }
+        game.SpielrundeId = _activeSession?.Id;
         _state.Games.Add(game);
         _view = View.List;
         await Save();

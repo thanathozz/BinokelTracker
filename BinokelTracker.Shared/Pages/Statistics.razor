@@ -1,5 +1,5 @@
 @code {
-    [Parameter] public AppState State { get; set; } = default!;
+    [Parameter] public List<Game> Games { get; set; } = new();
     [Parameter] public EventCallback OnBack { get; set; }
 
     private enum Tab { Players, Charts }
@@ -7,7 +7,7 @@
     private GlobalStats _stats = default!;
 
     protected override void OnParametersSet()
-        => _stats = StatisticsService.Compute(State.Games);
+        => _stats = StatisticsService.Compute(Games);
 
     private static string Pct(double v) => $"{v:F0}%";
     private static string Avg(double v) => $"{v:F0}";
