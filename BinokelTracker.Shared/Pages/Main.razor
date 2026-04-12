@@ -1,4 +1,6 @@
 @inject IGameStorageService Storage
+@inject BinokelTracker.Shared.Services.ThemeService ThemeService
+@inject IAuthService AuthService
 
 <div class="app-container">
     <div class="app-bg"></div>
@@ -10,13 +12,18 @@
                 <div class="loading-text">Laden...</div>
             </div>
         }
+        else if (_view == View.Login)
+        {
+            <LoginPage OnLoggedIn="OnLoggedIn" />
+        }
         else if (_view == View.SpielrundeList)
         {
             <SpielrundeList
                 Spielrunden="_state.Spielrunden"
                 AllGames="_state.Games"
                 OnEnter="EnterSpielrunde"
-                OnNew="() => _view = View.NewSpielrunde" />
+                OnNew="() => _view = View.NewSpielrunde"
+                OnLogout="Logout" />
         }
         else if (_view == View.NewSpielrunde)
         {
@@ -68,7 +75,7 @@
 </div>
 
 @code {
-    enum View { SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics }
+    enum View { Login, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics }
 
     private AppState _state = new();
     private View _view = View.SpielrundeList;
@@ -85,6 +92,15 @@
     {
         if (firstRender)
         {
+            await ThemeService.LoadAsync();
+            var authenticated = await AuthService.TryRestoreSessionAsync();
+            if (!authenticated)
+            {
+                _loaded = true;
+                _view   = View.Login;
+                StateHasChanged();
+                return;
+            }
             _state = await Storage.LoadAsync();
             _loaded = true;
             StateHasChanged();
@@ -94,6 +110,20 @@
     private async Task Save()
     {
         await Storage.SaveAsync(_state);
+    }
+
+    private async Task OnLoggedIn()
+    {
+        _state = await Storage.LoadAsync();
+        _view  = View.SpielrundeList;
+        StateHasChanged();
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        _state = new AppState();
+        _view  = View.Login;
     }
 
     private void EnterSpielrunde(Spielrunde s)

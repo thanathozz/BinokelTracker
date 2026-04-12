@@ -56,7 +56,7 @@ public class FeedbackService : IFeedbackService
             var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             await _http.PostAsync(FormspreeEndpoint, content);
-        }
+        }   
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"SendFeedback failed: {ex.Message}");

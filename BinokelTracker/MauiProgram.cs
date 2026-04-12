@@ -15,8 +15,10 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddSingleton<Services.IGameService, Services.GameService>();
+        builder.Services.AddHttpClient<Services.IAuthService, Services.AuthService>();
         builder.Services.AddHttpClient<Services.IGameStorageService, Services.SupabaseGameStorageService>();
         builder.Services.AddHttpClient<Services.IFeedbackService, Services.FeedbackService>();
+        builder.Services.AddScoped<BinokelTracker.Shared.Services.ThemeService>();
 
 #if DEBUG
     builder.Services.AddBlazorWebViewDeveloperTools();
