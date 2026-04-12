@@ -347,7 +347,7 @@
                         }
                     </div>
                     <div class="score-preview won" style="margin-top:14px">
-                        <span class="score-preview-value green">+10 Punkte für @Game.Players[_vm.LastTrickWinner]</span>
+                        <span class="score-preview-value green">+@Game.Rules.LastTrickBonus Punkte für @Game.Players[_vm.LastTrickWinner]</span>
                     </div>
                 }
                 else if (_vm.CurrentStep == FormStep.Ergebnis && _vm.IsSpecial)

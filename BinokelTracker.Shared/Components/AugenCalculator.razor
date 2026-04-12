@@ -21,13 +21,13 @@
             </div>
 
             <div class="calc-rows">
-                @for (int i = 0; i < Cards.Length; i++)
+                @for (int i = 0; i < CardNames.Length; i++)
                 {
                     var idx = i;
                     <div class="calc-row">
                         <div class="calc-card-label">
-                            <span class="calc-card-name">@Cards[idx].Name</span>
-                            <span class="calc-card-value">@Cards[idx].Value Pkt.</span>
+                            <span class="calc-card-name">@CardNames[idx]</span>
+                            <span class="calc-card-value">@_cardValues[idx] Pkt.</span>
                         </div>
                         <div class="calc-counter">
                             <button class="calc-btn calc-btn-minus" @onclick="() => Sub(idx)" disabled="@(_counts[idx] == 0)">−</button>
@@ -41,7 +41,7 @@
             <div class="calc-last-trick">
                 <div>
                     <span class="calc-card-name">Letzter Stich</span>
-                    <span class="calc-card-value">+10 Pkt.</span>
+                    <span class="calc-card-value">+@_lastTrickBonus Pkt.</span>
                 </div>
                 <button class="toggle-btn @(_letzterStich ? "on" : "off")" @onclick="() => _letzterStich = !_letzterStich">
                     @(_letzterStich ? "Ja" : "Nein")
@@ -72,25 +72,24 @@
     private bool _letzterStich;
     private IReadOnlyList<string>? _players;
     private Action<int, int>? _onAssign;
+    private int _lastTrickBonus = 10;
 
-    private static readonly (string Name, int Value)[] Cards =
-    {
-        ("Ass",   11),
-        ("Zehn",  10),
-        ("König",  4),
-        ("Dame",   3),
-        ("Bube",   2),
-    };
+    private static readonly string[] CardNames = { "Ass", "Zehn", "König", "Dame", "Bube" };
+    private int[] _cardValues = { 11, 10, 4, 3, 2 };
 
     private int Total =>
-        _counts.Select((c, i) => c * Cards[i].Value).Sum()
-        + (_letzterStich ? 10 : 0);
+        _counts.Select((c, i) => c * _cardValues[i]).Sum()
+        + (_letzterStich ? _lastTrickBonus : 0);
 
-    public void Open(IReadOnlyList<string>? players = null, Action<int, int>? onAssign = null)
+    public void Open(IReadOnlyList<string>? players = null, Action<int, int>? onAssign = null,
+                     int assValue = 11, int zehnValue = 10, int koenigValue = 4,
+                     int dameValue = 3, int bubeValue = 2, int lastTrickBonus = 10)
     {
         _open = true;
         _players = players;
         _onAssign = onAssign;
+        _lastTrickBonus = lastTrickBonus;
+        _cardValues = new[] { assValue, zehnValue, koenigValue, dameValue, bubeValue };
         StateHasChanged();
     }
 
