@@ -16,6 +16,13 @@ public class RuleSet
     public int DurchPoints { get; set; } = 1000;
     public int BettelPoints { get; set; } = 1000;
     public bool DurchSeparate { get; set; } = true;
+    public int AssValue { get; set; } = 11;
+    public int ZehnValue { get; set; } = 10;
+    public int KoenigValue { get; set; } = 4;
+    public int DameValue { get; set; } = 3;
+    public int BubeValue { get; set; } = 2;
+    public int LastTrickBonus { get; set; } = 10;
+    public int AbgegangenBonusPerPlayer { get; set; } = 10;
 
     public RuleSet Clone() => (RuleSet)MemberwiseClone();
 }
@@ -131,14 +138,14 @@ public class Round
                 else if (bidderAbgegangen && isPartner)
                     scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
                 else if (bidderAbgegangen)
-                    scores[i] = total + PlayerScores.Count * 10;
+                    scores[i] = total + PlayerScores.Count * rules.AbgegangenBonusPerPlayer;
                 else
                     scores[i] = total;
             }
         }
 
         if (LastTrickWinner >= 0 && LastTrickWinner < scores.Length)
-            scores[LastTrickWinner] += GameConstants.LastTrickBonus;
+            scores[LastTrickWinner] += rules.LastTrickBonus;
 
         return scores;
     }
@@ -214,4 +221,11 @@ public class Spielrunde
     public List<string> Players { get; set; } = new();
     /// <summary>SHA-256 Hex des Passworts, oder null = kein Passwort.</summary>
     public string? PasswordHash { get; set; }
+    public int AssValue { get; set; } = 11;
+    public int ZehnValue { get; set; } = 10;
+    public int KoenigValue { get; set; } = 4;
+    public int DameValue { get; set; } = 3;
+    public int BubeValue { get; set; } = 2;
+    public int LastTrickBonus { get; set; } = 10;
+    public int AbgegangenBonusPerPlayer { get; set; } = 10;
 }

@@ -8,6 +8,13 @@
     private bool         _usePassword;
     private string       _password        = "";
     private string       _passwordConfirm = "";
+    private int          _assValue        = 11;
+    private int          _zehnValue       = 10;
+    private int          _koenigValue     = 4;
+    private int          _dameValue       = 3;
+    private int          _bubeValue       = 2;
+    private int          _lastTrickBonus  = 10;
+    private int          _abgegangenBonus = 10;
 
     private bool CanSave =>
         !string.IsNullOrWhiteSpace(_name) &&
@@ -24,10 +31,17 @@
         if (!CanSave) return;
         var s = new Spielrunde
         {
-            Id           = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Name         = _name.Trim(),
-            Players      = _players.ToList(),
-            PasswordHash = _usePassword ? PasswordHelper.Hash(_password) : null
+            Id                      = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Name                    = _name.Trim(),
+            Players                 = _players.ToList(),
+            PasswordHash            = _usePassword ? PasswordHelper.Hash(_password) : null,
+            AssValue                = _assValue,
+            ZehnValue               = _zehnValue,
+            KoenigValue             = _koenigValue,
+            DameValue               = _dameValue,
+            BubeValue               = _bubeValue,
+            LastTrickBonus          = _lastTrickBonus,
+            AbgegangenBonusPerPlayer = _abgegangenBonus,
         };
         await OnSave.InvokeAsync(s);
     }
@@ -91,6 +105,48 @@
                 }
             </div>
         }
+
+        <label class="form-label" style="margin-top:8px">Kartenwerte (Augen)</label>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+            <div style="flex:1">
+                <label class="form-label" style="font-size:12px">Ass</label>
+                <input class="form-input" type="number" min="0"
+                       @bind="_assValue" @bind:event="oninput" />
+            </div>
+            <div style="flex:1">
+                <label class="form-label" style="font-size:12px">Zehn</label>
+                <input class="form-input" type="number" min="0"
+                       @bind="_zehnValue" @bind:event="oninput" />
+            </div>
+            <div style="flex:1">
+                <label class="form-label" style="font-size:12px">König</label>
+                <input class="form-input" type="number" min="0"
+                       @bind="_koenigValue" @bind:event="oninput" />
+            </div>
+            <div style="flex:1">
+                <label class="form-label" style="font-size:12px">Dame</label>
+                <input class="form-input" type="number" min="0"
+                       @bind="_dameValue" @bind:event="oninput" />
+            </div>
+            <div style="flex:1">
+                <label class="form-label" style="font-size:12px">Bube</label>
+                <input class="form-input" type="number" min="0"
+                       @bind="_bubeValue" @bind:event="oninput" />
+            </div>
+        </div>
+        <label class="form-label" style="margin-top:4px">Boni</label>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+            <div style="flex:1">
+                <label class="form-label" style="font-size:12px">Letzter Stich</label>
+                <input class="form-input" type="number" min="0"
+                       @bind="_lastTrickBonus" @bind:event="oninput" />
+            </div>
+            <div style="flex:1">
+                <label class="form-label" style="font-size:12px">Abg.-Bonus/Sp.</label>
+                <input class="form-input" type="number" min="0"
+                       @bind="_abgegangenBonus" @bind:event="oninput" />
+            </div>
+        </div>
 
         <button class="btn-primary" style="margin-top:8px;opacity:@(CanSave ? "1" : "0.4")" disabled="@(!CanSave)"
                 @onclick="Save">
