@@ -149,6 +149,7 @@ public class Game
     public string Einsatz { get; set; } = "";
     public long Id { get; set; }
     public long Date { get; set; }
+    public long? SpielrundeId { get; set; }
     public List<string> Players { get; set; } = new();
     public RuleSet Rules { get; set; } = new();
     public List<Round> Rounds { get; set; } = new();
@@ -203,4 +204,14 @@ public class AppState
 {
     public List<Game> Games { get; set; } = new();
     public List<string> KnownPlayers { get; set; } = new();
+    public List<Spielrunde> Spielrunden { get; set; } = new();
+}
+
+public class Spielrunde
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = "";
+    public List<string> Players { get; set; } = new();
+    /// <summary>SHA-256 Hex des Passworts, oder null = kein Passwort.</summary>
+    public string? PasswordHash { get; set; }
 }

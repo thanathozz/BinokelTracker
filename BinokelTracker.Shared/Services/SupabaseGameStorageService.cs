@@ -37,10 +37,14 @@ public class SupabaseGameStorageService : IGameStorageService
             var playerRows = await _http.GetFromJsonAsync<List<PlayerRow>>(
                 "/rest/v1/known_players?select=name") ?? [];
 
+            var spielrundeRows = await _http.GetFromJsonAsync<List<SpielrundeRow>>(
+                "/rest/v1/spielrunden?select=id,data&order=id", JsonOpts) ?? [];
+
             return new AppState
             {
-                Games = gameRows.Select(r => r.Data).ToList(),
-                KnownPlayers = playerRows.Select(r => r.Name).ToList()
+                Games        = gameRows.Select(r => r.Data).ToList(),
+                KnownPlayers = playerRows.Select(r => r.Name).ToList(),
+                Spielrunden  = spielrundeRows.Select(r => r.Data).ToList()
             };
         }
         catch (Exception ex)
@@ -90,6 +94,24 @@ public class SupabaseGameStorageService : IGameStorageService
                 upsertReq.Headers.Add("Prefer", "resolution=merge-duplicates,return=minimal");
                 await _http.SendAsync(upsertReq);
             }
+
+            // Upsert spielrunden
+            if (state.Spielrunden.Count > 0)
+            {
+                var srRows    = state.Spielrunden.Select(s => new SpielrundeRow(s.Id, s));
+                var srJson    = JsonSerializer.Serialize(srRows, JsonOpts);
+                var srContent = new StringContent(srJson, Encoding.UTF8, "application/json");
+                var srReq     = new HttpRequestMessage(HttpMethod.Post, "/rest/v1/spielrunden") { Content = srContent };
+                srReq.Headers.Add("Prefer", "resolution=merge-duplicates,return=minimal");
+                await _http.SendAsync(srReq);
+
+                var srIds = string.Join(",", state.Spielrunden.Select(s => s.Id));
+                await _http.DeleteAsync($"/rest/v1/spielrunden?id=not.in.({srIds})");
+            }
+            else
+            {
+                await _http.DeleteAsync("/rest/v1/spielrunden?id=gte.0");
+            }
         }
         catch (Exception ex)
         {
@@ -99,4 +121,5 @@ public class SupabaseGameStorageService : IGameStorageService
 
     private record GameRow(long Id, Game Data);
     private record PlayerRow(string Name);
+    private record SpielrundeRow(long Id, Spielrunde Data);
 }

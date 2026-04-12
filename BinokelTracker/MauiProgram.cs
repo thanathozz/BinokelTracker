@@ -19,7 +19,7 @@ public static class MauiProgram
         builder.Services.AddHttpClient<Services.IFeedbackService, Services.FeedbackService>();
 
 #if DEBUG
-        builder.Services.AddBlazorWebViewDeveloperTools();
+    builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
 #endif
 
