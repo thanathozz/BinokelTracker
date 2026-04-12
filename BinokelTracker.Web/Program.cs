@@ -6,8 +6,10 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<BinokelTracker.Web.App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+builder.Services.AddHttpClient<IAuthService, AuthService>();
 builder.Services.AddHttpClient<IGameStorageService, SupabaseGameStorageService>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<BinokelTracker.Shared.Services.ThemeService>();
 
 await builder.Build().RunAsync();

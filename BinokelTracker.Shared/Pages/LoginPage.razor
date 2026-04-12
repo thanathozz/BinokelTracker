@@ -1,0 +1,103 @@
+@inject IAuthService AuthService
+
+<div class="app-container">
+    <div class="app-bg"></div>
+    <div class="app-content fade-in">
+        <div class="login-card">
+            <div class="header-title" style="justify-content:center;margin-bottom:28px;font-size:22px">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
+                    <rect x="8" y="2" width="14" height="18" rx="2" transform="rotate(6 8 2)"/>
+                </svg>
+                Binokel
+            </div>
+
+            <div class="auth-tab-row">
+                <button class="auth-tab @(_mode == Mode.Login ? "active" : "")"
+                        @onclick="() => { _mode = Mode.Login; _error = null; }">
+                    Anmelden
+                </button>
+                <button class="auth-tab @(_mode == Mode.Register ? "active" : "")"
+                        @onclick="() => { _mode = Mode.Register; _error = null; }">
+                    Registrieren
+                </button>
+            </div>
+
+            <div class="form-group" style="margin-top:20px">
+                <label class="form-label">E-Mail</label>
+                <input class="form-input" type="email" placeholder="name@beispiel.de"
+                       @bind="_email" @bind:event="oninput" autocomplete="email" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Passwort</label>
+                <input class="form-input" type="password" placeholder="Passwort"
+                       @bind="_password" @bind:event="oninput"
+                       @onkeydown="HandleKeyDown"
+                       autocomplete="@(_mode == Mode.Login ? "current-password" : "new-password")" />
+            </div>
+
+            @if (_error != null)
+            {
+                <div style="color:var(--red);font-size:13px;margin-bottom:12px;line-height:1.4">@_error</div>
+            }
+
+            <button class="btn-primary" @onclick="Submit" disabled="@_loading">
+                @if (_loading)
+                {
+                    <span>...</span>
+                }
+                else
+                {
+                    <span>@(_mode == Mode.Login ? "Anmelden" : "Registrieren")</span>
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    enum Mode { Login, Register }
+
+    [Parameter] public EventCallback OnLoggedIn { get; set; }
+
+    private Mode    _mode     = Mode.Login;
+    private string  _email    = "";
+    private string  _password = "";
+    private string? _error;
+    private bool    _loading;
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Bitte E-Mail und Passwort eingeben.";
+            return;
+        }
+
+        _error   = null;
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = _mode == Mode.Login
+                ? await AuthService.LoginAsync(_email, _password)
+                : await AuthService.RegisterAsync(_email, _password);
+
+            if (result.Success)
+                await OnLoggedIn.InvokeAsync();
+            else
+                _error = result.ErrorMessage;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Submit();
+    }
+}
