@@ -34,7 +34,7 @@
                       OnQuickGame="() => _view = View.QuickGame"
                       OnStats="() => _view = View.Statistics"
                       OnRules="() => _rulesDialog!.Open()"
-                      OnCalculator="() => _calculatorDialog!.Open(null, null, _activeSession?.AssValue ?? 11, _activeSession?.ZehnValue ?? 10, _activeSession?.KoenigValue ?? 4, _activeSession?.DameValue ?? 3, _activeSession?.BubeValue ?? 2, _activeSession?.LastTrickBonus ?? 10)" />
+                      OnCalculator="() => _calculatorDialog!.Open(null, null, _activeSession?.AssValue ?? 11, _activeSession?.ZehnValue ?? 10, _activeSession?.KoenigValue ?? 4, _activeSession?.OberValue ?? 3, _activeSession?.UnterValue ?? 2, _activeSession?.LastTrickBonus ?? 10)" />
         }
         else if (_view == View.NewGame)
         {
@@ -51,7 +51,7 @@
         else if (_view == View.AddRound && _selectedGame != null)
         {
             <AddRoundForm Game="_selectedGame" OnSave="AddRound" OnCancel="() => _view = View.Detail"
-                          OnOpenCalculator="(players, assign) => _calculatorDialog!.Open(players, assign, _selectedGame?.Rules.AssValue ?? 11, _selectedGame?.Rules.ZehnValue ?? 10, _selectedGame?.Rules.KoenigValue ?? 4, _selectedGame?.Rules.DameValue ?? 3, _selectedGame?.Rules.BubeValue ?? 2, _selectedGame?.Rules.LastTrickBonus ?? 10)" />
+                          OnOpenCalculator="(players, assign) => _calculatorDialog!.Open(players, assign, _selectedGame?.Rules.AssValue ?? 11, _selectedGame?.Rules.ZehnValue ?? 10, _selectedGame?.Rules.KoenigValue ?? 4, _selectedGame?.Rules.OberValue ?? 3, _selectedGame?.Rules.UnterValue ?? 2, _selectedGame?.Rules.LastTrickBonus ?? 10)" />
         }
         else if (_view == View.QuickGame)
         {
@@ -134,8 +134,8 @@
             game.Rules.AssValue                = _activeSession.AssValue;
             game.Rules.ZehnValue               = _activeSession.ZehnValue;
             game.Rules.KoenigValue             = _activeSession.KoenigValue;
-            game.Rules.DameValue               = _activeSession.DameValue;
-            game.Rules.BubeValue               = _activeSession.BubeValue;
+            game.Rules.OberValue               = _activeSession.OberValue;
+            game.Rules.UnterValue               = _activeSession.UnterValue;
             game.Rules.LastTrickBonus          = _activeSession.LastTrickBonus;
             game.Rules.AbgegangenBonusPerPlayer = _activeSession.AbgegangenBonusPerPlayer;
         }
@@ -199,8 +199,8 @@
             game.Rules.AssValue                = _activeSession.AssValue;
             game.Rules.ZehnValue               = _activeSession.ZehnValue;
             game.Rules.KoenigValue             = _activeSession.KoenigValue;
-            game.Rules.DameValue               = _activeSession.DameValue;
-            game.Rules.BubeValue               = _activeSession.BubeValue;
+            game.Rules.OberValue               = _activeSession.OberValue;
+            game.Rules.UnterValue               = _activeSession.UnterValue;
             game.Rules.LastTrickBonus          = _activeSession.LastTrickBonus;
             game.Rules.AbgegangenBonusPerPlayer = _activeSession.AbgegangenBonusPerPlayer;
         }
