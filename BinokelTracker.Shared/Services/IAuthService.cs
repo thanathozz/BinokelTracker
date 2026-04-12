@@ -9,4 +9,5 @@ public interface IAuthService
     Task<AuthResult> RegisterAsync(string email, string password);
     Task             LogoutAsync();
     Task<string>     GetValidTokenAsync();
+    Task<AuthResult> UpdateDisplayNameAsync(string displayName);
 }

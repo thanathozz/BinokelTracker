@@ -12,62 +12,85 @@
                 Binokel
             </div>
 
-            <div class="auth-tab-row">
-                <button class="auth-tab @(_mode == Mode.Login ? "active" : "")"
-                        @onclick="() => { _mode = Mode.Login; _error = null; }">
-                    Anmelden
-                </button>
-                <button class="auth-tab @(_mode == Mode.Register ? "active" : "")"
-                        @onclick="() => { _mode = Mode.Register; _error = null; }">
-                    Registrieren
-                </button>
-            </div>
-
-            <div class="form-group" style="margin-top:20px">
-                <label class="form-label">E-Mail</label>
-                <input class="form-input" type="email" placeholder="name@beispiel.de"
-                       @bind="_email" @bind:event="oninput" autocomplete="email" />
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Passwort</label>
-                <input class="form-input" type="password" placeholder="Passwort"
-                       @bind="_password" @bind:event="oninput"
-                       @onkeydown="HandleKeyDown"
-                       autocomplete="@(_mode == Mode.Login ? "current-password" : "new-password")" />
-            </div>
-
-            @if (_error != null)
+            @if (_step == Step.Auth)
             {
-                <div style="color:var(--red);font-size:13px;margin-bottom:12px;line-height:1.4">@_error</div>
-            }
+                <div class="auth-tab-row">
+                    <button class="auth-tab @(_mode == Mode.Login ? "active" : "")"
+                            @onclick="() => { _mode = Mode.Login; _error = null; }">
+                        Anmelden
+                    </button>
+                    <button class="auth-tab @(_mode == Mode.Register ? "active" : "")"
+                            @onclick="() => { _mode = Mode.Register; _error = null; }">
+                        Registrieren
+                    </button>
+                </div>
 
-            <button class="btn-primary" @onclick="Submit" disabled="@_loading">
-                @if (_loading)
+                <div class="form-group" style="margin-top:20px">
+                    <label class="form-label">E-Mail</label>
+                    <input class="form-input" type="email" placeholder="name@beispiel.de"
+                           @bind="_email" @bind:event="oninput" autocomplete="email" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Passwort</label>
+                    <input class="form-input" type="password" placeholder="Passwort"
+                           @bind="_password" @bind:event="oninput"
+                           @onkeydown="HandleKeyDown"
+                           autocomplete="@(_mode == Mode.Login ? "current-password" : "new-password")" />
+                </div>
+
+                @if (_error != null)
                 {
-                    <span>...</span>
+                    <div style="color:var(--red);font-size:13px;margin-bottom:12px;line-height:1.4">@_error</div>
                 }
-                else
+
+                <button class="btn-primary" @onclick="SubmitAuth" disabled="@_loading">
+                    @(_loading ? "..." : (_mode == Mode.Login ? "Anmelden" : "Registrieren"))
+                </button>
+            }
+            else
+            {
+                <div style="text-align:center;margin-bottom:20px">
+                    <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Wie heißt du?</div>
+                    <div style="font-size:13px;color:var(--muted)">Dieser Name wird beim Spielen angezeigt.</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Anzeigename</label>
+                    <input class="form-input" type="text" placeholder="z.B. Max"
+                           @bind="_displayName" @bind:event="oninput"
+                           @onkeydown="HandleNameKeyDown"
+                           autocomplete="nickname" />
+                </div>
+
+                @if (_error != null)
                 {
-                    <span>@(_mode == Mode.Login ? "Anmelden" : "Registrieren")</span>
+                    <div style="color:var(--red);font-size:13px;margin-bottom:12px;line-height:1.4">@_error</div>
                 }
-            </button>
+
+                <button class="btn-primary" @onclick="SubmitName" disabled="@_loading">
+                    @(_loading ? "..." : "Weiter")
+                </button>
+            }
         </div>
     </div>
 </div>
 
 @code {
     enum Mode { Login, Register }
+    enum Step { Auth, Name }
 
     [Parameter] public EventCallback OnLoggedIn { get; set; }
 
-    private Mode    _mode     = Mode.Login;
-    private string  _email    = "";
-    private string  _password = "";
+    private Mode    _mode        = Mode.Login;
+    private Step    _step        = Step.Auth;
+    private string  _email       = "";
+    private string  _password    = "";
+    private string  _displayName = "";
     private string? _error;
     private bool    _loading;
 
-    private async Task Submit()
+    private async Task SubmitAuth()
     {
         if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
         {
@@ -85,10 +108,49 @@
                 ? await AuthService.LoginAsync(_email, _password)
                 : await AuthService.RegisterAsync(_email, _password);
 
-            if (result.Success)
-                await OnLoggedIn.InvokeAsync();
-            else
+            if (!result.Success)
+            {
                 _error = result.ErrorMessage;
+                return;
+            }
+
+            // Kein Anzeigename gesetzt → Namens-Schritt zeigen
+            if (string.IsNullOrEmpty(AuthService.Session?.DisplayName))
+            {
+                _step = Step.Name;
+            }
+            else
+            {
+                await OnLoggedIn.InvokeAsync();
+            }
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SubmitName()
+    {
+        if (string.IsNullOrWhiteSpace(_displayName))
+        {
+            _error = "Bitte einen Namen eingeben.";
+            return;
+        }
+
+        _error   = null;
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await AuthService.UpdateDisplayNameAsync(_displayName.Trim());
+            if (!result.Success)
+            {
+                _error = result.ErrorMessage;
+                return;
+            }
+            await OnLoggedIn.InvokeAsync();
         }
         finally
         {
@@ -98,6 +160,11 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") await Submit();
+        if (e.Key == "Enter") await SubmitAuth();
+    }
+
+    private async Task HandleNameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SubmitName();
     }
 }

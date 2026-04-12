@@ -43,8 +43,9 @@ public class AuthService : IAuthService
                 AccessToken  = stored.AccessToken,
                 RefreshToken = stored.RefreshToken,
                 ExpiresAt    = stored.ExpiresAt,
-                UserId       = ExtractJwtClaim(stored.AccessToken, "sub")   ?? "",
-                Email        = ExtractJwtClaim(stored.AccessToken, "email") ?? ""
+                UserId       = ExtractJwtClaim(stored.AccessToken, "sub")          ?? "",
+                Email        = ExtractJwtClaim(stored.AccessToken, "email")        ?? "",
+                DisplayName  = ExtractJwtMetadataClaim(stored.AccessToken, "display_name") ?? ""
             };
 
             if (!candidate.IsExpired)
@@ -163,13 +164,40 @@ public class AuthService : IAuthService
         }
     }
 
+    public async Task<AuthResult> UpdateDisplayNameAsync(string displayName)
+    {
+        try
+        {
+            var token = await GetValidTokenAsync();
+            var body  = JsonSerializer.Serialize(new { data = new { display_name = displayName } });
+            var req   = new HttpRequestMessage(HttpMethod.Put, "/auth/v1/user")
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json")
+            };
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var resp = await _http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+                return new AuthResult(false, "Name konnte nicht gespeichert werden");
+
+            if (Session is not null)
+                Session.DisplayName = displayName;
+            SessionChanged?.Invoke();
+            return new AuthResult(true, null);
+        }
+        catch (Exception ex)
+        {
+            return new AuthResult(false, ex.Message);
+        }
+    }
+
     private static AuthSession ToSession(SupabaseAuthResponse r) => new()
     {
         AccessToken  = r.AccessToken,
         RefreshToken = r.RefreshToken,
         ExpiresAt    = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + r.ExpiresIn,
         UserId       = r.User.Id,
-        Email        = r.User.Email
+        Email        = r.User.Email,
+        DisplayName  = r.User.UserMetadata?.DisplayName ?? ""
     };
 
     private async Task PersistSessionAsync(AuthSession s)
@@ -186,6 +214,23 @@ public class AuthService : IAuthService
             var bytes  = Convert.FromBase64String(padded.Replace('-', '+').Replace('_', '/'));
             var doc    = JsonDocument.Parse(bytes);
             return doc.RootElement.TryGetProperty(claim, out var el) ? el.GetString() : null;
+        }
+        catch { return null; }
+    }
+
+    private static string? ExtractJwtMetadataClaim(string jwt, string claim)
+    {
+        try
+        {
+            var parts  = jwt.Split('.');
+            if (parts.Length < 2) return null;
+            var padded = parts[1].PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=');
+            var bytes  = Convert.FromBase64String(padded.Replace('-', '+').Replace('_', '/'));
+            var doc    = JsonDocument.Parse(bytes);
+            if (doc.RootElement.TryGetProperty("user_metadata", out var meta) &&
+                meta.TryGetProperty(claim, out var el))
+                return el.GetString();
+            return null;
         }
         catch { return null; }
     }
