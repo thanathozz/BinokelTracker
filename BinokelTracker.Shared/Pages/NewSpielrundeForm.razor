@@ -11,8 +11,8 @@
     private int          _assValue        = 11;
     private int          _zehnValue       = 10;
     private int          _koenigValue     = 4;
-    private int          _dameValue       = 3;
-    private int          _bubeValue       = 2;
+    private int          _oberValue       = 3;
+    private int          _unterValue       = 2;
     private int          _lastTrickBonus  = 10;
     private int          _abgegangenBonus = 10;
 
@@ -38,8 +38,8 @@
             AssValue                = _assValue,
             ZehnValue               = _zehnValue,
             KoenigValue             = _koenigValue,
-            DameValue               = _dameValue,
-            BubeValue               = _bubeValue,
+            OberValue               = _oberValue,
+            UnterValue               = _unterValue,
             LastTrickBonus          = _lastTrickBonus,
             AbgegangenBonusPerPlayer = _abgegangenBonus,
         };
@@ -124,14 +124,14 @@
                        @bind="_koenigValue" @bind:event="oninput" />
             </div>
             <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Dame</label>
+                <label class="form-label" style="font-size:12px">Ober</label>
                 <input class="form-input" type="number" min="0"
-                       @bind="_dameValue" @bind:event="oninput" />
+                       @bind="_oberValue" @bind:event="oninput" />
             </div>
             <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Bube</label>
+                <label class="form-label" style="font-size:12px">Unter</label>
                 <input class="form-input" type="number" min="0"
-                       @bind="_bubeValue" @bind:event="oninput" />
+                       @bind="_unterValue" @bind:event="oninput" />
             </div>
         </div>
         <label class="form-label" style="margin-top:4px">Boni</label>

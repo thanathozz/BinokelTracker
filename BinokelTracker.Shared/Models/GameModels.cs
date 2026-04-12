@@ -19,8 +19,8 @@ public class RuleSet
     public int AssValue { get; set; } = 11;
     public int ZehnValue { get; set; } = 10;
     public int KoenigValue { get; set; } = 4;
-    public int DameValue { get; set; } = 3;
-    public int BubeValue { get; set; } = 2;
+    public int OberValue { get; set; } = 3;
+    public int UnterValue { get; set; } = 2;
     public int LastTrickBonus { get; set; } = 10;
     public int AbgegangenBonusPerPlayer { get; set; } = 10;
 
@@ -224,8 +224,8 @@ public class Spielrunde
     public int AssValue { get; set; } = 11;
     public int ZehnValue { get; set; } = 10;
     public int KoenigValue { get; set; } = 4;
-    public int DameValue { get; set; } = 3;
-    public int BubeValue { get; set; } = 2;
+    public int OberValue { get; set; } = 3;
+    public int UnterValue { get; set; } = 2;
     public int LastTrickBonus { get; set; } = 10;
     public int AbgegangenBonusPerPlayer { get; set; } = 10;
 }

@@ -74,7 +74,7 @@
     private Action<int, int>? _onAssign;
     private int _lastTrickBonus = 10;
 
-    private static readonly string[] CardNames = { "Ass", "Zehn", "König", "Dame", "Bube" };
+    private static readonly string[] CardNames = { "Ass", "Zehn", "König", "Ober", "Unter" };
     private int[] _cardValues = { 11, 10, 4, 3, 2 };
 
     private int Total =>
@@ -83,13 +83,13 @@
 
     public void Open(IReadOnlyList<string>? players = null, Action<int, int>? onAssign = null,
                      int assValue = 11, int zehnValue = 10, int koenigValue = 4,
-                     int dameValue = 3, int bubeValue = 2, int lastTrickBonus = 10)
+                     int oberValue = 3, int unterValue = 2, int lastTrickBonus = 10)
     {
         _open = true;
         _players = players;
         _onAssign = onAssign;
         _lastTrickBonus = lastTrickBonus;
-        _cardValues = new[] { assValue, zehnValue, koenigValue, dameValue, bubeValue };
+        _cardValues = new[] { assValue, zehnValue, koenigValue, oberValue, unterValue };
         StateHasChanged();
     }
 
