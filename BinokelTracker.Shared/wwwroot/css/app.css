@@ -610,6 +610,15 @@ html, body {
 .btn-secondary:active { opacity: 0.7; }
 .btn-secondary:disabled { opacity: 0.4; }
 
+/* ═══ Profile name ═══ */
+.profile-name-btn {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    font-family: var(--font); display: flex; align-items: center;
+    transition: color 0.15s;
+}
+.profile-name-btn:active { color: var(--accent); }
+
 /* ═══ Login ═══ */
 .login-card {
     margin: 60px 18px 0; padding: 28px 20px;
