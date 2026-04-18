@@ -178,6 +178,22 @@
 
             @if (!_vm.IsSpecial && !_vm.BidderAbgegangen)
             {
+                <div style="margin-top:8px; padding:8px 12px; border-radius:8px; font-size:14px;
+                            background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
+                            border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
+                            color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
+                    Summe Stiche: <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
+                    @if (!_vm.TricksSumValid && _vm.TricksSum > 0)
+                    {
+                        <div style="font-size:12px;margin-top:3px;opacity:0.85">
+                            Alle Stiche müssen zusammen @_vm.MaxTricksTotal Punkte ergeben.
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (!_vm.IsSpecial && !_vm.BidderAbgegangen)
+            {
                 <div class="form-group" style="margin-top:10px">
                     <label class="form-label">Letzter Stich</label>
                     <div class="pill-group">
@@ -193,7 +209,8 @@
                 </div>
             }
 
-            <button class="btn-primary" style="margin-top:14px" @onclick="Save">Runde speichern</button>
+            <button class="btn-primary" style="margin-top:14px;opacity:@(_vm.CanSave ? "1" : "0.4")"
+                    disabled="@(!_vm.CanSave)" @onclick="Save">Runde speichern</button>
         }
         else
         {
@@ -321,6 +338,18 @@
                                    @oninput="e => _vm.Tricks[idx] = e.Value?.ToString() ?? string.Empty"/>
                         </div>
                     }
+                    <div style="margin-top:12px; padding:8px 12px; border-radius:8px; font-size:14px;
+                                background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
+                                border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
+                                color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
+                        Summe: <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
+                        @if (!_vm.TricksSumValid)
+                        {
+                            <div style="font-size:12px;margin-top:3px;opacity:0.85">
+                                Alle Stiche müssen zusammen @_vm.MaxTricksTotal Punkte ergeben.
+                            </div>
+                        }
+                    </div>
                     @if (OnOpenCalculator != null)
                     {
                         <button class="btn-outline" style="width:100%;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px"
@@ -502,4 +531,5 @@
     @@keyframes step-from-right { from { opacity: 0; transform: translateX(32px); }  to { opacity: 1; transform: translateX(0); } }
     @@keyframes step-from-left  { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: translateX(0); } }
     .step-nav { display: flex; gap: 10px; margin-top: 20px; }
+
 </style>

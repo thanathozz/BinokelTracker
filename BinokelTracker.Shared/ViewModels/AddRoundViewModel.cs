@@ -68,6 +68,20 @@ public class AddRoundViewModel
         (int.TryParse(Meld.ElementAtOrDefault(Bidder) ?? "", out var m) ? m : 0) +
         (int.TryParse(Tricks.ElementAtOrDefault(Bidder) ?? "", out var t) ? t : 0);
 
+    /// Maximale Stichpunkte aus den Regelwerten (8 Karten je Wert, ohne Letzter-Stich-Bonus)
+    public int MaxTricksTotal =>
+        8 * (_game.Rules.AssValue + _game.Rules.ZehnValue + _game.Rules.KoenigValue +
+             _game.Rules.OberValue + _game.Rules.UnterValue);
+
+    /// Summe aller eingegebenen Stichpunkte
+    public int TricksSum => Tricks.Sum(t => int.TryParse(t, out var v) ? v : 0);
+
+    /// Sind die Stichpunkte gültig (Summe == Maximum)?
+    public bool TricksSumValid => TricksSum == MaxTricksTotal;
+
+    /// Darf eine normale Runde gespeichert werden? (Stiche ok oder nicht relevant)
+    public bool CanSave => IsSpecial || BidderAbgegangen || TricksSumValid;
+
     /// Hat der Reizer gewonnen? (Normal-Runde)
     public bool BidderWon => !BidderAbgegangen && BidValue > 0 && BidderTotal >= BidValue;
 
@@ -101,7 +115,8 @@ public class AddRoundViewModel
     /// Darf der Benutzer zum nächsten Schritt?
     public bool CanAdvance => CurrentStep switch
     {
-        FormStep.Reizwert when !IsSpecial => BidValue > 0,  // Reizwert muss eingegeben sein
+        FormStep.Reizwert when !IsSpecial => BidValue > 0,       // Reizwert muss eingegeben sein
+        FormStep.Stiche                   => TricksSumValid,     // Stiche müssen genau MaxTricksTotal ergeben
         _                                 => true
     };
 
