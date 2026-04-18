@@ -93,7 +93,8 @@ public class AddRoundViewModelTests
     public void GoNext_geht_nicht_ueber_letzten_Schritt_hinaus()
     {
         var vm = ForGame();
-        vm.Bid = "200";
+        vm.Bid       = "200";
+        vm.Tricks[0] = "100"; vm.Tricks[1] = "100"; vm.Tricks[2] = "40"; // 240 = Max ohne letzten Stich
         for (int i = 0; i < 20; i++) vm.GoNext();
 
         vm.Step.Should().Be(vm.TotalSteps - 1);
@@ -175,6 +176,45 @@ public class AddRoundViewModelTests
 
         // Schritt 0 (Spielart): kein Block
         vm.CanAdvance.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanAdvance_ist_false_am_Stiche_Schritt_wenn_Summe_ungleich_Maximum()
+    {
+        var vm = ForGame();
+        vm.Bid = "200";
+        vm.GoNext(); // → Reizwert
+        vm.GoNext(); // → Melden
+        vm.GoNext(); // → Stiche
+
+        vm.CurrentStep.Should().Be(FormStep.Stiche);
+        vm.Tricks[0] = "70"; vm.Tricks[1] = "80"; vm.Tricks[2] = "80"; // 230 ≠ 240
+        vm.CanAdvance.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanAdvance_ist_true_am_Stiche_Schritt_wenn_Summe_gleich_Maximum()
+    {
+        var vm = ForGame();
+        vm.Bid = "200";
+        vm.GoNext(); // → Reizwert
+        vm.GoNext(); // → Melden
+        vm.GoNext(); // → Stiche
+
+        vm.CurrentStep.Should().Be(FormStep.Stiche);
+        vm.Tricks[0] = "100"; vm.Tricks[1] = "100"; vm.Tricks[2] = "40"; // 240 = 240
+        vm.CanAdvance.Should().BeTrue();
+    }
+
+    [Fact]
+    public void TricksSum_und_MaxTricksTotal_werden_korrekt_berechnet()
+    {
+        var vm = ForGame(); // Standardregeln: 8×(11+10+4+3+2) = 240 (ohne Letzter-Stich-Bonus)
+        vm.Tricks[0] = "100"; vm.Tricks[1] = "80"; vm.Tricks[2] = "60";
+
+        vm.TricksSum.Should().Be(240);
+        vm.MaxTricksTotal.Should().Be(240);
+        vm.TricksSumValid.Should().BeTrue();
     }
 
     // ══════════════════════════════════════════════════════════════════════
