@@ -52,6 +52,116 @@
         {
             <!-- ════ ÜBERSICHT-MODUS ════ -->
 
+            @if (_vm.OverviewShowPreview)
+            {
+                <!-- Vorschau vor dem Speichern -->
+                <div class="step-label">Ergebnis</div>
+
+                @if (_vm.IsSpecial)
+                {
+                    <div class="score-preview @(_vm.Won ? "won" : "lost")">
+                        <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
+                        @if (Game.Rules.DurchSeparate)
+                        {
+                            <span class="score-preview-note">(separat)</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    @foreach (var (p, i) in _vm.GetScorePreviews().Select((x, idx) => (x, idx)))
+                    {
+                        <div class="@_vm.PlayerRowClass(i)" style="margin-bottom:10px">
+                            <div class="@_vm.PlayerNameClass(i)" style="margin-bottom:6px">
+                                @Game.Players[i]
+                                @if (_vm.IsBidder(i))
+                                {
+                                    @StarIcon
+                                    <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span>
+                                }
+                            </div>
+
+                            @if (p.IsAbgegangen && _vm.IsBidder(i))
+                            {
+                                <div class="bd-row">
+                                    <span class="bd-label">Abgegangen</span>
+                                    <span class="bd-val neg">@_vm.MinusPreview</span>
+                                </div>
+                            }
+                            else if (p.LossReason == "Reizer abgegangen" && !_vm.IsBidder(i))
+                            {
+                                <div class="bd-row bd-row-total">
+                                    <span class="bd-label">Reizer abgegangen</span>
+                                    <span class="bd-val neg">@_vm.MinusPreview</span>
+                                </div>
+                            }
+                            else if (p.LossReason is "Abgegangen" or "Kein Stich — Meldung verfallen")
+                            {
+                                @if (p.Meld > 0)
+                                {
+                                    <div class="bd-row">
+                                        <span class="bd-label">Gemeldet</span>
+                                        <span class="bd-val muted">+@p.Meld (verfallen)</span>
+                                    </div>
+                                }
+                                @if (p.Tricks > 0)
+                                {
+                                    <div class="bd-row">
+                                        <span class="bd-label">Stiche</span>
+                                        <span class="bd-val">+@p.Tricks</span>
+                                    </div>
+                                }
+                                <div class="bd-row bd-row-total">
+                                    <span class="bd-label">@p.LossReason</span>
+                                    <span class="bd-val zero">= 0</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="bd-row">
+                                    <span class="bd-label">Gemeldet</span>
+                                    <span class="bd-val">+@p.Meld</span>
+                                </div>
+                                <div class="bd-row">
+                                    <span class="bd-label">Stiche</span>
+                                    <span class="bd-val">+@p.Tricks</span>
+                                </div>
+                                @if (p.Bonus > 0)
+                                {
+                                    <div class="bd-row">
+                                        <span class="bd-label">Bonus (Reizer abgegangen)</span>
+                                        <span class="bd-val pos">+@p.Bonus</span>
+                                    </div>
+                                }
+                                @if (p.LastTrickBonus > 0)
+                                {
+                                    <div class="bd-row">
+                                        <span class="bd-label">Letzter Stich</span>
+                                        <span class="bd-val pos">+@p.LastTrickBonus</span>
+                                    </div>
+                                }
+                                @if (p.LossReason != null)
+                                {
+                                    <div class="bd-row"><span class="bd-label bd-note">@p.LossReason</span></div>
+                                }
+                                <div class="bd-row bd-row-total">
+                                    <span class="bd-label">Gesamt</span>
+                                    <span class="bd-val @(p.IsLoss ? "neg" : p.FinalScore > 0 ? "pos" : "zero")">
+                                        @(p.IsLoss || p.FinalScore < 0 ? "" : "+")@p.FinalScore
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+
+                <div class="step-nav" style="margin-top:14px">
+                    <button class="btn-outline" style="flex:1" @onclick="_vm.HideOverviewPreview">Zurück</button>
+                    <button class="btn-primary" style="flex:2" @onclick="Save">Speichern</button>
+                </div>
+            }
+            else
+            {
             @if (_vm.ShowGameTypeSelector)
             {
                 <div class="form-group">
@@ -141,6 +251,7 @@
                 @for (int i = 0; i < Game.Players.Count; i++)
                 {
                     var idx = i;
+                    var bidderAbg = _vm.IsBidder(idx) && _vm.BidderAbgegangen;
                     <div class="@_vm.PlayerRowClass(idx)">
                         <div class="@_vm.PlayerNameClass(idx)">
                             @Game.Players[idx]
@@ -149,9 +260,16 @@
                         <div class="player-inputs">
                             <div style="flex:1">
                                 <label class="form-label form-label-sm">Melden</label>
-                                <input class="form-input form-input-center" type="number" inputmode="numeric"
-                                       value="@_vm.Meld[idx]" placeholder="0"
-                                       @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                @if (bidderAbg)
+                                {
+                                    <div class="abgegangen-note">Kein Melden</div>
+                                }
+                                else
+                                {
+                                    <input class="form-input form-input-center" type="number" inputmode="numeric"
+                                           value="@_vm.Meld[idx]" placeholder="0"
+                                           @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                }
                             </div>
                             <div style="flex:1">
                                 <label class="form-label form-label-sm">Stiche</label>
@@ -210,7 +328,9 @@
             }
 
             <button class="btn-primary" style="margin-top:14px;opacity:@(_vm.CanSave ? "1" : "0.4")"
-                    disabled="@(!_vm.CanSave)" @onclick="Save">Runde speichern</button>
+                    disabled="@(!_vm.CanSave)" @onclick="_vm.ShowOverviewPreview">Weiter</button>
+
+            }
         }
         else
         {
@@ -307,7 +427,11 @@
                         <div class="@_vm.PlayerRowClass(idx)">
                             <div class="@_vm.PlayerNameClass(idx)">
                                 @Game.Players[idx]
-                                @if (_vm.IsBidder(idx)) { @StarIcon }
+                                @if (_vm.IsBidder(idx))
+                                {
+                                    @StarIcon
+                                    <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span>
+                                }
                             </div>
                             @if (bidderAbg)
                             {
@@ -331,7 +455,11 @@
                         <div class="@_vm.PlayerRowClass(idx)">
                             <div class="@_vm.PlayerNameClass(idx)">
                                 @Game.Players[idx]
-                                @if (_vm.IsBidder(idx)) { @StarIcon }
+                                @if (_vm.IsBidder(idx))
+                                {
+                                    @StarIcon
+                                    <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span>
+                                }
                             </div>
                             <input class="form-input form-input-center" type="number" inputmode="numeric"
                                    value="@_vm.Tricks[idx]" placeholder="0"
@@ -406,7 +534,11 @@
                         <div class="@_vm.PlayerRowClass(i)" style="margin-bottom:10px">
                             <div class="@_vm.PlayerNameClass(i)" style="margin-bottom:6px">
                                 @Game.Players[i]
-                                @if (_vm.IsBidder(i)) { @StarIcon }
+                                @if (_vm.IsBidder(i))
+                                {
+                                    @StarIcon
+                                    <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span>
+                                }
                             </div>
 
                             @if (p.IsAbgegangen && _vm.IsBidder(i))
