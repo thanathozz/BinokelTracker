@@ -7,9 +7,6 @@ namespace BinokelTracker.Services;
 
 public class SupabaseGameStorageService : IGameStorageService
 {
-    private const string SupabaseUrl = "https://jabaodpqopmbgowtlvjx.supabase.co";
-    private const string AnonKey     = "sb_publishable_vXGsneQ6saP4EB4SbQ9uQQ_UhcLqW3S";
-
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -19,10 +16,10 @@ public class SupabaseGameStorageService : IGameStorageService
     private readonly HttpClient  _http;
     private readonly IAuthService _auth;
 
-    public SupabaseGameStorageService(HttpClient http, IAuthService auth)
+    public SupabaseGameStorageService(HttpClient http, IAuthService auth, SupabaseConfig config)
     {
-        http.BaseAddress = new Uri(SupabaseUrl);
-        http.DefaultRequestHeaders.Add("apikey", AnonKey);
+        http.BaseAddress = new Uri(config.Url);
+        http.DefaultRequestHeaders.Add("apikey", config.AnonKey);
         _http = http;
         _auth = auth;
     }
