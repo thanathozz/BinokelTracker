@@ -139,8 +139,6 @@ public class Round
                     scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
                 else if (bidderAbgegangen)
                     scores[i] = total + PlayerScores.Count * rules.AbgegangenBonusPerPlayer;
-                else if (ps.Tricks == 0 && ps.Meld > 0)
-                    scores[i] = 0;
                 else
                     scores[i] = total;
             }

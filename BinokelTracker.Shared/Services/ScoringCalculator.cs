@@ -45,8 +45,6 @@ public static class ScoringCalculator
                     scores[i] = rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid;
                 else if (bidderAbgegangen)
                     scores[i] = ps.Meld + abgBonus;       // Gegner → Meld + Bonus
-                else if (ps.Tricks == 0 && ps.Meld > 0)
-                    scores[i] = 0;                        // kein Stich → Meldung verfallen
                 else
                     scores[i] = ps.Meld + ps.Tricks;
             }
@@ -167,12 +165,6 @@ public static class ScoringCalculator
                     finalScore = mVal + bonus;
                     isLoss = false;
                     lossReason = null;
-                }
-                else if (tVal == 0 && mVal > 0)
-                {
-                    finalScore = 0;
-                    isLoss = false;
-                    lossReason = "Kein Stich — Meldung verfallen";
                 }
                 else
                 {
