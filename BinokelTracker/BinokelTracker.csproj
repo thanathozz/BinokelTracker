@@ -41,7 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <MauiAsset Include="appsettings.json" LogicalName="appsettings.json" />
+    <EmbeddedResource Include="appsettings.json" LogicalName="appsettings.json" />
   </ItemGroup>
 
 
