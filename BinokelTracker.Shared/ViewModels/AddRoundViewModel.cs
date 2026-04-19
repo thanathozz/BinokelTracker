@@ -35,6 +35,8 @@ public class AddRoundViewModel
     public string    Bid     { get; set; } = "";
     public bool      Won     { get; set; } = true;
 
+    public bool OverviewShowPreview { get; private set; }
+
     public List<bool>   Abgegangen      { get; private set; } = new();
     public List<string> Meld            { get; private set; } = new();
     public List<string> Tricks          { get; private set; } = new();
@@ -180,6 +182,9 @@ public class AddRoundViewModel
     // Aktionen — Benutzereingaben
     // ══════════════════════════════════════════════════════════════════════
 
+    public void ShowOverviewPreview() => OverviewShowPreview = true;
+    public void HideOverviewPreview() => OverviewShowPreview = false;
+
     public void SetBidder(int idx) => Bidder = idx;
 
     public void SetLastTrickWinner(int idx) => LastTrickWinner = idx;
@@ -190,9 +195,10 @@ public class AddRoundViewModel
 
     public void SetMode(InputMode mode)
     {
-        Mode    = mode;
-        Step    = 0;
-        Forward = true;
+        Mode                = mode;
+        Step                = 0;
+        Forward             = true;
+        OverviewShowPreview = false;
     }
 
     public void SetType(RoundType t)
