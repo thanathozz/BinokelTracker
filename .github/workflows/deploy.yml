@@ -29,6 +29,17 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Create appsettings.json
+        run: |
+          cat > BinokelTracker.Web/wwwroot/appsettings.json << EOF
+          {
+            "Supabase": {
+              "Url": "${{ secrets.SUPABASE_URL }}",
+              "AnonKey": "${{ secrets.SUPABASE_ANON_KEY }}"
+            }
+          }
+          EOF
+
       - name: Publish
         run: dotnet publish BinokelTracker.Web/BinokelTracker.Web.csproj -c Release -o publish
 
