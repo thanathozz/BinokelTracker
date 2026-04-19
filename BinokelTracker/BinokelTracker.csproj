@@ -40,5 +40,9 @@
     <ProjectReference Include="..\BinokelTracker.Shared\BinokelTracker.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <MauiAsset Include="appsettings.json" LogicalName="appsettings.json" />
+  </ItemGroup>
+
 
 </Project>

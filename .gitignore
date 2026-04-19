@@ -6,3 +6,8 @@ publish/
 .idea/
 *.DotSettings.user
 .claude/
+
+# Supabase-Konfiguration — echte Keys nicht einchecken
+# Vorlage: appsettings.example.json
+BinokelTracker/appsettings.json
+BinokelTracker.Web/wwwroot/appsettings.json

@@ -8,9 +8,6 @@ namespace BinokelTracker.Services;
 
 public class AuthService : IAuthService
 {
-    private const string SupabaseUrl = "https://jabaodpqopmbgowtlvjx.supabase.co";
-    private const string AnonKey     = "sb_publishable_vXGsneQ6saP4EB4SbQ9uQQ_UhcLqW3S";
-
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -23,10 +20,10 @@ public class AuthService : IAuthService
     public AuthSession? Session { get; private set; }
     public event Action? SessionChanged;
 
-    public AuthService(HttpClient http, IJSRuntime js)
+    public AuthService(HttpClient http, IJSRuntime js, SupabaseConfig config)
     {
-        http.BaseAddress = new Uri(SupabaseUrl);
-        http.DefaultRequestHeaders.Add("apikey", AnonKey);
+        http.BaseAddress = new Uri(config.Url);
+        http.DefaultRequestHeaders.Add("apikey", config.AnonKey);
         _http = http;
         _js   = js;
     }

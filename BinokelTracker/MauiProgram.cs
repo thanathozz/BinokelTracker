@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using System.Reflection;
+using System.Text.Json;
 namespace BinokelTracker;
 
 public static class MauiProgram
@@ -15,11 +17,16 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddSingleton<Services.IGameService, Services.GameService>();
+
+        var supabaseConfig = LoadSupabaseConfig();
+        builder.Services.AddSingleton(supabaseConfig);
+
         builder.Services.AddHttpClient("auth");
         builder.Services.AddScoped<Services.IAuthService>(sp =>
             new Services.AuthService(
                 sp.GetRequiredService<IHttpClientFactory>().CreateClient("auth"),
-                sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>()));
+                sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>(),
+                sp.GetRequiredService<Services.SupabaseConfig>()));
         builder.Services.AddHttpClient<Services.IGameStorageService, Services.SupabaseGameStorageService>();
         builder.Services.AddHttpClient<Services.IFeedbackService, Services.FeedbackService>();
         builder.Services.AddScoped<BinokelTracker.Shared.Services.ThemeService>();
@@ -30,5 +37,21 @@ public static class MauiProgram
 #endif
 
         return builder.Build();
+    }
+
+    private static Services.SupabaseConfig LoadSupabaseConfig()
+    {
+        using var stream = Assembly.GetExecutingAssembly()
+            .GetManifestResourceStream("appsettings.json");
+        if (stream is null)
+            throw new InvalidOperationException("appsettings.json nicht gefunden. Bitte appsettings.example.json kopieren.");
+
+        using var doc = JsonDocument.Parse(stream);
+        var section = doc.RootElement.GetProperty("Supabase");
+        return new Services.SupabaseConfig
+        {
+            Url     = section.GetProperty("Url").GetString()     ?? throw new InvalidOperationException("Supabase:Url fehlt"),
+            AnonKey = section.GetProperty("AnonKey").GetString() ?? throw new InvalidOperationException("Supabase:AnonKey fehlt"),
+        };
     }
 }
