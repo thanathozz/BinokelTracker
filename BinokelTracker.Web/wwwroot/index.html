@@ -20,6 +20,62 @@
         Verbindungsfehler. <a href="">Neu laden</a>
     </div>
     <script src="_content/BinokelTracker.Shared/js/theme.js"></script>
+    <script>
+        window.captureWebcamPhoto = function () {
+            return new Promise(async function (resolve, reject) {
+                var stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                } catch (_) {
+                    try { stream = await navigator.mediaDevices.getUserMedia({ video: true }); }
+                    catch (e) { reject('Kamera nicht verfügbar: ' + e.message); return; }
+                }
+
+                var overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px';
+
+                var video = document.createElement('video');
+                video.style.cssText = 'max-width:100%;max-height:55vh;border-radius:10px;object-fit:cover';
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.playsInline = true;
+
+                var btnRow = document.createElement('div');
+                btnRow.style.cssText = 'display:flex;gap:12px';
+
+                var btnCapture = document.createElement('button');
+                btnCapture.textContent = 'Foto aufnehmen';
+                btnCapture.style.cssText = 'padding:12px 28px;font-size:16px;font-weight:600;border-radius:10px;background:#6aac6a;color:#fff;border:none;cursor:pointer';
+
+                var btnCancel = document.createElement('button');
+                btnCancel.textContent = 'Abbrechen';
+                btnCancel.style.cssText = 'padding:12px 20px;font-size:15px;border-radius:10px;background:transparent;color:#aaa;border:1px solid #555;cursor:pointer';
+
+                btnRow.appendChild(btnCapture);
+                btnRow.appendChild(btnCancel);
+                overlay.appendChild(video);
+                overlay.appendChild(btnRow);
+                document.body.appendChild(overlay);
+
+                function cleanup() {
+                    stream.getTracks().forEach(function (t) { t.stop(); });
+                    document.body.removeChild(overlay);
+                }
+
+                btnCapture.onclick = function () {
+                    var canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    var base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+                    cleanup();
+                    resolve(base64);
+                };
+
+                btnCancel.onclick = function () { cleanup(); resolve(null); };
+            });
+        };
+    </script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 </html>
