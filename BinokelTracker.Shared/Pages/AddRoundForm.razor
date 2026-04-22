@@ -1,3 +1,6 @@
+@using BinokelTracker.Services
+@inject IMeldScanService Scanner
+
 @code {
     [Parameter] public Game Game { get; set; } = default!;
     [Parameter] public EventCallback<Round> OnSave { get; set; }
@@ -247,6 +250,24 @@
                     </div>
                 }
 
+                <!-- Trumpf-Auswahl (Übersicht) -->
+                @if (!_vm.IsSpecial)
+                {
+                    <div class="form-group">
+                        <label class="form-label">Trumpf (optional)</label>
+                        <div class="pill-group">
+                            @foreach (var suit in Enum.GetValues<TrumpSuit>())
+                            {
+                                var s = suit;
+                                <button class="pill @(_vm.Trumpf == s ? "active" : "")"
+                                        @onclick="() => _vm.SetTrump(_vm.Trumpf == s ? null : s)">
+                                    @s
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
                 <label class="form-label">Punkte pro Spieler</label>
                 @for (int i = 0; i < Game.Players.Count; i++)
                 {
@@ -266,9 +287,32 @@
                                 }
                                 else
                                 {
-                                    <input class="form-input form-input-center" type="number" inputmode="numeric"
-                                           value="@_vm.Meld[idx]" placeholder="0"
-                                           @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                    <div style="display:flex;gap:6px;align-items:center">
+                                        <input class="form-input form-input-center" type="number" inputmode="numeric"
+                                               style="flex:1"
+                                               value="@_vm.Meld[idx]" placeholder="0"
+                                               @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                        @if (Scanner.IsAvailable)
+                                        {
+                                            <button class="btn-outline" style="padding:6px 8px;font-size:14px"
+                                                    disabled="@_vm.Scanning[idx]"
+                                                    @onclick="async () => { await _vm.ScanMeldAsync(idx, Scanner); StateHasChanged(); }">
+                                                @(_vm.Scanning[idx] ? "…" : "📷")
+                                            </button>
+                                        }
+                                    </div>
+                                    @if (_vm.ScanResult[idx] is { Count: > 0 } combos)
+                                    {
+                                        <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">
+                                            @foreach (var c in combos)
+                                            {
+                                                <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);
+                                                             border-radius:10px;padding:1px 6px;font-size:11px;color:#6aac6a">
+                                                    @c.Name
+                                                </span>
+                                            }
+                                        </div>
+                                    }
                                 }
                             </div>
                             <div style="flex:1">
@@ -419,6 +463,21 @@
                 }
                 else if (_vm.CurrentStep == FormStep.Melden)
                 {
+                    <!-- Trumpf-Auswahl -->
+                    <div class="form-group">
+                        <label class="form-label">Trumpf (optional)</label>
+                        <div class="pill-group">
+                            @foreach (var suit in Enum.GetValues<TrumpSuit>())
+                            {
+                                var s = suit;
+                                <button class="pill @(_vm.Trumpf == s ? "active" : "")"
+                                        @onclick="() => _vm.SetTrump(_vm.Trumpf == s ? null : s)">
+                                    @s
+                                </button>
+                            }
+                        </div>
+                    </div>
+
                     <!-- Melden pro Spieler — Reizer ist gesperrt wenn abgegangen -->
                     @for (int i = 0; i < Game.Players.Count; i++)
                     {
@@ -439,9 +498,40 @@
                             }
                             else
                             {
-                                <input class="form-input form-input-center" type="number" inputmode="numeric"
-                                       value="@_vm.Meld[idx]" placeholder="0"
-                                       @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                <div style="display:flex;gap:8px;align-items:center">
+                                    <input class="form-input form-input-center" type="number" inputmode="numeric"
+                                           style="flex:1"
+                                           value="@_vm.Meld[idx]" placeholder="0"
+                                           @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty"/>
+                                    @if (Scanner.IsAvailable)
+                                    {
+                                        <button class="btn-outline" style="padding:8px 10px;font-size:16px"
+                                                disabled="@_vm.Scanning[idx]"
+                                                @onclick="async () => { await _vm.ScanMeldAsync(idx, Scanner); StateHasChanged(); }">
+                                            @(_vm.Scanning[idx] ? "…" : "📷")
+                                        </button>
+                                    }
+                                </div>
+                                @if (_vm.Scanning[idx])
+                                {
+                                    <div style="font-size:12px;opacity:0.7;margin-top:4px">Erkenne Karten…</div>
+                                }
+                                @if (_vm.ScanError[idx] is { } err)
+                                {
+                                    <div style="font-size:12px;color:#c45c5c;margin-top:4px">@err</div>
+                                }
+                                @if (_vm.ScanResult[idx] is { Count: > 0 } combos)
+                                {
+                                    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+                                        @foreach (var c in combos)
+                                        {
+                                            <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);
+                                                         border-radius:12px;padding:2px 8px;font-size:12px;color:#6aac6a">
+                                                @c.Name (+@c.Points)
+                                            </span>
+                                        }
+                                    </div>
+                                }
                             }
                         </div>
                     }

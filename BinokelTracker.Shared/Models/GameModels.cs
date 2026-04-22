@@ -86,6 +86,8 @@ public enum RoundType
     Bettel
 }
 
+public enum TrumpSuit { Eichel, Gras, Herz, Schellen }
+
 public class Round
 {
     public long Id { get; set; }
@@ -93,6 +95,7 @@ public class Round
     public int Bidder { get; set; }
     public int Bid { get; set; }
     public bool Won { get; set; } = true;
+    public TrumpSuit? Trumpf { get; set; }
     public List<PlayerScore> PlayerScores { get; set; } = new();
     /// <summary>Index des Spielers mit dem letzten Stich. -1 = kein Stich gespielt (Reizer abgegangen).</summary>
     public int LastTrickWinner { get; set; } = -1;

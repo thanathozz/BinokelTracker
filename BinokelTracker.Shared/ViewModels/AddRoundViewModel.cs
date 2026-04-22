@@ -41,6 +41,12 @@ public class AddRoundViewModel
     public List<string> Meld            { get; private set; } = new();
     public List<string> Tricks          { get; private set; } = new();
     public int          LastTrickWinner { get; private set; }
+    public TrumpSuit?   Trumpf          { get; private set; }
+
+    // Per-player scan state
+    public bool[]   Scanning      { get; private set; } = Array.Empty<bool>();
+    public string?[] ScanError    { get; private set; } = Array.Empty<string>();
+    public IReadOnlyList<DetectedMeld>?[] ScanResult { get; private set; } = Array.Empty<IReadOnlyList<DetectedMeld>?>();
 
     // Navigation (Schritt-für-Schritt)
     public int  Step    { get; private set; }
@@ -185,6 +191,28 @@ public class AddRoundViewModel
     public void ShowOverviewPreview() => OverviewShowPreview = true;
     public void HideOverviewPreview() => OverviewShowPreview = false;
 
+    public void SetTrump(TrumpSuit? t) => Trumpf = t;
+
+    public async Task ScanMeldAsync(int playerIdx, IMeldScanService scanner)
+    {
+        Scanning[playerIdx] = true;
+        ScanError[playerIdx] = null;
+
+        var result = await scanner.ScanHandAsync();
+
+        Scanning[playerIdx] = false;
+        if (!result.Success)
+        {
+            ScanError[playerIdx] = result.Error;
+            return;
+        }
+
+        ScanResult[playerIdx] = result.Combinations;
+        Meld[playerIdx] = result.TotalPoints.ToString();
+        if (Trumpf is null && result.DetectedTrump is not null)
+            Trumpf = result.DetectedTrump;
+    }
+
     public void SetBidder(int idx) => Bidder = idx;
 
     public void SetLastTrickWinner(int idx) => LastTrickWinner = idx;
@@ -246,6 +274,7 @@ public class AddRoundViewModel
         Bid             = BidValue,
         Won             = IsSpecial ? Won : BidderWon,
         LastTrickWinner = (IsSpecial || BidderAbgegangen) ? -1 : LastTrickWinner,
+        Trumpf          = IsSpecial ? null : Trumpf,
         PlayerScores    = _game.Players.Select((_, i) => new PlayerScore
         {
             Meld       = (i == Bidder && BidderAbgegangen) ? 0 : (int.TryParse(Meld[i],   out var m) ? m : 0),
@@ -262,8 +291,12 @@ public class AddRoundViewModel
     {
         Step       = 0;
         Forward    = true;
+        Trumpf     = null;
         Abgegangen = _game.Players.Select(_ => false).ToList();
         Meld       = _game.Players.Select(_ => "").ToList();
         Tricks     = _game.Players.Select(_ => "").ToList();
+        Scanning   = new bool[_game.Players.Count];
+        ScanError  = new string?[_game.Players.Count];
+        ScanResult = new IReadOnlyList<DetectedMeld>?[_game.Players.Count];
     }
 }
