@@ -134,7 +134,6 @@ public class MeldScanService : IMeldScanService
                 .GetProperty("text")
                 .GetString() ?? "";
 
-            // Strip markdown code fences if present
             var cleaned = text.Trim();
             if (cleaned.StartsWith("```")) cleaned = cleaned[(cleaned.IndexOf('\n') + 1)..];
             if (cleaned.EndsWith("```")) cleaned = cleaned[..cleaned.LastIndexOf("```")].Trim();
@@ -159,7 +158,7 @@ public class MeldScanService : IMeldScanService
             }
 
             var total = root.TryGetProperty("gesamt", out var g) ? g.GetInt32() : combinations.Sum(c => c.Points);
-            return new MeldScanResult(true, combinations, trump, total, null);
+            return new MeldScanResult(true, combinations, trump, total, null, text);
         }
         catch (Exception ex)
         {

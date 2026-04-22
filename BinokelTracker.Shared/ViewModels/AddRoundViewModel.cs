@@ -47,6 +47,8 @@ public class AddRoundViewModel
     public bool[]   Scanning      { get; private set; } = Array.Empty<bool>();
     public string?[] ScanError    { get; private set; } = Array.Empty<string>();
     public IReadOnlyList<DetectedMeld>?[] ScanResult { get; private set; } = Array.Empty<IReadOnlyList<DetectedMeld>?>();
+    public string?[] ScanRaw      { get; private set; } = Array.Empty<string?>();
+    public TrumpSuit?[] ScanTrump { get; private set; } = Array.Empty<TrumpSuit?>();
 
     // Navigation (Schritt-für-Schritt)
     public int  Step    { get; private set; }
@@ -201,6 +203,7 @@ public class AddRoundViewModel
         var result = await scanner.ScanHandAsync();
 
         Scanning[playerIdx] = false;
+        ScanRaw[playerIdx]  = result.RawResponse;
         if (!result.Success)
         {
             ScanError[playerIdx] = result.Error;
@@ -208,6 +211,7 @@ public class AddRoundViewModel
         }
 
         ScanResult[playerIdx] = result.Combinations;
+        ScanTrump[playerIdx]  = result.DetectedTrump;
         Meld[playerIdx] = result.TotalPoints.ToString();
         if (Trumpf is null && result.DetectedTrump is not null)
             Trumpf = result.DetectedTrump;
@@ -298,5 +302,7 @@ public class AddRoundViewModel
         Scanning   = new bool[_game.Players.Count];
         ScanError  = new string?[_game.Players.Count];
         ScanResult = new IReadOnlyList<DetectedMeld>?[_game.Players.Count];
+        ScanRaw    = new string?[_game.Players.Count];
+        ScanTrump  = new TrumpSuit?[_game.Players.Count];
     }
 }

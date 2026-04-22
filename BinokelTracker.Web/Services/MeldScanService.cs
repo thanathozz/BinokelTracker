@@ -143,7 +143,7 @@ public class MeldScanService : IMeldScanService
             }
 
             var total = root.TryGetProperty("gesamt", out var g) ? g.GetInt32() : combinations.Sum(c => c.Points);
-            return new MeldScanResult(true, combinations, trump, total, null);
+            return new MeldScanResult(true, combinations, trump, total, null, text);
         }
         catch (Exception ex)
         {

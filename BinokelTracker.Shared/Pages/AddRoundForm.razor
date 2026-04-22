@@ -301,15 +301,31 @@
                                             </button>
                                         }
                                     </div>
-                                    @if (_vm.ScanResult[idx] is { Count: > 0 } combos)
+                                    @if (_vm.ScanResult[idx] is { Count: > 0 } || _vm.ScanRaw[idx] is not null)
                                     {
-                                        <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">
-                                            @foreach (var c in combos)
+                                        <div style="margin-top:5px">
+                                            @if (_vm.ScanResult[idx] is { Count: > 0 } ovCombos)
                                             {
-                                                <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);
-                                                             border-radius:10px;padding:1px 6px;font-size:11px;color:#6aac6a">
-                                                    @c.Name
-                                                </span>
+                                                <div style="display:flex;flex-wrap:wrap;gap:3px">
+                                                    @foreach (var c in ovCombos)
+                                                    {
+                                                        <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);
+                                                                     border-radius:10px;padding:1px 6px;font-size:11px;color:#6aac6a">
+                                                            @c.Name (+@c.Points)
+                                                        </span>
+                                                    }
+                                                </div>
+                                            }
+                                            @if (_vm.ScanTrump[idx] is { } ovTrump)
+                                            {
+                                                <div style="font-size:11px;opacity:0.7;margin-top:3px">Trumpf erkannt: @ovTrump</div>
+                                            }
+                                            @if (_vm.ScanRaw[idx] is { } ovRaw)
+                                            {
+                                                <details style="margin-top:4px">
+                                                    <summary style="font-size:11px;opacity:0.6;cursor:pointer">Claude-Antwort</summary>
+                                                    <pre style="font-size:10px;opacity:0.75;white-space:pre-wrap;word-break:break-all;margin-top:4px;padding:6px;background:rgba(255,255,255,0.05);border-radius:6px">@ovRaw</pre>
+                                                </details>
                                             }
                                         </div>
                                     }
@@ -520,15 +536,31 @@
                                 {
                                     <div style="font-size:12px;color:#c45c5c;margin-top:4px">@err</div>
                                 }
-                                @if (_vm.ScanResult[idx] is { Count: > 0 } combos)
+                                @if (_vm.ScanResult[idx] is { Count: > 0 } || _vm.ScanRaw[idx] is not null)
                                 {
-                                    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
-                                        @foreach (var c in combos)
+                                    <div style="margin-top:6px">
+                                        @if (_vm.ScanResult[idx] is { Count: > 0 } sbsCombos)
                                         {
-                                            <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);
-                                                         border-radius:12px;padding:2px 8px;font-size:12px;color:#6aac6a">
-                                                @c.Name (+@c.Points)
-                                            </span>
+                                            <div style="display:flex;flex-wrap:wrap;gap:4px">
+                                                @foreach (var c in sbsCombos)
+                                                {
+                                                    <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);
+                                                                 border-radius:12px;padding:2px 8px;font-size:12px;color:#6aac6a">
+                                                        @c.Name (+@c.Points)
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                        @if (_vm.ScanTrump[idx] is { } sbsTrump)
+                                        {
+                                            <div style="font-size:12px;opacity:0.7;margin-top:4px">Trumpf erkannt: @sbsTrump</div>
+                                        }
+                                        @if (_vm.ScanRaw[idx] is { } sbsRaw)
+                                        {
+                                            <details style="margin-top:5px">
+                                                <summary style="font-size:12px;opacity:0.6;cursor:pointer">Claude-Antwort anzeigen</summary>
+                                                <pre style="font-size:11px;opacity:0.75;white-space:pre-wrap;word-break:break-all;margin-top:4px;padding:8px;background:rgba(255,255,255,0.05);border-radius:8px">@sbsRaw</pre>
+                                            </details>
                                         }
                                     </div>
                                 }

@@ -13,6 +13,7 @@ public record MeldScanResult(
     List<DetectedMeld> Combinations,
     TrumpSuit? DetectedTrump,
     int TotalPoints,
-    string? Error);
+    string? Error,
+    string? RawResponse = null);
 
 public record DetectedMeld(string Name, int Points);
