@@ -87,6 +87,7 @@ public class MeldScanService : IMeldScanService
         using var client = _httpFactory.CreateClient();
         client.DefaultRequestHeaders.Add("x-api-key", _apiKey);
         client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+        client.DefaultRequestHeaders.Add("anthropic-dangerous-direct-browser-access", "true");
 
         var json = JsonSerializer.Serialize(requestBody);
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
