@@ -104,7 +104,7 @@ public class MeldScanService : IMeldScanService
 
         var responseText = await response.Content.ReadAsStringAsync(ct);
         if (!response.IsSuccessStatusCode)
-            return Fail($"API-Fehler {(int)response.StatusCode}");
+            return new MeldScanResult(false, new List<DetectedMeld>(), null, 0, $"API-Fehler {(int)response.StatusCode}", responseText);
 
         return ParseResponse(responseText);
     }

@@ -536,7 +536,7 @@
                                 {
                                     <div style="font-size:12px;color:#c45c5c;margin-top:4px">@err</div>
                                 }
-                                @if (_vm.ScanResult[idx] is { Count: > 0 } || _vm.ScanRaw[idx] is not null)
+                                @if (_vm.ScanResult[idx] is { Count: > 0 } || _vm.ScanRaw[idx] is not null || _vm.ScanError[idx] is not null)
                                 {
                                     <div style="margin-top:6px">
                                         @if (_vm.ScanResult[idx] is { Count: > 0 } sbsCombos)
