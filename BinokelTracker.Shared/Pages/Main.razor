@@ -218,8 +218,7 @@
     private async Task AddSpielrunde(Spielrunde s)
     {
         _state.Spielrunden.Add(s);
-        _activeSession = s;
-        _view = View.List;
+        _view = View.SpielrundeList;
         await Save();
     }
 

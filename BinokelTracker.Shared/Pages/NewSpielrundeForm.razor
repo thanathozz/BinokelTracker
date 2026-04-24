@@ -19,6 +19,12 @@
     private List<CustomField> _customFields = new();
     private bool _strichlisteMode = false;
 
+    protected override void OnParametersSet()
+    {
+        if (!GameTypeInfo.IsBinokel(GameType) && _players.Count == 0)
+            _players = new List<string> { string.Empty, string.Empty };
+    }
+
     private bool CanSave =>
         !string.IsNullOrWhiteSpace(_name) &&
         (!_usePassword || (_password.Length >= 1 && _password == _passwordConfirm));
@@ -169,6 +175,25 @@
 
         @if (!GameTypeInfo.IsBinokel(GameType))
         {
+            <label class="form-label" style="margin-bottom:8px">Spieler</label>
+            <div style="margin-bottom:16px">
+                @for (int pi = 0; pi < _players.Count; pi++)
+                {
+                    var pidx = pi;
+                    <input class="form-input" style="margin-bottom:6px" placeholder="Spieler @(pidx + 1)"
+                           value="@_players[pidx]"
+                           @oninput="e => _players[pidx] = e.Value?.ToString() ?? string.Empty" />
+                }
+                <div style="display:flex;gap:8px;margin-top:6px">
+                    <button class="btn-outline" style="flex:1;padding:8px" type="button" @onclick="() => _players.Add(string.Empty)">+ Spieler</button>
+                    @if (_players.Count > 2)
+                    {
+                        <button class="btn-outline" style="flex:1;padding:8px;color:var(--red);border-color:rgba(196,92,92,.3)" type="button"
+                                @onclick="() => _players.RemoveAt(_players.Count - 1)">− Entfernen</button>
+                    }
+                </div>
+            </div>
+
             <div class="toggle-row" style="margin-bottom:16px">
                 <button class="toggle-track @(_strichlisteMode ? "on" : "off")" @onclick="() => _strichlisteMode = !_strichlisteMode">
                     <div class="toggle-knob @(_strichlisteMode ? "on" : "off")"></div>
