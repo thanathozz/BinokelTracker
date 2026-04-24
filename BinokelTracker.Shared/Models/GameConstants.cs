@@ -17,12 +17,8 @@ public static class GameTypeInfo
 
     public static readonly (string Id, string Icon, string Name, string Desc)[] All =
     {
-        (Binokel,    "♠", "Binokel",      "Schwäbisches Kartenspiel"),
-        (Schafkopf,  "♣", "Schafkopf",    "Bayerisches Kartenspiel"),
-        (Skat,       "♦", "Skat",         "Deutsches Nationalkartenspiel"),
-        (Doppelkopf, "♥", "Doppelkopf",   "Norddeutsches Kartenspiel"),
-        (Romme,      "🎴", "Rommé",        "Klassisches Rummyspiel"),
-        (Andere,     "⚙", "Andere",       "Eigenes Spiel tracken"),
+        (Binokel, "♠", "Binokel", "Schwäbisches Kartenspiel"),
+        (Andere,  "⚙", "Custom",  "Eigenes Spiel tracken"),
     };
 
     public static string GetName(string id) =>
