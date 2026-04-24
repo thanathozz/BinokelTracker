@@ -75,42 +75,35 @@
 
 <div>
     <div class="header header-center">
-        <div>
-            <button class="btn" @onclick="OnBack">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                     stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                </svg>
-            </button>
-        </div>
+        <div></div>
         <span class="header-title">Statistiken</span>
         <div style="width:36px"></div>
     </div>
 
-    <!-- Global summary -->
-    <div class="stats-summary-row">
-        <div class="stats-summary-cell">
-            <div class="stats-summary-value">@_stats.TotalGames</div>
-            <div class="stats-summary-label">Spiele</div>
+    <!-- KPI-Leiste -->
+    <div class="stats-kpi-bar">
+        <div class="stats-kpi-cell">
+            <div class="stats-kpi-value">@_stats.TotalGames</div>
+            <div class="stats-kpi-label">Spiele</div>
         </div>
-        <div class="stats-summary-cell">
-            <div class="stats-summary-value">@_stats.FinishedGames</div>
-            <div class="stats-summary-label">Beendet</div>
+        <div class="stats-kpi-cell">
+            <div class="stats-kpi-value">@_stats.TotalRounds</div>
+            <div class="stats-kpi-label">Runden</div>
         </div>
-        <div class="stats-summary-cell">
-            <div class="stats-summary-value">@_stats.TotalRounds</div>
-            <div class="stats-summary-label">Runden</div>
+        <div class="stats-kpi-cell">
+            <div class="stats-kpi-value">@_stats.Players.Count</div>
+            <div class="stats-kpi-label">Spieler</div>
         </div>
-        <div class="stats-summary-cell">
-            <div class="stats-summary-value">@_stats.Players.Count</div>
-            <div class="stats-summary-label">Spieler</div>
+        <div class="stats-kpi-cell">
+            <div class="stats-kpi-value">@_stats.FinishedGames</div>
+            <div class="stats-kpi-label">Beendet</div>
         </div>
     </div>
 
-    <!-- Tab strip -->
+    <!-- Tab -->
     <div class="mode-toggle-bar">
         <button class="pill pill-sm @(_tab == Tab.Players ? "active" : "")"
-                @onclick="() => _tab = Tab.Players">Spieler</button>
+                @onclick="() => _tab = Tab.Players">Rangliste</button>
         <button class="pill pill-sm @(_tab == Tab.Charts ? "active" : "")"
                 @onclick="() => _tab = Tab.Charts">Diagramme</button>
     </div>
@@ -127,129 +120,90 @@
     }
     else if (_tab == Tab.Players)
     {
-        <!-- ════ SPIELER-KARTEN ════ -->
         <div class="section" style="padding-top:8px">
             @foreach (var (p, rank) in _stats.Players.Select((p, i) => (p, i + 1)))
             {
-                <div class="stats-card">
-                    <div class="stats-card-header">
-                        <div class="stats-card-rank">
+                var badgeClass = rank == 1 ? "gold" : rank == 2 ? "silver" : rank == 3 ? "bronze" : "";
+                var rateColor  = p.BidderWinRate >= 60 ? "var(--green)" : p.BidderWinRate >= 40 ? "var(--accent)" : "var(--red)";
+
+                <div class="stat-row">
+                    <div class="stat-row-left">
+                        <div class="stat-badge @badgeClass">
                             @if (rank == 1 && p.GamesWon > 0)
                             {
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="none">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
                                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                                 </svg>
                             }
-                            else
+                            else { @rank }
+                        </div>
+                        <div style="min-width:0">
+                            <div class="stat-name">@p.Name</div>
+                            <div class="stat-meta">
+                                @if (p.RoundsAsBidder > 0)
+                                {
+                                    <text>@Pct(p.BidderWinRate) Reizquote</text>
+                                    <span class="stat-meta-sep">·</span>
+                                    <text>Ø @Avg(p.AvgBidValue)</text>
+                                }
+                                @if (p.BidderAbgegangen > 0)
+                                {
+                                    <span class="stat-meta-sep">·</span>
+                                    <text>Abg. @(p.BidderAbgegangen)×</text>
+                                }
+                                @if (p.DurchPlayed > 0)
+                                {
+                                    <span class="stat-meta-sep">·</span>
+                                    <text>D @(p.DurchWon)/@(p.DurchPlayed)</text>
+                                }
+                                @if (p.BettelPlayed > 0)
+                                {
+                                    <span class="stat-meta-sep">·</span>
+                                    <text>B @(p.BettelWon)/@(p.BettelPlayed)</text>
+                                }
+                            </div>
+                            @if (p.RoundsAsBidder > 0)
                             {
-                                <span class="stats-rank-num">@rank</span>
+                                <div class="stat-rate-bar">
+                                    <div class="stat-rate-fill" style="width:@(Pct(p.BidderWinRate));background:@rateColor"></div>
+                                </div>
                             }
                         </div>
-                        <div class="stats-card-name">@p.Name</div>
-                        <div class="stats-card-wins">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
-                                <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
-                                <path d="M4 22h16"/>
-                                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/>
-                                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/>
-                                <path d="M18 2H6v7a6 6 0 1012 0V2z"/>
-                            </svg>
-                            <span>@p.GamesWon / @p.GamesPlayed</span>
-                        </div>
                     </div>
-
-                    @if (p.MoneyBalance != 0)
-                    {
-                        <div class="stats-money-badge @(p.MoneyBalance >= 0 ? "pos" : "neg")">
-                            @FormatMoney(p.MoneyBalance)
-                        </div>
-                    }
-
-                    <div class="stats-grid">
-                        <div class="stats-cell">
-                            <div class="stats-cell-value">@p.RoundsAsBidder</div>
-                            <div class="stats-cell-label">Als Reizer</div>
-                        </div>
-                        <div class="stats-cell">
-                            <div class="stats-cell-value @(p.BidderWinRate >= 50 ? "stats-val-good" : p.BidderWinRate > 0 ? "stats-val-warn" : "")">
-                                @if (p.RoundsAsBidder > 0) { @Pct(p.BidderWinRate) } else { <text>—</text> }
-                            </div>
-                            <div class="stats-cell-label">Reiz-Quote</div>
-                        </div>
-                        <div class="stats-cell">
-                            <div class="stats-cell-value">
-                                @if (p.BidCountNotAbg > 0) { @Avg(p.AvgBidValue) } else { <text>—</text> }
-                            </div>
-                            <div class="stats-cell-label">Ø Reizwert</div>
-                        </div>
-                        <div class="stats-cell">
-                            <div class="stats-cell-value @(p.BidderAbgegangen > 0 ? "stats-val-warn" : "")">
-                                @p.BidderAbgegangen×
-                            </div>
-                            <div class="stats-cell-label">Abgegangen</div>
-                        </div>
+                    <div class="stat-row-right">
+                        <div class="stat-wins-num">@p.GamesWon</div>
+                        <div class="stat-played">/ @p.GamesPlayed Sp.</div>
+                        @if (p.MoneyBalance != 0)
+                        {
+                            <div class="stat-money @(p.MoneyBalance >= 0 ? "pos" : "neg")">@FormatMoney(p.MoneyBalance)</div>
+                        }
                     </div>
-
-                    @if (p.DurchPlayed > 0 || p.BettelPlayed > 0)
-                    {
-                        <div class="stats-special-row">
-                            @if (p.DurchPlayed > 0)  { <span class="chip chip-yellow">Durch @p.DurchWon/@p.DurchPlayed</span> }
-                            @if (p.BettelPlayed > 0) { <span class="chip chip-blue">Bettel @p.BettelWon/@p.BettelPlayed</span> }
-                        </div>
-                    }
                 </div>
             }
         </div>
     }
     else
     {
-        <!-- ════ DIAGRAMME ════ -->
         <div class="section" style="padding-top:12px">
-
             @if (HasMoney)
             {
-                <BarChart Title="Gewinn / Verlust (€)"
-                          Data="ChartMoney"
-                          Unit=" €"
-                          ColorResolver="MoneyColor" />
+                <BarChart Title="Gewinn / Verlust (€)" Data="ChartMoney" Unit=" €" ColorResolver="MoneyColor" />
             }
-
-            <BarChart Title="Siege"
-                      Data="ChartWins"
-                      Color="var(--green)" />
-
-            <BarChart Title="Reizquote"
-                      Data="ChartWinRate"
-                      Unit="%"
-                      FixedMax="100"
-                      Color="var(--accent-light)" />
-
-            <BarChart Title="Ø Reizwert"
-                      Data="ChartAvgBid"
-                      Color="var(--accent)" />
-
+            <BarChart Title="Siege"        Data="ChartWins"    Color="var(--green)" />
+            <BarChart Title="Reizquote"    Data="ChartWinRate" Unit="%" FixedMax="100" Color="var(--accent-light)" />
+            <BarChart Title="Ø Reizwert"   Data="ChartAvgBid"  Color="var(--accent)" />
             @if (ChartAbgegangen.Count > 0)
             {
-                <BarChart Title="Abgegangen"
-                          Data="ChartAbgegangen"
-                          Color="var(--dark)" />
+                <BarChart Title="Abgegangen" Data="ChartAbgegangen" Color="var(--dark)" />
             }
-
             @if (ChartBidderLosses.Count > 0)
             {
-                <BarChart Title="Überreizt"
-                          Data="ChartBidderLosses"
-                          Color="var(--red)" />
+                <BarChart Title="Überreizt" Data="ChartBidderLosses" Color="var(--red)" />
             }
-
             @if (ChartDurch.Count > 0)
             {
-                <BarChart Title="Durch — Siege"
-                          Data="ChartDurch"
-                          Color="var(--yellow, #d4a017)" />
+                <BarChart Title="Durch — Siege" Data="ChartDurch" Color="var(--yellow, #d4a017)" />
             }
-
         </div>
     }
 

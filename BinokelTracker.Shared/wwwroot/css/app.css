@@ -532,49 +532,56 @@ html, body {
 }
 
 /* ═══ Statistics dashboard ═══ */
-.stats-summary-row {
-    display: flex; justify-content: space-around; align-items: center;
-    padding: 14px 16px 10px; gap: 8px;
+.stats-kpi-bar {
+    display: flex; gap: 0; padding: 12px 16px 10px;
 }
-.stats-summary-cell  { text-align: center; flex: 1; }
-.stats-summary-value {
-    font-size: 26px; font-weight: 700; font-family: var(--font-mono);
+.stats-kpi-cell {
+    flex: 1; text-align: center; padding: 0 4px;
+    border-right: 1px solid var(--border);
+}
+.stats-kpi-cell:last-child { border-right: none; }
+.stats-kpi-value {
+    font-size: 20px; font-weight: 700; font-family: var(--font-mono);
     color: var(--accent-light);
 }
-.stats-summary-label {
-    font-size: 11px; color: var(--muted); margin-top: 2px;
+.stats-kpi-label {
+    font-size: 10px; color: var(--dark); margin-top: 1px;
     text-transform: uppercase; letter-spacing: .04em;
 }
-.stats-card {
-    background: var(--card); border-radius: 14px;
-    padding: 14px 16px; margin-bottom: 12px;
-    border: 1px solid var(--border);
+
+/* ═══ Compact player row ═══ */
+.stat-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--card); border-radius: 12px;
+    border: 1px solid var(--border); margin-bottom: 8px; gap: 10px;
 }
-.stats-card-header   { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.stats-card-rank     { width: 24px; text-align: center; flex-shrink: 0; }
-.stats-rank-num      { font-size: 13px; font-weight: 700; color: var(--muted); }
-.stats-card-name     { font-size: 17px; font-weight: 700; flex: 1; color: var(--text); }
-.stats-card-wins     { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600; color: var(--muted); }
-.stats-grid          { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
-.stats-cell          { text-align: center; padding: 6px 4px; }
-.stats-cell-value    { font-size: 18px; font-weight: 700; font-family: var(--font-mono); color: var(--text); }
-.stats-cell-label    {
-    font-size: 10px; color: var(--muted); margin-top: 2px;
-    text-transform: uppercase; letter-spacing: .03em;
+.stat-row-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.stat-badge {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    background: var(--card-alt); color: var(--muted); border: 1px solid var(--border);
 }
+.stat-badge.gold { background: rgba(200,149,108,0.15); color: var(--accent); border-color: rgba(200,149,108,0.4); }
+.stat-badge.silver { background: rgba(154,142,128,0.12); color: var(--muted); }
+.stat-badge.bronze { background: rgba(150,100,60,0.12); color: var(--accent-dim); }
+.stat-name { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-meta { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.stat-meta-sep { color: var(--border); margin: 0 3px; }
+.stat-row-right { text-align: right; flex-shrink: 0; }
+.stat-wins-num { font-size: 18px; font-weight: 700; font-family: var(--font-mono); color: var(--accent-light); }
+.stat-played { font-size: 10px; color: var(--dark); margin-top: 1px; }
+.stat-money { font-size: 11px; font-weight: 700; font-family: var(--font-mono); margin-top: 4px; padding: 1px 7px; border-radius: 20px; display: inline-block; }
+.stat-money.pos { background: rgba(106,172,106,0.12); color: var(--green); }
+.stat-money.neg { background: rgba(196,92,92,0.10); color: var(--red); }
+
+/* ═══ Win-rate bar ═══ */
+.stat-rate-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.stat-rate-fill { height: 100%; border-radius: 2px; }
+
+/* legacy kept for BarChart component */
 .stats-val-good { color: var(--green); }
 .stats-val-warn { color: var(--accent-light); }
-.stats-special-row {
-    display: flex; gap: 8px; margin-top: 10px; padding-top: 10px;
-    border-top: 1px solid var(--border);
-}
-.stats-money-badge {
-    display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: 13px; font-weight: 700; font-family: var(--font-mono);
-    margin-bottom: 10px;
-}
-.stats-money-badge.pos { background: rgba(76,175,80,.15);  color: var(--green); }
-.stats-money-badge.neg { background: rgba(229,57,53,.12);  color: var(--red);   }
 
 /* ═══ Feedback ═══ */
 .feedback-fab {
