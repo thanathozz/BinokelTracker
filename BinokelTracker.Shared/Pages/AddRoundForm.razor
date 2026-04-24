@@ -93,32 +93,40 @@
     {
         @if (CustomFields.Any())
         {
-            <!-- ── Custom-Feld-Eingabe ── -->
-            @foreach (var field in CustomFields)
+            <!-- ── Custom-Felder pro Spieler ── -->
+            @for (int pi = 0; pi < Game.Players.Count; pi++)
             {
-                var f = field;
-                <div class="form-group">
-                    <label class="form-label">@f.Name</label>
-                    @if (f.FieldType == CustomFieldType.Number)
+                var playerIdx = pi;
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 14px 8px;margin-bottom:12px">
+                    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">@Game.Players[playerIdx]</div>
+                    @foreach (var field in CustomFields)
                     {
-                        <input class="form-input bid-input" type="number"
-                               value="@GetCustomValue(f.Id)"
-                               @oninput="e => SetCustomValue(f.Id, e.Value?.ToString() ?? string.Empty)" />
-                    }
-                    else if (f.FieldType == CustomFieldType.Text)
-                    {
-                        <input class="form-input" placeholder="@f.Name eingeben"
-                               value="@GetCustomValue(f.Id)"
-                               @oninput="e => SetCustomValue(f.Id, e.Value?.ToString() ?? string.Empty)" />
-                    }
-                    else if (f.FieldType == CustomFieldType.Dropdown && f.Options.Any())
-                    {
-                        <div class="pill-group">
-                            @foreach (var opt in f.Options)
+                        var f = field;
+                        var key = $"{f.Id}:{playerIdx}";
+                        <div class="form-group">
+                            <label class="form-label form-label-sm">@f.Name</label>
+                            @if (f.FieldType == CustomFieldType.Number)
                             {
-                                var o = opt;
-                                <button class="pill @(GetCustomValue(f.Id) == o ? "active" : "")"
-                                        @onclick="() => SetCustomValue(f.Id, o)">@o</button>
+                                <input class="form-input" type="number" style="font-size:15px;padding:8px 12px"
+                                       value="@GetCustomValue(key)"
+                                       @oninput="e => SetCustomValue(key, e.Value?.ToString() ?? string.Empty)" />
+                            }
+                            else if (f.FieldType == CustomFieldType.Text)
+                            {
+                                <input class="form-input" placeholder="@f.Name"
+                                       value="@GetCustomValue(key)"
+                                       @oninput="e => SetCustomValue(key, e.Value?.ToString() ?? string.Empty)" />
+                            }
+                            else if (f.FieldType == CustomFieldType.Dropdown && f.Options.Any())
+                            {
+                                <div class="pill-group">
+                                    @foreach (var opt in f.Options)
+                                    {
+                                        var o = opt;
+                                        <button class="pill pill-sm @(GetCustomValue(key) == o ? "active" : "")"
+                                                @onclick="() => SetCustomValue(key, o)">@o</button>
+                                    }
+                                </div>
                             }
                         </div>
                     }

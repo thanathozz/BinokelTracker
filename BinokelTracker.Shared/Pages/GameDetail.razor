@@ -187,8 +187,8 @@
             <div class="round-card">
                 @if (Game.Rules.Id == "generic" && CustomFields.Any())
                 {
-                    <!-- Custom-Feld-Anzeige -->
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    <!-- Custom-Feld-Anzeige pro Spieler -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                         <span class="round-num">R@(ri + 1)</span>
                         @if (!Game.Finished)
                         {
@@ -201,13 +201,18 @@
                             </button>
                         }
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:4px">
-                        @foreach (var field in CustomFields)
+                    <div style="display:flex;gap:4px">
+                        @for (int ci = 0; ci < Game.Players.Count; ci++)
                         {
-                            var val = r.CustomValues.TryGetValue(field.Id, out var v) ? v : "—";
-                            <div style="display:flex;justify-content:space-between;align-items:center">
-                                <span style="font-size:12px;color:var(--muted)">@field.Name</span>
-                                <span style="font-size:13px;font-weight:600;color:var(--text)">@val</span>
+                            var pi = ci;
+                            <div style="flex:1;background:var(--card-alt);border-radius:8px;padding:6px 8px">
+                                <div style="font-size:10px;color:var(--muted);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@Game.Players[pi]</div>
+                                @foreach (var field in CustomFields)
+                                {
+                                    var val = r.CustomValues.TryGetValue($"{field.Id}:{pi}", out var v) ? v : "—";
+                                    <div style="font-size:11px;color:var(--dark)">@field.Name</div>
+                                    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">@val</div>
+                                }
                             </div>
                         }
                     </div>
