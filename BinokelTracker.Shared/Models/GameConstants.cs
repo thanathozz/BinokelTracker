@@ -6,6 +6,16 @@ public static class GameConstants
     public const int LastTrickBonus = 10;
 }
 
+public enum CustomFieldType { Number, Text, Dropdown }
+
+public class CustomField
+{
+    public string Id      { get; set; } = "";
+    public string Name    { get; set; } = "";
+    public CustomFieldType FieldType { get; set; } = CustomFieldType.Number;
+    public List<string> Options { get; set; } = new();
+}
+
 public static class GameTypeInfo
 {
     public const string Binokel    = "binokel";

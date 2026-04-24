@@ -3,12 +3,18 @@
 
 @code {
     [Parameter] public Game Game { get; set; } = default!;
+    [Parameter] public List<CustomField> CustomFields { get; set; } = new();
     [Parameter] public EventCallback<Round> OnSave { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
 
     private AddRoundViewModel _vm = default!;
     private int[] _genericScores = Array.Empty<int>();
+    private Dictionary<string, string> _customValues = new();
+
+    private string GetCustomValue(string id) =>
+        _customValues.TryGetValue(id, out var v) ? v : string.Empty;
+    private void SetCustomValue(string id, string val) => _customValues[id] = val;
 
     protected override void OnParametersSet()
     {
@@ -27,6 +33,19 @@
             Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Bidder = 0,
             PlayerScores = _genericScores.Select(s => new PlayerScore { Tricks = s }).ToList()
+        };
+        await OnSave.InvokeAsync(round);
+    }
+
+    private async Task SaveCustomFields()
+    {
+        var round = new Round
+        {
+            Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Bidder = 0,
+            PlayerScores = Enumerable.Range(0, Game.Players.Count)
+                .Select(_ => new PlayerScore()).ToList(),
+            CustomValues = new Dictionary<string, string>(_customValues)
         };
         await OnSave.InvokeAsync(round);
     }
@@ -72,21 +91,62 @@
 
     @if (Game.Rules.Id == "generic")
     {
-        <!-- ── Generische Punkte-Eingabe ── -->
-        @for (int i = 0; i < Game.Players.Count; i++)
+        @if (CustomFields.Any())
         {
-            var idx = i;
-            <div class="form-group">
-                <label class="form-label">@Game.Players[idx]</label>
-                <input class="form-input bid-input" type="number"
-                       value="@_genericScores[idx]"
-                       @oninput="e => { if (int.TryParse(e.Value?.ToString(), out var v)) _genericScores[idx] = v; }" />
+            <!-- ── Custom-Feld-Eingabe ── -->
+            @foreach (var field in CustomFields)
+            {
+                var f = field;
+                <div class="form-group">
+                    <label class="form-label">@f.Name</label>
+                    @if (f.FieldType == CustomFieldType.Number)
+                    {
+                        <input class="form-input bid-input" type="number"
+                               value="@GetCustomValue(f.Id)"
+                               @oninput="e => SetCustomValue(f.Id, e.Value?.ToString() ?? string.Empty)" />
+                    }
+                    else if (f.FieldType == CustomFieldType.Text)
+                    {
+                        <input class="form-input" placeholder="@f.Name eingeben"
+                               value="@GetCustomValue(f.Id)"
+                               @oninput="e => SetCustomValue(f.Id, e.Value?.ToString() ?? string.Empty)" />
+                    }
+                    else if (f.FieldType == CustomFieldType.Dropdown && f.Options.Any())
+                    {
+                        <div class="pill-group">
+                            @foreach (var opt in f.Options)
+                            {
+                                var o = opt;
+                                <button class="pill @(GetCustomValue(f.Id) == o ? "active" : "")"
+                                        @onclick="() => SetCustomValue(f.Id, o)">@o</button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            <div class="action-bar">
+                <button class="btn-primary" style="flex:2" @onclick="SaveCustomFields">Speichern</button>
+                <button class="btn-outline" style="flex:1" @onclick="OnCancel">Abbrechen</button>
             </div>
         }
-        <div class="action-bar">
-            <button class="btn-primary" style="flex:2" @onclick="SaveGeneric">Speichern</button>
-            <button class="btn-outline" style="flex:1" @onclick="OnCancel">Abbrechen</button>
-        </div>
+        else
+        {
+            <!-- ── Generische Punkte-Eingabe ── -->
+            @for (int i = 0; i < Game.Players.Count; i++)
+            {
+                var idx = i;
+                <div class="form-group">
+                    <label class="form-label">@Game.Players[idx]</label>
+                    <input class="form-input bid-input" type="number"
+                           value="@_genericScores[idx]"
+                           @oninput="e => { if (int.TryParse(e.Value?.ToString(), out var v)) _genericScores[idx] = v; }" />
+                </div>
+            }
+            <div class="action-bar">
+                <button class="btn-primary" style="flex:2" @onclick="SaveGeneric">Speichern</button>
+                <button class="btn-outline" style="flex:1" @onclick="OnCancel">Abbrechen</button>
+            </div>
+        }
     }
     else
     {

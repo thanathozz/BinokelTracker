@@ -97,6 +97,7 @@ public class Round
     public bool Won { get; set; } = true;
     public TrumpSuit? Trumpf { get; set; }
     public List<PlayerScore> PlayerScores { get; set; } = new();
+    public Dictionary<string, string> CustomValues { get; set; } = new();
     /// <summary>Index des Spielers mit dem letzten Stich. -1 = kein Stich gespielt (Reizer abgegangen).</summary>
     public int LastTrickWinner { get; set; } = -1;
 
@@ -225,6 +226,7 @@ public class Spielrunde
     public long Id { get; set; }
     public string Name { get; set; } = "";
     public string GameType { get; set; } = GameTypeInfo.Binokel;
+    public List<CustomField> CustomFields { get; set; } = new();
     public List<string> Players { get; set; } = new();
     /// <summary>SHA-256 Hex des Passworts, oder null = kein Passwort.</summary>
     public string? PasswordHash { get; set; }

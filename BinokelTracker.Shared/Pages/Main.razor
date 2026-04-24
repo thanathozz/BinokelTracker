@@ -56,6 +56,7 @@
         else if (_view == View.Detail && _selectedGame != null)
         {
             <GameDetail Game="_selectedGame"
+                        CustomFields="@(_activeSession?.CustomFields ?? new())"
                         OnBack="() => _view = View.List"
                         OnAddRound="() => _view = View.AddRound"
                         OnDeleteRound="DeleteRound"
@@ -63,7 +64,7 @@
         }
         else if (_view == View.AddRound && _selectedGame != null)
         {
-            <AddRoundForm Game="_selectedGame" OnSave="AddRound" OnCancel="() => _view = View.Detail"
+            <AddRoundForm Game="_selectedGame" CustomFields="@(_activeSession?.CustomFields ?? new())" OnSave="AddRound" OnCancel="() => _view = View.Detail"
                           OnOpenCalculator="(players, assign) => _calculatorDialog!.Open(players, assign, _selectedGame?.Rules.AssValue ?? 11, _selectedGame?.Rules.ZehnValue ?? 10, _selectedGame?.Rules.KoenigValue ?? 4, _selectedGame?.Rules.OberValue ?? 3, _selectedGame?.Rules.UnterValue ?? 2, _selectedGame?.Rules.LastTrickBonus ?? 10)" />
         }
         else if (_view == View.QuickGame)
