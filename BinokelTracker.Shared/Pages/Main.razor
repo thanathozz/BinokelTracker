@@ -65,7 +65,7 @@
         }
         else if (_view == View.Statistics)
         {
-            <Statistics Games="_state.Games"
+            <Statistics Games="(_activeSession != null ? SessionGames : _state.Games)"
                         OnBack="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)" />
         }
         else if (_view == View.Profile)
