@@ -40,6 +40,7 @@
                       OnNew="() => _view = View.NewGame"
                       OnQuickGame="() => _view = View.QuickGame"
                       OnStats="() => _view = View.Statistics"
+                      OnProfile="() => _view = View.Profile"
                       OnRules="() => _rulesDialog!.Open()"
                       OnCalculator="() => _calculatorDialog!.Open(null, null, _activeSession?.AssValue ?? 11, _activeSession?.ZehnValue ?? 10, _activeSession?.KoenigValue ?? 4, _activeSession?.OberValue ?? 3, _activeSession?.UnterValue ?? 2, _activeSession?.LastTrickBonus ?? 10)" />
         }
@@ -66,7 +67,15 @@
         }
         else if (_view == View.Statistics)
         {
-            <Statistics Games="SessionGames" OnBack="() => _view = View.List" />
+            <Statistics Games="SessionGames"
+                        OnBack="() => _view = View.List"
+                        OnProfile="() => _view = View.Profile" />
+        }
+        else if (_view == View.Profile)
+        {
+            <ProfilePage OnBack="() => _view = View.List"
+                         OnStats="() => _view = View.Statistics"
+                         OnLogout="Logout" />
         }
     </div>
     <RulesDialog @ref="_rulesDialog" />
@@ -75,7 +84,7 @@
 </div>
 
 @code {
-    enum View { Login, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics }
+    enum View { Login, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, Profile }
 
     private AppState _state = new();
     private View _view = View.SpielrundeList;

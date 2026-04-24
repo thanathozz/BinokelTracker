@@ -365,6 +365,46 @@ html, body {
     font-style: italic;
 }
 
+/* ═══ Bottom Tab Bar ═══ */
+.tab-bar {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; z-index: 50;
+    padding-bottom: var(--safe-bottom);
+}
+.tab-bar-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 3px; background: none; border: none;
+    cursor: pointer; color: var(--dark); font-size: 10px; font-weight: 600;
+    font-family: var(--font); transition: color 0.15s;
+    padding: 10px 4px 12px; letter-spacing: 0.03em;
+}
+.tab-bar-item.active { color: var(--accent); }
+.tab-bar-item svg { display: block; }
+.tab-bar-clearance { height: calc(64px + var(--safe-bottom)); }
+
+/* ═══ FAB ═══ */
+.game-fab {
+    position: fixed;
+    bottom: calc(66px + var(--safe-bottom));
+    right: 18px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); color: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    border: none; cursor: pointer; z-index: 60;
+    box-shadow: 0 4px 20px rgba(200,149,108,0.4);
+    transition: opacity 0.15s, transform 0.15s;
+}
+.game-fab:active { opacity: 0.85; transform: scale(0.94); }
+
+/* ═══ Centered header variant ═══ */
+.header-center { position: relative; }
+.header-center .header-title {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    pointer-events: none;
+}
+
 /* ═══ Blazor error ═══ */
 #blazor-error-ui {
     background: var(--red); color: white; padding: 12px; text-align: center;

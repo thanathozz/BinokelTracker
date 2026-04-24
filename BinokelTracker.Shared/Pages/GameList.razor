@@ -7,70 +7,62 @@
     [Parameter] public EventCallback OnRules { get; set; }
     [Parameter] public EventCallback OnCalculator { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnProfile { get; set; }
     [Parameter] public string? SessionTitle { get; set; }
 
     private string FormatDate(Game g) =>
-        new DateTime(1970, 1, 1).AddMilliseconds(g.Date).ToLocalTime().ToString("dd.MM.yyyy · HH:mm");
+        new DateTime(1970, 1, 1).AddMilliseconds(g.Date).ToLocalTime().ToString("dd. MMM yyyy · HH:mm");
 }
 
 <div>
-    <div class="header">
-        <div style="display:flex;align-items:center;gap:4px">
+    <div class="header header-center">
+        <div style="display:flex;align-items:center;gap:2px">
             @if (OnBack.HasDelegate)
             {
-                <button class="btn" @onclick="OnBack" style="padding:4px;margin-right:2px">
+                <button class="btn" @onclick="OnBack" style="padding:4px">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="15 18 9 12 15 6"/>
                     </svg>
                 </button>
             }
-            <div class="header-title">
-                @if (SessionTitle != null)
-                {
-                    @SessionTitle
-                }
-                else
-                {
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/><rect x="8" y="2" width="14" height="18" rx="2" transform="rotate(6 8 2)"/></svg>
-                    <text>Binokel</text>
-                }
-            </div>
         </div>
-        <div style="display:flex;gap:4px">
+        <div class="header-title">
+            @if (SessionTitle != null)
+            {
+                @SessionTitle
+            }
+            else
+            {
+                <text>Binokel Tracker ♠</text>
+            }
+        </div>
+        <div style="display:flex;gap:2px;align-items:center">
             <button class="btn" @onclick="OnCalculator" title="Augen Rechner">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/>
                 </svg>
             </button>
             <button class="btn" @onclick="OnRules" title="Regeln">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                 </svg>
             </button>
-            <button class="btn" @onclick="OnStats" title="Statistiken">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-                </svg>
-            </button>
             <button class="btn" @onclick="OnQuickGame" title="Schnelleintrag">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
                 </svg>
             </button>
-            <button class="btn" @onclick="OnNew" title="Neues Spiel">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
         </div>
     </div>
-    <div class="section">
+
+    <div class="section tab-bar-clearance" style="padding-bottom:80px">
         @if (Games.Count == 0)
         {
             <div class="empty-state">
                 <div class="empty-suits">♠ ♥ ♣ ♦</div>
                 <div class="empty-title">Noch keine Spiele</div>
                 <div class="empty-sub">Starte dein erstes Binokel-Spiel!</div>
-                <button class="btn-primary" style="max-width:200px;margin:0 auto" @onclick="OnNew">Neues Spiel</button>
             </div>
         }
 
@@ -83,11 +75,11 @@
 
             <div class="game-card" @onclick="() => { if (!isQuick) OnSelect.InvokeAsync(g.Id); }">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                    <span style="font-size:14px;font-weight:600">@FormatDate(g)</span>
+                    <span style="font-size:13px;font-weight:600;color:var(--text)">@FormatDate(g)</span>
                     <div style="display:flex;gap:6px;align-items:center">
                         @if (isQuick)
                         {
-                            <span class="chip chip-muted">Schnelleintrag</span>
+                            <span class="chip chip-muted">Schnell</span>
                             <span class="chip chip-green">Beendet</span>
                         }
                         else
@@ -119,7 +111,8 @@
                         @for (int i = 0; i < g.Players.Count; i++)
                         {
                             var idx = i;
-                            <div style="flex:1;text-align:center;padding:5px 3px;border-radius:8px;background:@(idx == leader && (isQuick || g.Rounds.Count > 0) ? "rgba(200,149,108,0.06)" : "transparent")">
+                            var isLeader = idx == leader && (isQuick || g.Rounds.Count > 0);
+                            <div style="flex:1;text-align:center;padding:5px 3px;border-radius:8px;background:@(isLeader ? "rgba(200,149,108,0.06)" : "transparent")">
                                 <div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@g.Players[idx]</div>
                                 @if (isQuick)
                                 {
@@ -127,7 +120,9 @@
                                 }
                                 else
                                 {
-                                    <div class="score-value @(totals[idx] >= 0 ? "positive" : "negative")" style="font-size:18px">@totals[idx]</div>
+                                    <div class="score-value @(totals[idx] >= 0 ? "positive" : "negative")" style="font-size:18px;color:@(isLeader ? "var(--accent-light)" : (totals[idx] < 0 ? "var(--red)" : "var(--text)"))">
+                                        @totals[idx]
+                                    </div>
                                 }
                             </div>
                         }
@@ -135,5 +130,36 @@
                 }
             </div>
         }
+    </div>
+
+    <!-- FAB: Neues Spiel -->
+    <button class="game-fab" @onclick="OnNew" title="Neues Spiel">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+    </button>
+
+    <!-- Bottom Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab-bar-item active">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
+                <rect x="8" y="2" width="14" height="18" rx="2" transform="rotate(6 8 2)"/>
+            </svg>
+            <span>Spiele</span>
+        </button>
+        <button class="tab-bar-item" @onclick="OnStats">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <span>Statistik</span>
+        </button>
+        <button class="tab-bar-item" @onclick="OnProfile">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+            <span>Profil</span>
+        </button>
     </div>
 </div>
