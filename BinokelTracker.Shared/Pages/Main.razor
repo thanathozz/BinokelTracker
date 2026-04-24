@@ -39,8 +39,6 @@
                       OnSelect="SelectGame"
                       OnNew="() => _view = View.NewGame"
                       OnQuickGame="() => _view = View.QuickGame"
-                      OnStats="() => _view = View.Statistics"
-                      OnProfile="() => _view = View.Profile"
                       OnRules="() => _rulesDialog!.Open()"
                       OnCalculator="() => _calculatorDialog!.Open(null, null, _activeSession?.AssValue ?? 11, _activeSession?.ZehnValue ?? 10, _activeSession?.KoenigValue ?? 4, _activeSession?.OberValue ?? 3, _activeSession?.UnterValue ?? 2, _activeSession?.LastTrickBonus ?? 10)" />
         }
@@ -68,16 +66,43 @@
         else if (_view == View.Statistics)
         {
             <Statistics Games="SessionGames"
-                        OnBack="() => _view = View.List"
-                        OnProfile="() => _view = View.Profile" />
+                        OnBack="() => _view = View.List" />
         }
         else if (_view == View.Profile)
         {
-            <ProfilePage OnBack="() => _view = View.List"
-                         OnStats="() => _view = View.Statistics"
-                         OnLogout="Logout" />
+            <ProfilePage OnLogout="Logout" />
         }
     </div>
+
+    @if (_activeSession != null && _view is not (View.Login or View.SpielrundeList or View.NewSpielrunde))
+    {
+        <div class="tab-bar">
+            <button class="tab-bar-item @(_view is View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame ? "active" : "")"
+                    @onclick="() => _view = View.List">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
+                    <rect x="8" y="2" width="14" height="18" rx="2" transform="rotate(6 8 2)"/>
+                </svg>
+                <span>Spiele</span>
+            </button>
+            <button class="tab-bar-item @(_view == View.Statistics ? "active" : "")"
+                    @onclick="() => _view = View.Statistics">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                <span>Statistik</span>
+            </button>
+            <button class="tab-bar-item @(_view == View.Profile ? "active" : "")"
+                    @onclick="() => _view = View.Profile">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+                <span>Profil</span>
+            </button>
+        </div>
+    }
+
     <RulesDialog @ref="_rulesDialog" />
     <AugenCalculator @ref="_calculatorDialog" />
     <FeedbackDialog />

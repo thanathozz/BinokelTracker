@@ -3,11 +3,9 @@
     [Parameter] public EventCallback<long> OnSelect { get; set; }
     [Parameter] public EventCallback OnNew { get; set; }
     [Parameter] public EventCallback OnQuickGame { get; set; }
-    [Parameter] public EventCallback OnStats { get; set; }
     [Parameter] public EventCallback OnRules { get; set; }
     [Parameter] public EventCallback OnCalculator { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
-    [Parameter] public EventCallback OnProfile { get; set; }
     [Parameter] public string? SessionTitle { get; set; }
 
     private string FormatDate(Game g) =>
@@ -138,28 +136,4 @@
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
     </button>
-
-    <!-- Bottom Tab Bar -->
-    <div class="tab-bar">
-        <button class="tab-bar-item active">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
-                <rect x="8" y="2" width="14" height="18" rx="2" transform="rotate(6 8 2)"/>
-            </svg>
-            <span>Spiele</span>
-        </button>
-        <button class="tab-bar-item" @onclick="OnStats">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-            <span>Statistik</span>
-        </button>
-        <button class="tab-bar-item" @onclick="OnProfile">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="4"/>
-                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-            </svg>
-            <span>Profil</span>
-        </button>
-    </div>
 </div>
