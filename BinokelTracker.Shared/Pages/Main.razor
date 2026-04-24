@@ -183,6 +183,7 @@
     private void EnterSpielrunde(Spielrunde s)
     {
         _activeSession = s;
+        _gameType = s.GameType ?? GameTypeInfo.Binokel;
         _view = View.List;
     }
 

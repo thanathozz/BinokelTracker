@@ -12,7 +12,7 @@
     [Parameter] public EventCallback    OnLogout    { get; set; }
 
     private IEnumerable<Spielrunde> FilteredSpielrunden =>
-        Spielrunden.Where(s => s.GameType == GameType);
+        Spielrunden.Where(s => (s.GameType ?? GameTypeInfo.Binokel) == GameType);
 
     private bool   _editingName;
     private string _nameInput = "";
