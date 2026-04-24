@@ -130,6 +130,12 @@
 
     private int _targetScore = 1000;
 
+    protected override void OnParametersSet()
+    {
+        if (IsGeneric && _players.All(p => string.IsNullOrEmpty(p)))
+            _players = new List<string> { string.Empty, string.Empty };
+    }
+
 }
 
 @if (_confirmName is not null)
@@ -161,7 +167,22 @@
         @if (IsGeneric)
         {
             <!-- ── Generisches Spiel ── -->
-            <label class="form-label">Spieler</label>
+            @if (KnownPlayers.Count > 0)
+            {
+                <label class="form-label" style="margin-bottom:8px">Bekannte Spieler</label>
+                <div class="pill-group" style="flex-wrap:wrap;margin-bottom:14px">
+                    @foreach (var kp in KnownPlayers)
+                    {
+                        var n = kp;
+                        var active = _players.Contains(n);
+                        <span class="pill @(active ? "active" : "")" style="user-select:none"
+                              @onclick="() => { if (active) { var idx2 = _players.IndexOf(n); if (idx2 >= 0) _players[idx2] = string.Empty; } else { var empty = _players.IndexOf(string.Empty); if (empty >= 0) _players[empty] = n; else _players.Add(n); } }">
+                            @n
+                        </span>
+                    }
+                </div>
+            }
+            <label class="form-label" style="margin-bottom:8px">Spieler</label>
             <div style="margin-bottom:16px">
                 @for (int i = 0; i < _players.Count; i++)
                 {
