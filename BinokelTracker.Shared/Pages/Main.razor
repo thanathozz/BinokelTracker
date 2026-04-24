@@ -65,8 +65,8 @@
         }
         else if (_view == View.Statistics)
         {
-            <Statistics Games="SessionGames"
-                        OnBack="() => _view = View.List" />
+            <Statistics Games="_state.Games"
+                        OnBack="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)" />
         }
         else if (_view == View.Profile)
         {
@@ -74,11 +74,11 @@
         }
     </div>
 
-    @if (_activeSession != null && _view is not (View.Login or View.SpielrundeList or View.NewSpielrunde))
+    @if (_loaded && _view != View.Login)
     {
         <div class="tab-bar">
-            <button class="tab-bar-item @(_view is View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame ? "active" : "")"
-                    @onclick="() => _view = View.List">
+            <button class="tab-bar-item @(_view is View.SpielrundeList or View.NewSpielrunde or View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame ? "active" : "")"
+                    @onclick="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                     <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
                     <rect x="8" y="2" width="14" height="18" rx="2" transform="rotate(6 8 2)"/>
