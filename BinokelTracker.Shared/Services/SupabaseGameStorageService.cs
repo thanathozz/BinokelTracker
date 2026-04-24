@@ -146,7 +146,7 @@ public class SupabaseGameStorageService : IGameStorageService
         return req;
     }
 
-    private record GameRow(long Id, Game Data, string UserId);
-    private record PlayerRow(string Name, string UserId);
-    private record SpielrundeRow(long Id, Spielrunde Data, string UserId);
+    private record GameRow(long Id, Game Data, [property: JsonPropertyName("user_id")] string UserId);
+    private record PlayerRow(string Name, [property: JsonPropertyName("user_id")] string UserId);
+    private record SpielrundeRow(long Id, Spielrunde Data, [property: JsonPropertyName("user_id")] string UserId);
 }
