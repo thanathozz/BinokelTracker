@@ -35,7 +35,7 @@
         {
             <GameList Games="SessionGames"
                       SessionTitle="@_activeSession?.Name"
-                      OnBack="() => _view = View.SpielrundeList"
+                      OnBack="LeaveSession"
                       OnSelect="SelectGame"
                       OnNew="() => _view = View.NewGame"
                       OnQuickGame="() => _view = View.QuickGame"
@@ -158,6 +158,12 @@
         await AuthService.LogoutAsync();
         _state = new AppState();
         _view  = View.Login;
+    }
+
+    private void LeaveSession()
+    {
+        _activeSession = null;
+        _view = View.SpielrundeList;
     }
 
     private void EnterSpielrunde(Spielrunde s)
