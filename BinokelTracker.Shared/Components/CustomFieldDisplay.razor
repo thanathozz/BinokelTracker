@@ -1,0 +1,27 @@
+@code {
+    [Parameter] public List<CustomField>          Fields  { get; set; } = new();
+    [Parameter] public List<string>               Players { get; set; } = new();
+    [Parameter] public Dictionary<string, string> Values  { get; set; } = new();
+
+    private string Get(string fieldId, int playerIdx) =>
+        Values.TryGetValue($"{fieldId}:{playerIdx}", out var v) ? v : "—";
+}
+
+<div style="display:flex;gap:4px">
+    @for (int pi = 0; pi < Players.Count; pi++)
+    {
+        var playerIdx = pi;
+        <div style="flex:1;background:var(--card-alt);border-radius:8px;padding:6px 8px">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                @Players[playerIdx]
+            </div>
+            @foreach (var field in Fields)
+            {
+                <div style="font-size:11px;color:var(--dark)">@field.Name</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">
+                    @Get(field.Id, playerIdx)
+                </div>
+            }
+        </div>
+    }
+</div>

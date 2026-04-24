@@ -29,16 +29,6 @@
         !string.IsNullOrWhiteSpace(_name) &&
         (!_usePassword || (_password.Length >= 1 && _password == _passwordConfirm));
 
-    private void AddCustomField() => _customFields.Add(new CustomField
-        { Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString() });
-    private void RemoveCustomField(int i) => _customFields.RemoveAt(i);
-    private void SetFieldType(int i, string? val)
-    {
-        if (Enum.TryParse<CustomFieldType>(val, out var t)) _customFields[i].FieldType = t;
-    }
-    private void AddOption(int fi) => _customFields[fi].Options.Add(string.Empty);
-    private void RemoveOption(int fi, int oi) => _customFields[fi].Options.RemoveAt(oi);
-
     private void TogglePlayer(string name)
     {
         if (_players.Contains(name)) _players.Remove(name);
@@ -203,55 +193,9 @@
 
             @if (!_strichlisteMode)
             {
-            <label class="form-label" style="margin-top:4px;margin-bottom:10px">Tracking-Felder</label>
-
-            @for (int fi = 0; fi < _customFields.Count; fi++)
-            {
-                var i = fi;
-                var field = _customFields[i];
-                <div style="background:var(--card-alt);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px">
-                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                        <input class="form-input" style="flex:1" placeholder="Feldname"
-                               value="@field.Name"
-                               @oninput="e => _customFields[i].Name = e.Value?.ToString() ?? string.Empty" />
-                        <select class="form-select" style="flex:1"
-                                value="@field.FieldType.ToString()"
-                                @onchange="e => SetFieldType(i, e.Value?.ToString())">
-                            <option value="Number">Zahl</option>
-                            <option value="Text">Text</option>
-                            <option value="Dropdown">Auswahl</option>
-                        </select>
-                        <button class="btn" style="color:var(--red);padding:4px" @onclick="() => RemoveCustomField(i)">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
-                        </button>
-                    </div>
-                    @if (field.FieldType == CustomFieldType.Dropdown)
-                    {
-                        <div style="padding-left:4px">
-                            <div class="form-label" style="font-size:10px;margin-bottom:6px">Optionen</div>
-                            @for (int oi = 0; oi < field.Options.Count; oi++)
-                            {
-                                var optIdx = oi;
-                                <div style="display:flex;gap:6px;margin-bottom:5px">
-                                    <input class="form-input" style="flex:1;font-size:13px;padding:7px 10px" placeholder="Option @(optIdx + 1)"
-                                           value="@field.Options[optIdx]"
-                                           @oninput="e => _customFields[i].Options[optIdx] = e.Value?.ToString() ?? string.Empty" />
-                                    <button class="btn" style="color:var(--dark);padding:4px" @onclick="() => RemoveOption(i, optIdx)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            }
-                            <button class="btn-outline" style="padding:6px 12px;font-size:12px;width:auto" @onclick="() => AddOption(i)">+ Option</button>
-                        </div>
-                    }
-                </div>
+                <label class="form-label" style="margin-top:4px;margin-bottom:10px">Tracking-Felder</label>
+                <CustomFieldBuilder Fields="_customFields" />
             }
-            <button class="btn-outline" style="width:100%;margin-bottom:16px" @onclick="AddCustomField">+ Feld hinzufügen</button>
-            } @* end !_strichlisteMode *@
         }
 
         <button class="btn-primary" style="margin-top:8px;opacity:@(CanSave ? "1" : "0.4")" disabled="@(!CanSave)"
