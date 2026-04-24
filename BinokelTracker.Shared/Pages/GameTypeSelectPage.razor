@@ -1,0 +1,39 @@
+@code {
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+}
+
+<div>
+    <div class="header header-center">
+        <div></div>
+        <div class="header-title">Binokel Tracker ♠</div>
+        <div></div>
+    </div>
+
+    <div class="section">
+        <div class="form-label" style="margin-bottom:14px;font-size:13px;letter-spacing:.06em">
+            Spielart wählen
+        </div>
+
+        <div class="game-type-grid">
+            @foreach (var (id, icon, name, desc) in GameTypeInfo.All)
+            {
+                var gameId = id;
+                var isBinokel = GameTypeInfo.IsBinokel(gameId);
+                <button class="game-type-card @(isBinokel ? "game-type-card-featured" : "")"
+                        @onclick="() => OnSelect.InvokeAsync(gameId)">
+                    <div class="game-type-icon">@icon</div>
+                    <div class="game-type-name">@name</div>
+                    <div class="game-type-desc">@desc</div>
+                    @if (isBinokel)
+                    {
+                        <div class="game-type-badge">Vollständig</div>
+                    }
+                    else
+                    {
+                        <div class="game-type-badge game-type-badge-simple">Einfach</div>
+                    }
+                </button>
+            }
+        </div>
+    </div>
+</div>

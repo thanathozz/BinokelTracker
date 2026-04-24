@@ -8,12 +8,28 @@
     [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
 
     private AddRoundViewModel _vm = default!;
+    private int[] _genericScores = Array.Empty<int>();
 
     protected override void OnParametersSet()
-        => _vm = new AddRoundViewModel(Game);
+    {
+        _vm = new AddRoundViewModel(Game);
+        if (Game.Rules.Id == "generic")
+            _genericScores = new int[Game.Players.Count];
+    }
 
     private async Task Save()
         => await OnSave.InvokeAsync(_vm.BuildRound());
+
+    private async Task SaveGeneric()
+    {
+        var round = new Round
+        {
+            Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Bidder = 0,
+            PlayerScores = _genericScores.Select(s => new PlayerScore { Tricks = s }).ToList()
+        };
+        await OnSave.InvokeAsync(round);
+    }
 
     private void OpenCalculatorForTricks()
     {
@@ -42,14 +58,38 @@
         <div style="width:36px"></div>
     </div>
 
+    @if (Game.Rules.Id != "generic")
+    {
     <div class="mode-toggle-bar">
         <button class="pill pill-sm @(_vm.Mode == InputMode.Overview ? "active" : "")"
                 @onclick="() => _vm.SetMode(InputMode.Overview)">Übersicht</button>
         <button class="pill pill-sm @(_vm.Mode == InputMode.StepByStep ? "active" : "")"
                 @onclick="() => _vm.SetMode(InputMode.StepByStep)">Schritt für Schritt</button>
     </div>
+    }
 
     <div class="section">
+
+    @if (Game.Rules.Id == "generic")
+    {
+        <!-- ── Generische Punkte-Eingabe ── -->
+        @for (int i = 0; i < Game.Players.Count; i++)
+        {
+            var idx = i;
+            <div class="form-group">
+                <label class="form-label">@Game.Players[idx]</label>
+                <input class="form-input bid-input" type="number"
+                       value="@_genericScores[idx]"
+                       @oninput="e => { if (int.TryParse(e.Value?.ToString(), out var v)) _genericScores[idx] = v; }" />
+            </div>
+        }
+        <div class="action-bar">
+            <button class="btn-primary" style="flex:2" @onclick="SaveGeneric">Speichern</button>
+            <button class="btn-outline" style="flex:1" @onclick="OnCancel">Abbrechen</button>
+        </div>
+    }
+    else
+    {
 
         @if (_vm.Mode == InputMode.Overview)
         {
@@ -758,6 +798,7 @@
                 }
             </div>
         }
+    } @* end generic else *@
     </div>
 </div>
 

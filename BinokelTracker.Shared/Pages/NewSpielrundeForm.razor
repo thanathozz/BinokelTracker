@@ -2,6 +2,7 @@
     [Parameter] public EventCallback<Spielrunde> OnSave       { get; set; }
     [Parameter] public EventCallback             OnCancel     { get; set; }
     [Parameter] public List<string>              KnownPlayers { get; set; } = new();
+    [Parameter] public string                    GameType     { get; set; } = GameTypeInfo.Binokel;
 
     private string       _name            = "";
     private List<string> _players         = new();
@@ -33,6 +34,7 @@
         {
             Id                      = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Name                    = _name.Trim(),
+            GameType                = GameType,
             Players                 = _players.ToList(),
             PasswordHash            = _usePassword ? PasswordHelper.Hash(_password) : null,
             AssValue                = _assValue,
@@ -106,6 +108,8 @@
             </div>
         }
 
+        @if (GameTypeInfo.IsBinokel(GameType))
+        {
         <label class="form-label" style="margin-top:8px">Kartenwerte (Augen)</label>
         <div style="display:flex;gap:8px;margin-bottom:10px">
             <div style="flex:1">
@@ -147,6 +151,7 @@
                        @bind="_abgegangenBonus" @bind:event="oninput" />
             </div>
         </div>
+        } @* end IsBinokel *@
 
         <button class="btn-primary" style="margin-top:8px;opacity:@(CanSave ? "1" : "0.4")" disabled="@(!CanSave)"
                 @onclick="Save">

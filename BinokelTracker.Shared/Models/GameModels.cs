@@ -107,6 +107,9 @@ public class Round
     {
         var scores = new int[PlayerScores.Count];
 
+        if (rules.Id == "generic")
+            return PlayerScores.Select(ps => ps.Tricks).ToArray();
+
         if (Type == RoundType.Durch)
         {
             scores[Bidder] = Won ? rules.DurchPoints : -rules.DurchPoints;
@@ -221,6 +224,7 @@ public class Spielrunde
 {
     public long Id { get; set; }
     public string Name { get; set; } = "";
+    public string GameType { get; set; } = GameTypeInfo.Binokel;
     public List<string> Players { get; set; } = new();
     /// <summary>SHA-256 Hex des Passworts, oder null = kein Passwort.</summary>
     public string? PasswordHash { get; set; }

@@ -5,9 +5,14 @@
 @code {
     [Parameter] public List<Spielrunde> Spielrunden { get; set; } = new();
     [Parameter] public List<Game>       AllGames    { get; set; } = new();
+    [Parameter] public string           GameType    { get; set; } = GameTypeInfo.Binokel;
     [Parameter] public EventCallback<Spielrunde> OnEnter { get; set; }
     [Parameter] public EventCallback    OnNew       { get; set; }
+    [Parameter] public EventCallback    OnBack      { get; set; }
     [Parameter] public EventCallback    OnLogout    { get; set; }
+
+    private IEnumerable<Spielrunde> FilteredSpielrunden =>
+        Spielrunden.Where(s => s.GameType == GameType);
 
     private bool   _editingName;
     private string _nameInput = "";
@@ -119,35 +124,27 @@
                 </button>
             }
         </div>
-        <div class="header-title">Binokel Tracker ♠</div>
+        <div class="header-title">@GameTypeInfo.GetIcon(GameType) @GameTypeInfo.GetName(GameType)</div>
         <div style="display:flex;gap:2px;align-items:center">
-            <button class="btn" @onclick="() => ThemeService.ToggleAsync()" title="Theme wechseln">
+            <button class="btn" @onclick="OnBack" title="Spielart wechseln">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="9"/>
-                    <path d="M12 3 A9 9 0 0 1 12 21" fill="currentColor"/>
-                </svg>
-            </button>
-            <button class="btn" @onclick="OnLogout" title="Abmelden">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
+                    <polyline points="15 18 9 12 15 6"/>
                 </svg>
             </button>
         </div>
     </div>
 
     <div class="section" style="padding-bottom:80px">
-        @if (Spielrunden.Count == 0)
+        @if (!FilteredSpielrunden.Any())
         {
             <div class="empty-state">
-                <div class="empty-suits">♠ ♥ ♣ ♦</div>
+                <div class="empty-suits">@GameTypeInfo.GetIcon(GameType)</div>
                 <div class="empty-title">Noch keine Spielrunde</div>
-                <div class="empty-sub">Erstelle deine erste Spielrunde!</div>
+                <div class="empty-sub">Erstelle deine erste @GameTypeInfo.GetName(GameType)-Spielrunde!</div>
             </div>
         }
 
-        @foreach (var s in Spielrunden.OrderByDescending(x => x.Id))
+        @foreach (var s in FilteredSpielrunden.OrderByDescending(x => x.Id))
         {
             var gameCount  = GameCount(s);
             var activeCount = ActiveCount(s);

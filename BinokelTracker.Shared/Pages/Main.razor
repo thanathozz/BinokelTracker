@@ -16,18 +16,25 @@
         {
             <LoginPage OnLoggedIn="OnLoggedIn" />
         }
+        else if (_view == View.GameTypeSelect)
+        {
+            <GameTypeSelectPage OnSelect="SelectGameType" />
+        }
         else if (_view == View.SpielrundeList)
         {
             <SpielrundeList
                 Spielrunden="_state.Spielrunden"
                 AllGames="_state.Games"
+                GameType="_gameType"
                 OnEnter="EnterSpielrunde"
                 OnNew="() => _view = View.NewSpielrunde"
+                OnBack="() => _view = View.GameTypeSelect"
                 OnLogout="Logout" />
         }
         else if (_view == View.NewSpielrunde)
         {
             <NewSpielrundeForm
+                GameType="_gameType"
                 OnSave="AddSpielrunde"
                 OnCancel="() => _view = View.SpielrundeList" />
         }
@@ -44,7 +51,7 @@
         }
         else if (_view == View.NewGame)
         {
-            <NewGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
+            <NewGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" GameType="_gameType" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
         }
         else if (_view == View.Detail && _selectedGame != null)
         {
@@ -74,7 +81,7 @@
         }
     </div>
 
-    @if (_loaded && _view != View.Login)
+    @if (_loaded && _view is not (View.Login or View.GameTypeSelect))
     {
         <div class="tab-bar">
             <button class="tab-bar-item @(_view is View.SpielrundeList or View.NewSpielrunde or View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame ? "active" : "")"
@@ -109,12 +116,13 @@
 </div>
 
 @code {
-    enum View { Login, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, Profile }
+    enum View { Login, GameTypeSelect, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, Profile }
 
     private AppState _state = new();
-    private View _view = View.SpielrundeList;
+    private View _view = View.GameTypeSelect;
     private Game? _selectedGame;
     private Spielrunde? _activeSession;
+    private string _gameType = GameTypeInfo.Binokel;
     private bool _loaded;
     private RulesDialog? _rulesDialog;
     private AugenCalculator? _calculatorDialog;
@@ -149,7 +157,7 @@
     private async Task OnLoggedIn()
     {
         _state = await Storage.LoadAsync();
-        _view  = View.SpielrundeList;
+        _view  = View.GameTypeSelect;
         StateHasChanged();
     }
 
@@ -158,6 +166,12 @@
         await AuthService.LogoutAsync();
         _state = new AppState();
         _view  = View.Login;
+    }
+
+    private void SelectGameType(string type)
+    {
+        _gameType = type;
+        _view = View.SpielrundeList;
     }
 
     private void LeaveSession()

@@ -3,6 +3,7 @@
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public List<string> KnownPlayers { get; set; } = new();
     [Parameter] public EventCallback<string> OnRemovePlayer { get; set; }
+    [Parameter] public string GameType { get; set; } = GameTypeInfo.Binokel;
 
     private string _preset = "schwaebisch_klassisch";
     private RuleSet _rules = RulePresets.All["schwaebisch_klassisch"].Clone();
@@ -111,18 +112,23 @@
     private async Task Save()
     {
         if (!CanSave) return;
+        var rules = GameTypeInfo.IsBinokel(GameType)
+            ? _rules.Clone()
+            : new RuleSet { Id = "generic", Name = GameTypeInfo.GetName(GameType), Players = _players.Count, TargetScore = _targetScore };
         var game = new Game
         {
             Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Date = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Players = _players.Select(p => p.Trim()).ToList(),
-            Rules = _rules.Clone(),
+            Rules = rules,
             Rounds = new(),
             Einsatz = _einsatz,
             Finished = false
         };
         await OnSave.InvokeAsync(game);
     }
+
+    private int _targetScore = 1000;
 
 }
 
@@ -152,6 +158,41 @@
         <div style="width:36px"></div>
     </div>
     <div class="section">
+        @if (!GameTypeInfo.IsBinokel(GameType))
+        {
+            <!-- ── Generisches Spiel ── -->
+            <label class="form-label">Spieler</label>
+            <div style="margin-bottom:16px">
+                @for (int i = 0; i < _players.Count; i++)
+                {
+                    var idx = i;
+                    <input class="form-input" style="margin-bottom:6px" placeholder="Spieler @(idx + 1)"
+                           value="@_players[idx]" @oninput="e => _players[idx] = e.Value?.ToString() ?? string.Empty" />
+                }
+                <div style="display:flex;gap:8px;margin-top:6px">
+                    <button class="btn-outline" style="flex:1;padding:8px" @onclick="() => _players.Add(string.Empty)">+ Spieler</button>
+                    @if (_players.Count > 2)
+                    {
+                        <button class="btn-outline" style="flex:1;padding:8px;color:var(--red);border-color:rgba(196,92,92,.3)"
+                                @onclick="() => _players.RemoveAt(_players.Count - 1)">− Entfernen</button>
+                    }
+                </div>
+            </div>
+            <label class="form-label">Zielwert (Punkte)</label>
+            <div style="margin-bottom:16px">
+                <input class="form-input" type="number" min="1" @bind="_targetScore" @bind:event="oninput" />
+            </div>
+            <label class="form-label">Einsatz (optional)</label>
+            <div style="margin-bottom:20px">
+                <input class="form-input" placeholder="z.B. 0.10" @bind="_einsatz" @bind:event="oninput" />
+            </div>
+            <button class="btn-primary" disabled="@(!CanSave)" style="opacity:@(CanSave ? "1" : "0.4")" @onclick="Save">
+                Spiel erstellen
+            </button>
+        }
+        else
+        {
+
         <!-- Rule Preset Dropdown -->
         <label class="form-label">Regelwerk</label>
         <select class="form-select" value="@_preset" @onchange="ChangePreset">
@@ -339,5 +380,6 @@
                 @onclick="Save">
             Spiel starten
         </button>
+        } @* end IsBinokel else *@
     </div>
 </div>

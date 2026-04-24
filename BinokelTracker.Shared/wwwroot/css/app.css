@@ -365,6 +365,34 @@ html, body {
     font-style: italic;
 }
 
+/* ═══ Game Type Select ═══ */
+.game-type-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.game-type-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px 14px; text-align: left; cursor: pointer; font-family: var(--font);
+    transition: background 0.15s, border-color 0.15s;
+    display: flex; flex-direction: column; gap: 3px; position: relative;
+}
+.game-type-card:active { background: var(--card-alt); }
+.game-type-card-featured {
+    border-color: rgba(200,149,108,0.35);
+    background: rgba(200,149,108,0.05);
+}
+.game-type-icon { font-size: 26px; margin-bottom: 4px; line-height: 1; }
+.game-type-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.game-type-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.game-type-badge {
+    margin-top: 8px; display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 10px; font-weight: 700; letter-spacing: .04em;
+    background: rgba(200,149,108,0.15); color: var(--accent);
+    font-family: var(--font-mono);
+}
+.game-type-badge-simple {
+    background: rgba(154,142,128,0.1); color: var(--muted);
+}
+
 /* ═══ Bottom Tab Bar ═══ */
 .tab-bar {
     position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
