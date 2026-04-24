@@ -17,6 +17,7 @@
     private int          _lastTrickBonus  = 10;
     private int          _abgegangenBonus = 10;
     private List<CustomField> _customFields = new();
+    private bool _strichlisteMode = false;
 
     private bool CanSave =>
         !string.IsNullOrWhiteSpace(_name) &&
@@ -55,7 +56,8 @@
             UnterValue               = _unterValue,
             LastTrickBonus          = _lastTrickBonus,
             AbgegangenBonusPerPlayer = _abgegangenBonus,
-            CustomFields = _customFields.ToList(),
+            CustomFields      = _customFields.ToList(),
+            StrichlisteMode   = _strichlisteMode,
         };
         await OnSave.InvokeAsync(s);
     }
@@ -167,7 +169,16 @@
 
         @if (!GameTypeInfo.IsBinokel(GameType))
         {
-            <label class="form-label" style="margin-top:8px;margin-bottom:10px">Tracking-Felder</label>
+            <div class="toggle-row" style="margin-bottom:16px">
+                <button class="toggle-track @(_strichlisteMode ? "on" : "off")" @onclick="() => _strichlisteMode = !_strichlisteMode">
+                    <div class="toggle-knob @(_strichlisteMode ? "on" : "off")"></div>
+                </button>
+                <span class="toggle-label @(_strichlisteMode ? "on" : "off")">Strichliste-Modus</span>
+            </div>
+
+            @if (!_strichlisteMode)
+            {
+            <label class="form-label" style="margin-top:4px;margin-bottom:10px">Tracking-Felder</label>
 
             @for (int fi = 0; fi < _customFields.Count; fi++)
             {
@@ -215,6 +226,7 @@
                 </div>
             }
             <button class="btn-outline" style="width:100%;margin-bottom:16px" @onclick="AddCustomField">+ Feld hinzufügen</button>
+            } @* end !_strichlisteMode *@
         }
 
         <button class="btn-primary" style="margin-top:8px;opacity:@(CanSave ? "1" : "0.4")" disabled="@(!CanSave)"

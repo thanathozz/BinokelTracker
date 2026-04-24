@@ -1,10 +1,12 @@
 @code {
     [Parameter] public Game Game { get; set; } = default!;
     [Parameter] public List<CustomField> CustomFields { get; set; } = new();
+    [Parameter] public bool StrichlisteMode { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public EventCallback OnAddRound { get; set; }
     [Parameter] public EventCallback<int> OnDeleteRound { get; set; }
     [Parameter] public EventCallback OnFinishGame { get; set; }
+    [Parameter] public EventCallback<int> OnTallyPlayer { get; set; }
 
     private int[] Totals => Game.GetPlayerTotals();
     private int[] DurchTotals => Game.GetDurchTotals();
@@ -130,6 +132,37 @@
             <span class="chip chip-muted">Abgehen</span>
         }
     </div>
+
+    @if (StrichlisteMode)
+    {
+        <!-- ── Strichliste-Tapper ── -->
+        <div class="strichliste-grid">
+            @for (int i = 0; i < Game.Players.Count; i++)
+            {
+                var idx = i;
+                var count = Totals.Length > idx ? Totals[idx] : 0;
+                <button class="strichliste-card" @onclick="() => OnTallyPlayer.InvokeAsync(idx)">
+                    <div class="strichliste-name">@Game.Players[idx]</div>
+                    <div class="strichliste-count">@count</div>
+                    <div class="strichliste-add">+ Strich</div>
+                </button>
+            }
+        </div>
+        @if (!Game.Finished)
+        {
+            <div class="section" style="padding-top:0">
+                <button class="btn-outline" style="width:100%" @onclick="OnFinishGame">Spiel beenden</button>
+            </div>
+        }
+        @if (Game.Finished)
+        {
+            <div class="win-banner">
+                🏆 @Game.Players[Array.IndexOf(Totals, Totals.Max())] gewinnt mit @Totals.Max() Strichen!
+            </div>
+        }
+    }
+    else
+    {
 
     <!-- Rounds -->
     <div class="section" style="padding-top:4px">
@@ -262,4 +295,5 @@
             </div>
         }
     </div>
+    } @* end else (not StrichlisteMode) *@
 </div>

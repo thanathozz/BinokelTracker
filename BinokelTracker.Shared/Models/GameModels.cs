@@ -227,6 +227,7 @@ public class Spielrunde
     public string Name { get; set; } = "";
     public string GameType { get; set; } = GameTypeInfo.Binokel;
     public List<CustomField> CustomFields { get; set; } = new();
+    public bool StrichlisteMode { get; set; } = false;
     public List<string> Players { get; set; } = new();
     /// <summary>SHA-256 Hex des Passworts, oder null = kein Passwort.</summary>
     public string? PasswordHash { get; set; }

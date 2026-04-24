@@ -57,10 +57,12 @@
         {
             <GameDetail Game="_selectedGame"
                         CustomFields="@(_activeSession?.CustomFields ?? new())"
+                        StrichlisteMode="@(_activeSession?.StrichlisteMode ?? false)"
                         OnBack="() => _view = View.List"
                         OnAddRound="() => _view = View.AddRound"
                         OnDeleteRound="DeleteRound"
-                        OnFinishGame="FinishGame" />
+                        OnFinishGame="FinishGame"
+                        OnTallyPlayer="TallyPlayer" />
         }
         else if (_view == View.AddRound && _selectedGame != null)
         {
@@ -175,6 +177,23 @@
         await AuthService.LogoutAsync();
         _state = new AppState();
         _view  = View.Login;
+    }
+
+    private async Task TallyPlayer(int playerIdx)
+    {
+        if (_selectedGame is null) return;
+        var scores = Enumerable.Range(0, _selectedGame.Players.Count)
+            .Select(i => new PlayerScore { Tricks = i == playerIdx ? 1 : 0 })
+            .ToList();
+        var round = new Round
+        {
+            Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Bidder = playerIdx,
+            PlayerScores = scores
+        };
+        _selectedGame.Rounds.Add(round);
+        await Save();
+        StateHasChanged();
     }
 
     private void SelectGameType(string type)
