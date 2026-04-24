@@ -1,155 +1,37 @@
 @code {
-    [Parameter] public EventCallback<Game> OnSave { get; set; }
-    [Parameter] public EventCallback OnCancel { get; set; }
-    [Parameter] public List<string> KnownPlayers { get; set; } = new();
+    [Parameter] public EventCallback<Game>   OnSave         { get; set; }
+    [Parameter] public EventCallback         OnCancel       { get; set; }
+    [Parameter] public List<string>          KnownPlayers   { get; set; } = new();
     [Parameter] public EventCallback<string> OnRemovePlayer { get; set; }
-    [Parameter] public bool IsGeneric { get; set; } = false;
+    [Parameter] public bool                  IsGeneric      { get; set; } = false;
 
-    private string _preset = "schwaebisch_klassisch";
-    private RuleSet _rules = RulePresets.All["schwaebisch_klassisch"].Clone();
-    private List<string> _players = new() { "", "", "" };
-    private string _einsatz = "0";
-    private bool _showCustom;
-
-    private string? _deleteCandidate;
-    private string? _exitCandidate;
-    private CancellationTokenSource? _longPressCts;
-
-    private void ToggleKnownPlayer(string name)
-    {
-        if (_deleteCandidate == name || _exitCandidate == name) return;
-        var existing = _players.IndexOf(name);
-        if (existing >= 0)
-        {
-            _players[existing] = "";
-            return;
-        }
-        var empty = _players.IndexOf("");
-        if (empty >= 0) _players[empty] = name;
-    }
-
-    private async Task StartLongPress(string name)
-    {
-        _longPressCts?.Cancel();
-        _longPressCts = new CancellationTokenSource();
-        var token = _longPressCts.Token;
-        try
-        {
-            await Task.Delay(500, token);
-            if (_deleteCandidate == name)
-            {
-                _deleteCandidate = null;
-                _exitCandidate = name;
-                StateHasChanged();
-                await Task.Delay(350); // let exit animation finish
-                _exitCandidate = null;
-            }
-            else
-            {
-                _deleteCandidate = name;
-            }
-            StateHasChanged();
-        }
-        catch (TaskCanceledException) { }
-    }
-
-    private void CancelLongPress()
-    {
-        _longPressCts?.Cancel();
-    }
-
-    private string? _confirmName;
-
-    private void AskRemovePlayer(string name)
-    {
-        _confirmName = name;
-    }
-
-    private async Task ConfirmRemovePlayer()
-    {
-        if (_confirmName is null) return;
-        var name = _confirmName;
-        _confirmName = null;
-        _deleteCandidate = null;
-        var idx = _players.IndexOf(name);
-        if (idx >= 0) _players[idx] = "";
-        await OnRemovePlayer.InvokeAsync(name);
-    }
-
-    private void CancelRemove()
-    {
-        _confirmName = null;
-    }
-
-    private void DismissDelete()
-    {
-        _deleteCandidate = null;
-    }
-
-    private void ChangePreset(ChangeEventArgs e)
-    {
-        _preset = e.Value?.ToString() ?? "schwaebisch_klassisch";
-        _rules = RulePresets.All[_preset].Clone();
-        AdjustPlayers();
-        _showCustom = _preset == "benutzerdefiniert";
-    }
-
-    private void AdjustPlayers()
-    {
-        while (_players.Count < _rules.Players) _players.Add("");
-        while (_players.Count > _rules.Players) _players.RemoveAt(_players.Count - 1);
-        if (_rules.Players != 4) _rules.TeamMode = false;
-    }
-
-    private void SetPlayerCount(int count)
-    {
-        _rules.Players = count;
-        AdjustPlayers();
-    }
+    private List<string> _players     = new() { string.Empty, string.Empty };
+    private string       _einsatz     = "0";
+    private int          _targetScore = 1000;
 
     private bool CanSave => _players.All(p => !string.IsNullOrWhiteSpace(p));
 
-    private async Task Save()
+    protected override void OnParametersSet()
+    {
+        if (IsGeneric && _players.All(string.IsNullOrEmpty))
+            _players = new List<string> { string.Empty, string.Empty };
+    }
+
+    private async Task SaveGeneric()
     {
         if (!CanSave) return;
-        var rules = IsGeneric
-            ? new RuleSet { Id = "generic", Name = "Andere", Players = _players.Count, TargetScore = _targetScore }
-            : _rules.Clone();
         var game = new Game
         {
-            Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Date = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Players = _players.Select(p => p.Trim()).ToList(),
-            Rules = rules,
-            Rounds = new(),
-            Einsatz = _einsatz,
+            Id       = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Date     = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Players  = _players.Select(p => p.Trim()).ToList(),
+            Rules    = new RuleSet { Id = "generic", Name = "Andere", Players = _players.Count, TargetScore = _targetScore },
+            Rounds   = new(),
+            Einsatz  = _einsatz,
             Finished = false
         };
         await OnSave.InvokeAsync(game);
     }
-
-    private int _targetScore = 1000;
-
-    protected override void OnParametersSet()
-    {
-        if (IsGeneric && _players.All(p => string.IsNullOrEmpty(p)))
-            _players = new List<string> { string.Empty, string.Empty };
-    }
-
-}
-
-@if (_confirmName is not null)
-{
-    <div class="confirm-overlay" @onclick="CancelRemove">
-        <div class="confirm-dialog" @onclick:stopPropagation="true">
-            <div class="confirm-title">Spieler entfernen?</div>
-            <div class="confirm-body">„@_confirmName" wird aus der Spielerliste gelöscht.</div>
-            <div class="confirm-actions">
-                <button class="btn-secondary" @onclick="CancelRemove">Abbrechen</button>
-                <button class="btn-danger" @onclick="ConfirmRemovePlayer">Löschen</button>
-            </div>
-        </div>
-    </div>
 }
 
 <div>
@@ -163,10 +45,10 @@
         <span class="header-title">Neues Spiel</span>
         <div style="width:36px"></div>
     </div>
+
     <div class="section">
         @if (IsGeneric)
         {
-            <!-- ── Generisches Spiel ── -->
             @if (KnownPlayers.Count > 0)
             {
                 <label class="form-label" style="margin-bottom:8px">Bekannte Spieler</label>
@@ -176,7 +58,7 @@
                         var n = kp;
                         var active = _players.Contains(n);
                         <span class="pill @(active ? "active" : "")" style="user-select:none"
-                              @onclick="() => { if (active) { var idx2 = _players.IndexOf(n); if (idx2 >= 0) _players[idx2] = string.Empty; } else { var empty = _players.IndexOf(string.Empty); if (empty >= 0) _players[empty] = n; else _players.Add(n); } }">
+                              @onclick="() => { if (active) { var i2 = _players.IndexOf(n); if (i2 >= 0) _players[i2] = string.Empty; } else { var ei = _players.IndexOf(string.Empty); if (ei >= 0) _players[ei] = n; else _players.Add(n); } }">
                             @n
                         </span>
                     }
@@ -207,200 +89,13 @@
             <div style="margin-bottom:20px">
                 <input class="form-input" placeholder="z.B. 0.10" @bind="_einsatz" @bind:event="oninput" />
             </div>
-            <button class="btn-primary" disabled="@(!CanSave)" style="opacity:@(CanSave ? "1" : "0.4")" @onclick="Save">
+            <button class="btn-primary" disabled="@(!CanSave)" style="opacity:@(CanSave ? "1" : "0.4")" @onclick="SaveGeneric">
                 Spiel erstellen
             </button>
         }
         else
         {
-
-        <!-- Rule Preset Dropdown -->
-        <label class="form-label">Regelwerk</label>
-        <select class="form-select" value="@_preset" @onchange="ChangePreset">
-            @foreach (var p in RulePresets.All.Values)
-            {
-                <option value="@p.Id">@p.Name — @p.Description</option>
-            }
-        </select>
-
-        @if (!_showCustom)
-        {
-            <!-- Rule Summary -->
-            <div class="rule-summary">
-                <span style="color:var(--accent-light);font-weight:600">@_rules.Players Spieler</span>
-                @if (_rules.TeamMode)
-                {
-                    <span> · Teams (Kreuz)</span>
-                }
-                <span> · Ziel: <b style="color:var(--text)">@_rules.TargetScore</b></span>
-                @if (_rules.DoubleMinus)
-                {
-                    <span> · <span style="color:var(--red)">Doppelt Minus</span></span>
-                }
-                @if (_rules.AllowDurch)
-                {
-                    <span> · Durch</span>
-                }
-                @if (_rules.AllowBettel)
-                {
-                    <span> · Bettel</span>
-                }
-                @if (_rules.AllowAbgehen)
-                {
-                    <span> · Abgehen</span>
-                }
-            </div>
+            <BinokelGameSetup KnownPlayers="KnownPlayers" OnRemovePlayer="OnRemovePlayer" OnSave="OnSave" OnCancel="OnCancel" />
         }
-        else
-        {
-            <!-- Custom Rules Editor -->
-            <div class="custom-rules">
-                <div class="rule-row">
-                    <label class="form-label">Spieleranzahl</label>
-                    <div class="pill-group">
-                        <button class="pill pill-sm @(_rules.Players == 3 ? "active" : "")"
-                                @onclick="() => SetPlayerCount(3)">3
-                        </button>
-                        <button class="pill pill-sm @(_rules.Players == 4 ? "active" : "")"
-                                @onclick="() => SetPlayerCount(4)">4
-                        </button>
-                    </div>
-                </div>
-                @if (_rules.Players == 4)
-                {
-                    <div class="rule-row">
-                        <label class="form-label">Team-Modus (Kreuz)</label>
-                        <div class="toggle-row">
-                            <button class="toggle-track @(_rules.TeamMode ? "on" : "off")"
-                                    @onclick="() => _rules.TeamMode = !_rules.TeamMode">
-                                <div class="toggle-knob @(_rules.TeamMode ? "on" : "off")"></div>
-                            </button>
-                            <span
-                                class="toggle-label @(_rules.TeamMode ? "on" : "off")">@(_rules.TeamMode ? "Ja" : "Nein")</span>
-                        </div>
-                    </div>
-                }
-                <div class="rule-row">
-                    <label class="form-label">Zielpunktzahl</label>
-                    <div class="pill-group">
-                        @foreach (var s in new[] { 500, 1000, 1500, 2000 })
-                        {
-                            var val = s;
-                            <button class="pill mono @(_rules.TargetScore == val ? "active" : "")"
-                                    @onclick="() => _rules.TargetScore = val">@val</button>
-                        }
-                    </div>
-                </div>
-                <div class="rule-row">
-                    <label class="form-label">Doppelt Minus bei Überreizen</label>
-                    <div class="toggle-row">
-                        <button class="toggle-track @(_rules.DoubleMinus ? "on" : "off")"
-                                @onclick="() => _rules.DoubleMinus = !_rules.DoubleMinus">
-                            <div class="toggle-knob @(_rules.DoubleMinus ? "on" : "off")"></div>
-                        </button>
-                        <span
-                            class="toggle-label @(_rules.DoubleMinus ? "on" : "off")">@(_rules.DoubleMinus ? "Ja" : "Nein")</span>
-                    </div>
-                </div>
-                <div class="rule-row">
-                    <label class="form-label">Durch erlaubt</label>
-                    <div class="toggle-row">
-                        <button class="toggle-track @(_rules.AllowDurch ? "on" : "off")"
-                                @onclick="() => _rules.AllowDurch = !_rules.AllowDurch">
-                            <div class="toggle-knob @(_rules.AllowDurch ? "on" : "off")"></div>
-                        </button>
-                        <span
-                            class="toggle-label @(_rules.AllowDurch ? "on" : "off")">@(_rules.AllowDurch ? "Ja" : "Nein")</span>
-                    </div>
-                </div>
-                <div class="rule-row">
-                    <label class="form-label">Bettel (Untendurch) erlaubt</label>
-                    <div class="toggle-row">
-                        <button class="toggle-track @(_rules.AllowBettel ? "on" : "off")"
-                                @onclick="() => _rules.AllowBettel = !_rules.AllowBettel">
-                            <div class="toggle-knob @(_rules.AllowBettel ? "on" : "off")"></div>
-                        </button>
-                        <span
-                            class="toggle-label @(_rules.AllowBettel ? "on" : "off")">@(_rules.AllowBettel ? "Ja" : "Nein")</span>
-                    </div>
-                </div>
-                <div class="rule-row">
-                    <label class="form-label">Abgehen erlaubt</label>
-                    <div class="toggle-row">
-                        <button class="toggle-track @(_rules.AllowAbgehen ? "on" : "off")"
-                                @onclick="() => _rules.AllowAbgehen = !_rules.AllowAbgehen">
-                            <div class="toggle-knob @(_rules.AllowAbgehen ? "on" : "off")"></div>
-                        </button>
-                        <span
-                            class="toggle-label @(_rules.AllowAbgehen ? "on" : "off")">@(_rules.AllowAbgehen ? "Ja" : "Nein")</span>
-                    </div>
-                </div>
-                <div class="rule-row" style="margin-bottom:8px">
-                    <label class="form-label">Durch-Punkte separat führen</label>
-                    <div class="toggle-row">
-                        <button class="toggle-track @(_rules.DurchSeparate ? "on" : "off")"
-                                @onclick="() => _rules.DurchSeparate = !_rules.DurchSeparate">
-                            <div class="toggle-knob @(_rules.DurchSeparate ? "on" : "off")"></div>
-                        </button>
-                        <span
-                            class="toggle-label @(_rules.DurchSeparate ? "on" : "off")">@(_rules.DurchSeparate ? "Ja" : "Nein")</span>
-                    </div>
-                </div>
-            </div>
-        }
-
-        <!-- Player Names -->
-        <label class="form-label" style="margin-bottom:10px">Einsatz</label>
-        <div style="margin-bottom:10px">
-            <input class="form-input" value="0"
-                   @oninput="e => _einsatz = e.Value?.ToString() ?? string.Empty"/>
-        </div>
-        <label class="form-label" style="margin-bottom:10px">Spieler</label>
-        @if (KnownPlayers.Count > 0)
-        {
-            <div class="pill-group" style="flex-wrap:wrap;margin-bottom:10px" @onclick="DismissDelete">
-                @foreach (var name in KnownPlayers)
-                {
-                    var n = name;
-                    var selected = _players.Contains(n);
-                    var delMode = _deleteCandidate == n;
-                    var exitMode = _exitCandidate == n;
-                    <span class="pill @(selected ? "active" : "") @(delMode ? "pill-delete" : exitMode ? "pill-delete-exit" : "")"
-                          style="display:inline-flex;align-items:center;gap:4px;user-select:none"
-                          @onclick:stopPropagation="true"
-                          @onclick="() => { if (!delMode) ToggleKnownPlayer(n); }"
-                          @onpointerdown="() => StartLongPress(n)"
-                          @onpointerup="CancelLongPress"
-                          @onpointerleave="CancelLongPress">
-                        @n
-                        @if (delMode)
-                        {
-                            <button style="background:none;border:none;padding:0;margin-left:2px;cursor:pointer;color:inherit;font-size:0.9em;line-height:1"
-                                    @onclick:stopPropagation="true"
-                                    @onclick="() => AskRemovePlayer(n)">✕</button>
-                        }
-                    </span>
-                }
-            </div>
-        }
-        @for (int i = 0; i < _players.Count; i++)
-        {
-            var idx = i;
-            <div style="margin-bottom:10px">
-                <input class="form-input" value="@_players[idx]"
-                       placeholder="@(_rules.TeamMode ? $"{(idx % 2 == 0 ? "Team 1" : "Team 2")} — Spieler {idx / 2 + 1}" : $"Spieler {idx + 1}")"
-                       @oninput="e => _players[idx] = e.Value?.ToString() ?? string.Empty"/>
-            </div>
-        }
-        @if (_rules.TeamMode)
-        {
-            <div class="team-hint">Spieler 1 & 3 = Team 1 · Spieler 2 & 4 = Team 2 (Kreuz)</div>
-        }
-
-        <button class="btn-primary" style="margin-top:8px;opacity:@(CanSave ? "1" : "0.4")" disabled="@(!CanSave)"
-                @onclick="Save">
-            Spiel starten
-        </button>
-        } @* end IsBinokel else *@
     </div>
 </div>

@@ -120,48 +120,15 @@
 
         @if (GameTypeInfo.IsBinokel(GameType))
         {
-        <label class="form-label" style="margin-top:8px">Kartenwerte (Augen)</label>
-        <div style="display:flex;gap:8px;margin-bottom:10px">
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Ass</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_assValue" @bind:event="oninput" />
-            </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Zehn</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_zehnValue" @bind:event="oninput" />
-            </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">König</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_koenigValue" @bind:event="oninput" />
-            </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Ober</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_oberValue" @bind:event="oninput" />
-            </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Unter</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_unterValue" @bind:event="oninput" />
-            </div>
-        </div>
-        <label class="form-label" style="margin-top:4px">Boni</label>
-        <div style="display:flex;gap:8px;margin-bottom:16px">
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Letzter Stich</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_lastTrickBonus" @bind:event="oninput" />
-            </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Abg.-Bonus/Sp.</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_abgegangenBonus" @bind:event="oninput" />
-            </div>
-        </div>
-        } @* end IsBinokel *@
+            <BinokelSpielrundeSettings
+                @bind-AssValue="_assValue"
+                @bind-ZehnValue="_zehnValue"
+                @bind-KoenigValue="_koenigValue"
+                @bind-OberValue="_oberValue"
+                @bind-UnterValue="_unterValue"
+                @bind-LastTrickBonus="_lastTrickBonus"
+                @bind-AbgegangenBonus="_abgegangenBonus" />
+        }
 
         @if (!GameTypeInfo.IsBinokel(GameType))
         {

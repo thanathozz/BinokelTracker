@@ -180,9 +180,6 @@
         {
             var r = Game.Rounds[ri];
             var roundIdx = ri;
-            var sc = r.CalcScores(Game.Rules);
-            var isSpecial = r.Type is RoundType.Durch or RoundType.Bettel;
-            var typeLabel = r.Type == RoundType.Durch ? "Durch" : r.Type == RoundType.Bettel ? "Bettel" : null;
 
             <div class="round-card">
                 @if (Game.Rules.Id == "generic" && CustomFields.Any())
@@ -204,57 +201,8 @@
                 }
                 else
                 {
-                <div class="round-header">
-                    <div style="display:flex;align-items:center;gap:6px">
-                        <span class="round-num">R@(ri + 1)</span>
-                        @if (typeLabel != null)
-                        {
-                            <span class="chip chip-yellow">@typeLabel</span>
-                        }
-                    </div>
-                    <div style="display:flex;align-items:center;gap:6px">
-                        @if (!isSpecial)
-                        {
-                            <span class="chip @(r.Abgegangen ? "chip-muted" : r.Won ? "chip-green" : "chip-red")">
-                                @Game.Players[r.Bidder]: @r.Bid @(r.Abgegangen ? "↓" : r.Won ? "✓" : "✗")
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="chip @(r.Won ? "chip-green" : "chip-red")">
-                                @Game.Players[r.Bidder] @(r.Won ? "✓" : "✗")
-                            </span>
-                        }
-                        @if (!Game.Finished)
-                        {
-                            <button class="btn" style="padding:3px;color:var(--dark)"
-                                    @onclick="() => OnDeleteRound.InvokeAsync(roundIdx)">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="2" stroke-linecap="round">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                </svg>
-                            </button>
-                        }
-                    </div>
-                </div>
-                <div class="round-scores">
-                    @for (int pi = 0; pi < Game.Players.Count; pi++)
-                    {
-                        var pIdx = pi;
-                        <div class="round-score-col">
-                            <div class="round-player-name">@Game.Players[pIdx]</div>
-                            <div class="round-score-val @(sc[pIdx] > 0 ? "pos" : sc[pIdx] < 0 ? "neg" : "zero")">
-                                @(sc[pIdx] > 0 ? "+" : "")@sc[pIdx]
-                            </div>
-                            @if (!isSpecial && !r.Abgegangen)
-                            {
-                                <div class="round-detail">
-                                    Gemeldet:@r.PlayerScores[pIdx].Meld Stiche:@r.PlayerScores[pIdx].Tricks</div>
-                            }
-                        </div>
-                    }
-                </div>
+                    <BinokelRoundCard Round="r" Players="Game.Players" Rules="Game.Rules"
+                                      RoundIndex="ri" GameFinished="Game.Finished" OnDelete="OnDeleteRound" />
                 } @* end else (not custom fields) *@
             </div>
         }

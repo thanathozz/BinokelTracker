@@ -1,0 +1,64 @@
+@code {
+    [Parameter] public Round        Round       { get; set; } = default!;
+    [Parameter] public List<string> Players     { get; set; } = new();
+    [Parameter] public RuleSet      Rules       { get; set; } = default!;
+    [Parameter] public int          RoundIndex  { get; set; }
+    [Parameter] public bool         GameFinished { get; set; }
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+
+    private int[] Scores => Round.CalcScores(Rules);
+    private bool IsSpecial => Round.Type is RoundType.Durch or RoundType.Bettel;
+    private string? TypeLabel => Round.Type switch
+    {
+        RoundType.Durch  => "Durch",
+        RoundType.Bettel => "Bettel",
+        _                => null
+    };
+}
+
+<div class="round-header">
+    <div style="display:flex;align-items:center;gap:6px">
+        <span class="round-num">R@(RoundIndex + 1)</span>
+        @if (TypeLabel != null) { <span class="chip chip-yellow">@TypeLabel</span> }
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+        @if (!IsSpecial)
+        {
+            <span class="chip @(Round.Abgegangen ? "chip-muted" : Round.Won ? "chip-green" : "chip-red")">
+                @Players[Round.Bidder]: @Round.Bid @(Round.Abgegangen ? "↓" : Round.Won ? "✓" : "✗")
+            </span>
+        }
+        else
+        {
+            <span class="chip @(Round.Won ? "chip-green" : "chip-red")">
+                @Players[Round.Bidder] @(Round.Won ? "✓" : "✗")
+            </span>
+        }
+        @if (!GameFinished)
+        {
+            <button class="btn" style="padding:3px;color:var(--dark)" @onclick="() => OnDelete.InvokeAsync(RoundIndex)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+            </button>
+        }
+    </div>
+</div>
+<div class="round-scores">
+    @for (int pi = 0; pi < Players.Count; pi++)
+    {
+        var pIdx = pi;
+        var sc = Scores;
+        <div class="round-score-col">
+            <div class="round-player-name">@Players[pIdx]</div>
+            <div class="round-score-val @(sc[pIdx] > 0 ? "pos" : sc[pIdx] < 0 ? "neg" : "zero")">
+                @(sc[pIdx] > 0 ? "+" : "")@sc[pIdx]
+            </div>
+            @if (!IsSpecial && !Round.Abgegangen)
+            {
+                <div class="round-detail">Gemeldet:@Round.PlayerScores[pIdx].Meld Stiche:@Round.PlayerScores[pIdx].Tricks</div>
+            }
+        </div>
+    }
+</div>
