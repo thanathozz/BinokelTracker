@@ -224,12 +224,7 @@ public class Spielrunde
 {
     public long Id { get; set; }
     public string Name { get; set; } = "";
-    private string _gameType = GameTypeInfo.Binokel;
-    public string GameType
-    {
-        get => string.IsNullOrEmpty(_gameType) ? GameTypeInfo.Binokel : _gameType;
-        set => _gameType = string.IsNullOrEmpty(value) ? GameTypeInfo.Binokel : value;
-    }
+    public string GameType { get; set; } = GameTypeInfo.Binokel;
     public List<string> Players { get; set; } = new();
     /// <summary>SHA-256 Hex des Passworts, oder null = kein Passwort.</summary>
     public string? PasswordHash { get; set; }

@@ -3,7 +3,7 @@
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public List<string> KnownPlayers { get; set; } = new();
     [Parameter] public EventCallback<string> OnRemovePlayer { get; set; }
-    [Parameter] public string GameType { get; set; } = GameTypeInfo.Binokel;
+    [Parameter] public bool IsGeneric { get; set; } = false;
 
     private string _preset = "schwaebisch_klassisch";
     private RuleSet _rules = RulePresets.All["schwaebisch_klassisch"].Clone();
@@ -112,9 +112,9 @@
     private async Task Save()
     {
         if (!CanSave) return;
-        var rules = GameTypeInfo.IsBinokel(GameType)
-            ? _rules.Clone()
-            : new RuleSet { Id = "generic", Name = GameTypeInfo.GetName(GameType), Players = _players.Count, TargetScore = _targetScore };
+        var rules = IsGeneric
+            ? new RuleSet { Id = "generic", Name = "Andere", Players = _players.Count, TargetScore = _targetScore }
+            : _rules.Clone();
         var game = new Game
         {
             Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
@@ -158,7 +158,7 @@
         <div style="width:36px"></div>
     </div>
     <div class="section">
-        @if (!GameTypeInfo.IsBinokel(GameType))
+        @if (IsGeneric)
         {
             <!-- ── Generisches Spiel ── -->
             <label class="form-label">Spieler</label>

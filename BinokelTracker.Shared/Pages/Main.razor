@@ -23,7 +23,7 @@
         else if (_view == View.SpielrundeList)
         {
             <SpielrundeList
-                Spielrunden="_state.Spielrunden"
+                Spielrunden="GameTypeSpielrunden"
                 AllGames="_state.Games"
                 GameType="_gameType"
                 OnEnter="EnterSpielrunde"
@@ -51,7 +51,7 @@
         }
         else if (_view == View.NewGame)
         {
-            <NewGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" GameType="_gameType" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
+            <NewGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" IsGeneric="(!GameTypeInfo.IsBinokel(_gameType))" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
         }
         else if (_view == View.Detail && _selectedGame != null)
         {
@@ -129,6 +129,14 @@
 
     private List<Game> SessionGames =>
         _state.Games.Where(g => g.SpielrundeId == _activeSession?.Id).ToList();
+
+    private List<Spielrunde> GameTypeSpielrunden =>
+        _state.Spielrunden
+            .Where(s => string.Equals(
+                string.IsNullOrEmpty(s.GameType) ? GameTypeInfo.Binokel : s.GameType,
+                _gameType,
+                StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

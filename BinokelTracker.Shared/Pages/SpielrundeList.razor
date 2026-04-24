@@ -11,9 +11,6 @@
     [Parameter] public EventCallback    OnBack      { get; set; }
     [Parameter] public EventCallback    OnLogout    { get; set; }
 
-    private IEnumerable<Spielrunde> FilteredSpielrunden =>
-        Spielrunden.Where(s => (s.GameType ?? GameTypeInfo.Binokel) == GameType);
-
     private bool   _editingName;
     private string _nameInput = "";
 
@@ -135,7 +132,7 @@
     </div>
 
     <div class="section" style="padding-bottom:80px">
-        @if (!FilteredSpielrunden.Any())
+        @if (!Spielrunden.Any())
         {
             <div class="empty-state">
                 <div class="empty-suits">@GameTypeInfo.GetIcon(GameType)</div>
@@ -144,7 +141,7 @@
             </div>
         }
 
-        @foreach (var s in FilteredSpielrunden.OrderByDescending(x => x.Id))
+        @foreach (var s in Spielrunden.OrderByDescending(x => x.Id))
         {
             var gameCount  = GameCount(s);
             var activeCount = ActiveCount(s);
