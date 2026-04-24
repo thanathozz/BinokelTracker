@@ -56,7 +56,7 @@ public class SupabaseGameStorageService : IGameStorageService
         }
     }
 
-    public async Task SaveAsync(AppState state)
+    public async Task<string?> SaveAsync(AppState state)
     {
         try
         {
@@ -96,10 +96,13 @@ public class SupabaseGameStorageService : IGameStorageService
             {
                 await DeleteAsync("/rest/v1/spielrunden?id=gte.0");
             }
+
+            return null;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Supabase SaveAsync failed: {ex.Message}");
+            return ex.Message;
         }
     }
 
@@ -121,7 +124,12 @@ public class SupabaseGameStorageService : IGameStorageService
         var req     = await AuthorizedRequest(HttpMethod.Post, url);
         req.Content = content;
         req.Headers.Add("Prefer", "resolution=merge-duplicates,return=minimal");
-        await _http.SendAsync(req);
+        var resp = await _http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync();
+            throw new Exception($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {body}");
+        }
     }
 
     private async Task DeleteAsync(string url)
