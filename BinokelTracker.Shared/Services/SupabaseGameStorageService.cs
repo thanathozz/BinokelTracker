@@ -37,11 +37,16 @@ public class SupabaseGameStorageService : IGameStorageService
             var spielrundeRows = await GetAsync<List<SpielrundeRow>>(
                 "/rest/v1/spielrunden?select=id,data&order=id") ?? [];
 
+            var spielrunden = spielrundeRows.Select(r => r.Data).ToList();
+            foreach (var s in spielrunden)
+                if (string.IsNullOrEmpty(s.GameType))
+                    s.GameType = GameTypeInfo.Binokel;
+
             return new AppState
             {
                 Games        = gameRows.Select(r => r.Data).ToList(),
                 KnownPlayers = playerRows.Select(r => r.Name).ToList(),
-                Spielrunden  = spielrundeRows.Select(r => r.Data).ToList()
+                Spielrunden  = spielrunden
             };
         }
         catch (Exception ex)
