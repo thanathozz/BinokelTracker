@@ -25,7 +25,7 @@
             <SpielrundeList
                 Spielrunden="GameTypeSpielrunden"
                 AllGames="_state.Games"
-                GameType="_gameType"
+                GameType="@_gameType"
                 OnEnter="EnterSpielrunde"
                 OnNew="() => _view = View.NewSpielrunde"
                 OnBack="() => _view = View.GameTypeSelect"
@@ -34,7 +34,7 @@
         else if (_view == View.NewSpielrunde)
         {
             <NewSpielrundeForm
-                GameType="_gameType"
+                GameType="@_gameType"
                 OnSave="AddSpielrunde"
                 OnCancel="() => _view = View.SpielrundeList" />
         }
