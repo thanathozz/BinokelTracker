@@ -105,7 +105,7 @@ public class AddRoundViewModel
         ? new[] { FormStep.Spielart, FormStep.Ergebnis }
         : BidderAbgegangen
             ? new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Ergebnis }
-            : new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Stiche, FormStep.LetzterStich, FormStep.Ergebnis };
+            : new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Stiche, FormStep.Ergebnis };
 
     public int      TotalSteps   => ActiveSteps.Count;
     public FormStep CurrentStep  => ActiveSteps[Step];

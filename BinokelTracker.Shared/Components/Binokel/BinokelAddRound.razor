@@ -408,19 +408,21 @@
                         Augen Rechner
                     </button>
                 }
-            }
-            else if (_vm.CurrentStep == FormStep.LetzterStich)
-            {
-                <label class="form-label">Wer hat den letzten Stich?</label>
-                <div class="pill-group">
-                    @for (int i = 0; i < Game.Players.Count; i++)
+                <div class="form-group" style="margin-top:14px">
+                    <label class="form-label">Letzter Stich</label>
+                    <div class="pill-group">
+                        @for (int i = 0; i < Game.Players.Count; i++)
+                        {
+                            var idx = i;
+                            <button class="pill @(_vm.LastTrickWinner == idx ? "active" : "")" @onclick="() => _vm.SetLastTrickWinner(idx)">@Game.Players[idx]</button>
+                        }
+                    </div>
+                    @if (_vm.LastTrickWinner >= 0)
                     {
-                        var idx = i;
-                        <button class="pill @(_vm.LastTrickWinner == idx ? "active" : "")" @onclick="() => _vm.SetLastTrickWinner(idx)">@Game.Players[idx]</button>
+                        <div class="score-preview won" style="margin-top:10px">
+                            <span class="score-preview-value green">+@Game.Rules.LastTrickBonus Punkte für @Game.Players[_vm.LastTrickWinner]</span>
+                        </div>
                     }
-                </div>
-                <div class="score-preview won" style="margin-top:14px">
-                    <span class="score-preview-value green">+@Game.Rules.LastTrickBonus Punkte für @Game.Players[_vm.LastTrickWinner]</span>
                 </div>
             }
             else if (_vm.CurrentStep == FormStep.Ergebnis && _vm.IsSpecial)
