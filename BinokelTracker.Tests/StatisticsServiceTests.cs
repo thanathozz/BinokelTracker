@@ -123,8 +123,8 @@ public class StatisticsServiceTests
     public void GamesWon_zaehlt_Spieler_mit_hoechstem_Punktestand_bei_beendetem_Spiel()
     {
         var game = Build.Game(new[] { "Anna", "Bob", "Carl" }, finished: true);
-        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 300, 0, 0 }, new[] { 0, 0, 0 }));
-        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 300, 0, 0 }, new[] { 0, 0, 0 }));
+        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 0, 0, 0 }, new[] { 300, 0, 0 }));
+        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 0, 0, 0 }, new[] { 300, 0, 0 }));
 
         var stats = StatisticsService.Compute(new[] { game });
 
@@ -148,8 +148,8 @@ public class StatisticsServiceTests
     {
         // Anna und Bob haben beide 300, Carl nichts
         var game = Build.Game(new[] { "Anna", "Bob", "Carl" }, finished: true);
-        game.Rounds.Add(Build.NormalRound(0, 300, new[] { 300, 0, 0 }, new[] { 0, 0, 0 }));
-        game.Rounds.Add(Build.NormalRound(1, 300, new[] { 0, 300, 0 }, new[] { 0, 0, 0 }));
+        game.Rounds.Add(Build.NormalRound(0, 300, new[] { 0, 0, 0 }, new[] { 300, 0, 0 }));
+        game.Rounds.Add(Build.NormalRound(1, 300, new[] { 0, 0, 0 }, new[] { 0, 300, 0 }));
 
         var stats = StatisticsService.Compute(new[] { game });
 
@@ -179,8 +179,8 @@ public class StatisticsServiceTests
     {
         // 3 Spieler, 1 Gewinner → +2 * Einsatz
         var game = Build.Game(new[] { "Anna", "Bob", "Carl" }, finished: true, einsatz: "5");
-        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 300, 0, 0 }, new[] { 0, 0, 0 }));
-        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 300, 0, 0 }, new[] { 0, 0, 0 }));
+        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 0, 0, 0 }, new[] { 300, 0, 0 }));
+        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 0, 0, 0 }, new[] { 300, 0, 0 }));
 
         var stats = StatisticsService.Compute(new[] { game });
 

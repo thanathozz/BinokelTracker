@@ -138,20 +138,20 @@ public class ScoringCalculatorTests
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Meldung zählt immer
+    // Meldung verfällt bei keinem Stich
     // ══════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void Meldung_zaehlt_auch_ohne_Stich()
+    public void Meldung_verfaellt_wenn_kein_Stich()
     {
         var round = Build.NormalRound(
             bidder: 0, bid: 200,
             meld:   new[] { 200, 150, 0 },
-            tricks: new[] { 200,   0, 0 });  // Spieler 1: kein Stich, aber Meldung zählt
+            tricks: new[] { 200,   0, 0 });  // Spieler 1: kein Stich → Meldung verfällt
 
         var scores = ScoringCalculator.CalcRoundScores(round, Build.Rules.Default());
 
-        scores[1].Should().Be(150);  // Meldung verfällt nicht
+        scores[1].Should().Be(0);  // Meldung verfallen
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class ScoringCalculatorTests
     {
         var rules = Build.Rules.WithDurch().With(r => { r.DurchSeparate = true; r.DurchPoints = 500; });
         var game  = Build.Game(new[] { "A", "B", "C" }, rules);
-        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 300, 0, 0 }, new[] { 0, 0, 0 }));
+        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 0, 0, 0 }, new[] { 300, 0, 0 }));
         game.Rounds.Add(Build.DurchRound(0, won: true));
 
         var totals = ScoringCalculator.GetPlayerTotals(game);
@@ -258,7 +258,7 @@ public class ScoringCalculatorTests
     {
         var rules = Build.Rules.DurchNotSeparate().With(r => r.DurchPoints = 500);
         var game  = Build.Game(new[] { "A", "B", "C" }, rules);
-        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 300, 0, 0 }, new[] { 0, 0, 0 }));
+        game.Rounds.Add(Build.NormalRound(0, 200, new[] { 0, 0, 0 }, new[] { 300, 0, 0 }));
         game.Rounds.Add(Build.DurchRound(0, won: true));
 
         var totals = ScoringCalculator.GetPlayerTotals(game);
@@ -296,7 +296,7 @@ public class ScoringCalculatorTests
             PlayerScores = new List<PlayerScore>
             {
                 new() { Meld = 200, Tricks = 200 },  // A: 400 (gewinnt)
-                new() { Meld = 100, Tricks =   0 },  // B: 100 (Meldung zählt auch ohne Stich)
+                new() { Meld =   0, Tricks = 100 },  // B: 100 (kein Meld → kein Verfallsrisiko)
                 new() { Meld =   0, Tricks = 100 },  // C: 100
                 new() { Meld =  50, Tricks =  50 },  // D: 100
             }
