@@ -193,7 +193,7 @@
                                         <input class="form-input form-input-center" type="number" inputmode="numeric" style="flex:1"
                                                value="@_vm.Meld[idx]" placeholder="0"
                                                @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty" />
-                                        @if (Scanner.IsAvailable)
+                                        @if (false)
                                         {
                                             <button class="btn-outline" style="padding:6px 8px;font-size:14px" disabled="@_vm.Scanning[idx]"
                                                     @onclick="async () => { await _vm.ScanMeldAsync(idx, Scanner); StateHasChanged(); }">
@@ -348,7 +348,7 @@
                                 <input class="form-input form-input-center" type="number" inputmode="numeric" style="flex:1"
                                        value="@_vm.Meld[idx]" placeholder="0"
                                        @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty" />
-                                @if (Scanner.IsAvailable)
+                                @if (false)
                                 {
                                     <button class="btn-outline" style="padding:8px 10px;font-size:16px" disabled="@_vm.Scanning[idx]"
                                             @onclick="async () => { await _vm.ScanMeldAsync(idx, Scanner); StateHasChanged(); }">
