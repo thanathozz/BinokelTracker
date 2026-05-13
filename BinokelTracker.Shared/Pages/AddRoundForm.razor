@@ -1,8 +1,9 @@
 @code {
-    [Parameter] public Game Game { get; set; } = default!;
+    [Parameter] public Game   Game       { get; set; } = default!;
+    [Parameter] public Round? EditRound  { get; set; }
     [Parameter] public List<CustomField> CustomFields { get; set; } = new();
-    [Parameter] public EventCallback<Round> OnSave { get; set; }
-    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback<Round> OnSave  { get; set; }
+    [Parameter] public EventCallback        OnCancel { get; set; }
     [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
 
     private int[] _genericScores = Array.Empty<int>();
@@ -46,7 +47,7 @@
                 <polyline points="15 18 9 12 15 6"/>
             </svg>
         </button>
-        <span class="header-title">Neue Runde</span>
+        <span class="header-title">@(EditRound != null ? "Runde bearbeiten" : "Neue Runde")</span>
         <div style="width:36px"></div>
     </div>
 
@@ -82,6 +83,6 @@
     }
     else
     {
-        <BinokelAddRound Game="Game" OnSave="OnSave" OnCancel="OnCancel" OnOpenCalculator="OnOpenCalculator" />
+        <BinokelAddRound Game="Game" EditRound="EditRound" OnSave="OnSave" OnCancel="OnCancel" OnOpenCalculator="OnOpenCalculator" />
     }
 </div>

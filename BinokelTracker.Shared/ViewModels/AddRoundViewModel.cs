@@ -18,6 +18,7 @@ public enum FormStep { Spielart, Reizwert, Melden, Stiche, LetzterStich, Ergebni
 public class AddRoundViewModel
 {
     private readonly Game _game;
+    private long? _editingId;
 
     public AddRoundViewModel(Game game)
     {
@@ -272,7 +273,7 @@ public class AddRoundViewModel
     /// Baut das fertige Round-Objekt zum Speichern
     public Round BuildRound() => new Round
     {
-        Id              = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        Id              = _editingId ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
         Type            = Type,
         Bidder          = Bidder,
         Bid             = BidValue,
@@ -290,6 +291,25 @@ public class AddRoundViewModel
     // ══════════════════════════════════════════════════════════════════════
     // Init
     // ══════════════════════════════════════════════════════════════════════
+
+    public void InitFromRound(Round round)
+    {
+        _editingId      = round.Id;
+        Type            = round.Type;
+        Bidder          = round.Bidder;
+        Bid             = round.Bid > 0 ? round.Bid.ToString() : "";
+        Won             = round.Won;
+        Trumpf          = round.Trumpf;
+        LastTrickWinner = round.LastTrickWinner >= 0 ? round.LastTrickWinner : 0;
+
+        for (int i = 0; i < _game.Players.Count; i++)
+        {
+            var ps      = i < round.PlayerScores.Count ? round.PlayerScores[i] : new PlayerScore();
+            Meld[i]       = ps.Meld   > 0 ? ps.Meld.ToString()   : "";
+            Tricks[i]     = ps.Tricks > 0 ? ps.Tricks.ToString() : "";
+            Abgegangen[i] = ps.Abgegangen;
+        }
+    }
 
     private void ResetInputs()
     {

@@ -59,14 +59,19 @@
                         CustomFields="@(_activeSession?.CustomFields ?? new())"
                         StrichlisteMode="@(_activeSession?.StrichlisteMode ?? false)"
                         OnBack="() => _view = View.List"
-                        OnAddRound="() => _view = View.AddRound"
+                        OnAddRound="StartAddRound"
+                        OnEditRound="StartEditRound"
                         OnDeleteRound="DeleteRound"
                         OnFinishGame="FinishGame"
                         OnTallyPlayer="TallyPlayer" />
         }
         else if (_view == View.AddRound && _selectedGame != null)
         {
-            <AddRoundForm Game="_selectedGame" CustomFields="@(_activeSession?.CustomFields ?? new())" OnSave="AddRound" OnCancel="() => _view = View.Detail"
+            <AddRoundForm Game="_selectedGame"
+                          EditRound="@(_editRoundIndex >= 0 ? _selectedGame.Rounds[_editRoundIndex] : null)"
+                          CustomFields="@(_activeSession?.CustomFields ?? new())"
+                          OnSave="SaveRound"
+                          OnCancel="CancelRound"
                           OnOpenCalculator="(players, assign) => _calculatorDialog!.Open(players, assign, _selectedGame?.Rules.AssValue ?? 11, _selectedGame?.Rules.ZehnValue ?? 10, _selectedGame?.Rules.KoenigValue ?? 4, _selectedGame?.Rules.OberValue ?? 3, _selectedGame?.Rules.UnterValue ?? 2, _selectedGame?.Rules.LastTrickBonus ?? 10)" />
         }
         else if (_view == View.QuickGame)
@@ -142,6 +147,7 @@
     private Spielrunde? _activeSession;
     private string _gameType = GameTypeInfo.Binokel;
     private bool _loaded;
+    private int _editRoundIndex = -1;
     private RulesDialog? _rulesDialog;
     private AugenCalculator? _calculatorDialog;
     private string? _saveError;
@@ -274,21 +280,48 @@
         await Save();
     }
 
-    private async Task AddRound(Round round)
+    private void StartAddRound()
+    {
+        _editRoundIndex = -1;
+        _view = View.AddRound;
+    }
+
+    private void StartEditRound(int index)
+    {
+        _editRoundIndex = index;
+        _view = View.AddRound;
+    }
+
+    private void CancelRound()
+    {
+        _editRoundIndex = -1;
+        _view = View.Detail;
+    }
+
+    private async Task SaveRound(Round round)
     {
         if (_selectedGame is null) return;
-        _selectedGame.Rounds.Add(round);
 
-        if (!_selectedGame.Finished)
+        if (_editRoundIndex >= 0 && _editRoundIndex < _selectedGame.Rounds.Count)
         {
-            bool targetReached = _selectedGame.Rules.TeamMode
-                ? _selectedGame.GetTeamTotals().Any(t => t >= _selectedGame.Rules.TargetScore)
-                : _selectedGame.GetPlayerTotals().Any(t => t >= _selectedGame.Rules.TargetScore);
+            _selectedGame.Rounds[_editRoundIndex] = round;
+        }
+        else
+        {
+            _selectedGame.Rounds.Add(round);
 
-            if (targetReached)
-                _selectedGame.Finished = true;
+            if (!_selectedGame.Finished)
+            {
+                bool targetReached = _selectedGame.Rules.TeamMode
+                    ? _selectedGame.GetTeamTotals().Any(t => t >= _selectedGame.Rules.TargetScore)
+                    : _selectedGame.GetPlayerTotals().Any(t => t >= _selectedGame.Rules.TargetScore);
+
+                if (targetReached)
+                    _selectedGame.Finished = true;
+            }
         }
 
+        _editRoundIndex = -1;
         _view = View.Detail;
         await Save();
     }

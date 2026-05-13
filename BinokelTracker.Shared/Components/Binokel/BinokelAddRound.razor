@@ -2,15 +2,20 @@
 @inject IMeldScanService Scanner
 
 @code {
-    [Parameter] public Game Game { get; set; } = default!;
-    [Parameter] public EventCallback<Round> OnSave { get; set; }
-    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public Game   Game       { get; set; } = default!;
+    [Parameter] public Round? EditRound  { get; set; }
+    [Parameter] public EventCallback<Round> OnSave  { get; set; }
+    [Parameter] public EventCallback        OnCancel { get; set; }
     [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
 
     private AddRoundViewModel _vm = default!;
 
     protected override void OnParametersSet()
-        => _vm = new AddRoundViewModel(Game);
+    {
+        _vm = new AddRoundViewModel(Game);
+        if (EditRound != null)
+            _vm.InitFromRound(EditRound);
+    }
 
     private async Task Save()
         => await OnSave.InvokeAsync(_vm.BuildRound());

@@ -5,6 +5,7 @@
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public EventCallback OnAddRound { get; set; }
     [Parameter] public EventCallback<int> OnDeleteRound { get; set; }
+    [Parameter] public EventCallback<int> OnEditRound   { get; set; }
     [Parameter] public EventCallback OnFinishGame { get; set; }
     [Parameter] public EventCallback<int> OnTallyPlayer { get; set; }
 
@@ -202,7 +203,8 @@
                 else
                 {
                     <BinokelRoundCard Round="r" Players="Game.Players" Rules="Game.Rules"
-                                      RoundIndex="ri" GameFinished="Game.Finished" OnDelete="OnDeleteRound" />
+                                      RoundIndex="ri" GameFinished="Game.Finished"
+                                      OnDelete="OnDeleteRound" OnEdit="OnEditRound" />
                 } @* end else (not custom fields) *@
             </div>
         }
