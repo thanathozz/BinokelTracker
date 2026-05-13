@@ -1,50 +1,70 @@
 @code {
-    [Parameter] public Round        Round       { get; set; } = default!;
-    [Parameter] public List<string> Players     { get; set; } = new();
-    [Parameter] public RuleSet      Rules       { get; set; } = default!;
-    [Parameter] public int          RoundIndex  { get; set; }
+    [Parameter] public Round        Round        { get; set; } = default!;
+    [Parameter] public List<string> Players      { get; set; } = new();
+    [Parameter] public RuleSet      Rules        { get; set; } = default!;
+    [Parameter] public int          RoundIndex   { get; set; }
     [Parameter] public bool         GameFinished { get; set; }
     [Parameter] public EventCallback<int> OnDelete { get; set; }
     [Parameter] public EventCallback<int> OnEdit   { get; set; }
 
-    private int[] Scores => Round.CalcScores(Rules);
-    private bool IsSpecial => Round.Type is RoundType.Durch or RoundType.Bettel;
-    private string? TypeLabel => Round.Type switch
+    private int[] Scores       => Round.CalcScores(Rules);
+    private bool  IsSpecial    => Round.Type is RoundType.Durch or RoundType.Bettel;
+    private bool  IsAbgegangen => Round.Abgegangen;
+
+    private string StripClass => Round.Type switch
+    {
+        RoundType.Durch  => "rc-strip-durch",
+        RoundType.Bettel => "rc-strip-bettel",
+        _                => Round.Won ? "rc-strip-win" : "rc-strip-loss"
+    };
+
+    private string TypeTag => Round.Type switch
+    {
+        RoundType.Durch  => "DURCH",
+        RoundType.Bettel => "BETTEL",
+        _                => "NORMAL"
+    };
+
+    private string TypeTagClass => Round.Type switch
+    {
+        RoundType.Durch  => "rc-tag-durch",
+        RoundType.Bettel => "rc-tag-bettel",
+        _                => "rc-tag-normal"
+    };
+
+    private string OutcomeTag      => IsAbgegangen ? "ABGEGANGEN" : Round.Won ? "GEWONNEN" : "VERLOREN";
+    private string OutcomeTagClass => Round.Won && !IsAbgegangen ? "rc-tag-win" : "rc-tag-loss";
+
+    private int BidderMeld   => Round.PlayerScores.Count > Round.Bidder ? Round.PlayerScores[Round.Bidder].Meld   : 0;
+    private int BidderTricks => Round.PlayerScores.Count > Round.Bidder ? Round.PlayerScores[Round.Bidder].Tricks : 0;
+
+    private string TypeLabel => Round.Type switch
     {
         RoundType.Durch  => "Durch",
         RoundType.Bettel => "Bettel",
-        _                => null
+        _                => ""
     };
 }
 
-<div class="round-header">
-    <div style="display:flex;align-items:center;gap:6px">
-        <span class="round-num">R@(RoundIndex + 1)</span>
-        @if (TypeLabel != null) { <span class="chip chip-yellow">@TypeLabel</span> }
-    </div>
-    <div style="display:flex;align-items:center;gap:6px">
-        @if (!IsSpecial)
-        {
-            <span class="chip @(Round.Abgegangen ? "chip-muted" : Round.Won ? "chip-green" : "chip-red")">
-                @Players[Round.Bidder]: @Round.Bid @(Round.Abgegangen ? "↓" : Round.Won ? "✓" : "✗")
-            </span>
-        }
-        else
-        {
-            <span class="chip @(Round.Won ? "chip-green" : "chip-red")">
-                @Players[Round.Bidder] @(Round.Won ? "✓" : "✗")
-            </span>
-        }
+<!-- Color strip -->
+<div class="rc-strip @StripClass"></div>
+
+<!-- Header: round number + type/outcome tags + action buttons -->
+<div class="rc-head">
+    <span class="rc-num">RUNDE @(RoundIndex + 1)</span>
+    <div class="rc-tags">
+        <span class="rc-tag @TypeTagClass">@TypeTag</span>
+        <span class="rc-tag @OutcomeTagClass">@OutcomeTag</span>
         @if (!GameFinished)
         {
-            <button class="btn" style="padding:3px;color:var(--dark)" @onclick="() => OnEdit.InvokeAsync(RoundIndex)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button class="btn" style="padding:2px;color:var(--dark)" @onclick="() => OnEdit.InvokeAsync(RoundIndex)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
             </button>
-            <button class="btn" style="padding:3px;color:var(--dark)" @onclick="() => OnDelete.InvokeAsync(RoundIndex)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <button class="btn" style="padding:2px;color:var(--dark)" @onclick="() => OnDelete.InvokeAsync(RoundIndex)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                 </svg>
@@ -52,20 +72,102 @@
         }
     </div>
 </div>
-<div class="round-scores">
+
+<!-- Summary sentence -->
+<div class="rc-summary">
+    <span class="rc-bidder-name">@Players[Round.Bidder]</span>
+    @if (IsSpecial)
+    {
+        <span class="rc-summary-text"> spielt einen </span><b>@TypeLabel</b>
+        <span class="rc-arrow"> · </span>
+        <span class="rc-result-text @(Round.Won ? "win" : "loss")">@(Round.Won ? "gewonnen" : "verloren")</span>
+    }
+    else if (IsAbgegangen)
+    {
+        <span class="rc-arrow"> reizt </span>
+        <span class="rc-bid-val">@Round.Bid</span>
+        <span class="rc-arrow"> → </span>
+        <span class="rc-result-text loss">abgegangen</span>
+    }
+    else if (Round.Won)
+    {
+        <span class="rc-arrow"> reizt </span>
+        <span class="rc-bid-val">@Round.Bid</span>
+        <span class="rc-arrow"> → </span>
+        <span class="rc-result-text win">@(BidderMeld + BidderTricks) Pkt.</span>
+    }
+    else
+    {
+        <span class="rc-arrow"> reizt </span>
+        <span class="rc-bid-val">@Round.Bid</span>
+        <span class="rc-arrow"> → </span>
+        <span class="rc-result-text loss">nicht erfüllt</span>
+    }
+</div>
+
+<!-- Player table -->
+<div class="rc-player-table">
+    @if (!IsSpecial)
+    {
+        <div class="rc-player-row rc-head-row">
+            <div></div>
+            <div class="rc-col-label">Meld</div>
+            <div class="rc-col-label">Stiche</div>
+            <div class="rc-col-label" style="text-align:right">Punkte</div>
+        </div>
+    }
     @for (int pi = 0; pi < Players.Count; pi++)
     {
-        var pIdx = pi;
-        var sc = Scores;
-        <div class="round-score-col">
-            <div class="round-player-name">@Players[pIdx]</div>
-            <div class="round-score-val @(sc[pIdx] > 0 ? "pos" : sc[pIdx] < 0 ? "neg" : "zero")">
-                @(sc[pIdx] > 0 ? "+" : "")@sc[pIdx]
+        var pIdx    = pi;
+        var sc      = Scores;
+        var isBidder = pIdx == Round.Bidder;
+        var ps      = pIdx < Round.PlayerScores.Count ? Round.PlayerScores[pIdx] : new PlayerScore();
+        var hasLast = Round.LastTrickWinner == pIdx;
+        var delta   = sc[pIdx];
+        <div class="rc-player-row @(isBidder ? "rc-bidder-row" : "")">
+            <div class="rc-pl-name">
+                <span class="rc-bidder-dot @(isBidder ? "show" : "")"></span>
+                @Players[pIdx]
+                @if (hasLast) { <span class="rc-last-star">★</span> }
             </div>
-            @if (!IsSpecial && !Round.Abgegangen)
+            @if (!IsSpecial)
             {
-                <div class="round-detail">Gemeldet:@Round.PlayerScores[pIdx].Meld Stiche:@Round.PlayerScores[pIdx].Tricks</div>
+                <div class="rc-pl-stat">@(ps.Meld > 0 ? ps.Meld.ToString() : "—")</div>
+                <div class="rc-pl-stat">@(IsAbgegangen ? "—" : ps.Tricks > 0 ? ps.Tricks.ToString() : "—")</div>
             }
+            else
+            {
+                <div></div>
+                <div></div>
+            }
+            <div class="rc-pl-delta @(delta > 0 ? "pos" : delta < 0 ? "neg" : "zero")">
+                @(delta == 0 ? "±0" : delta > 0 ? $"+{delta}" : delta.ToString())
+            </div>
         </div>
     }
 </div>
+
+<!-- Footer info chip -->
+@{
+    string footText  = "";
+    bool   footLoss  = false;
+    if (IsSpecial)
+    {
+        footText = "Sonderrunde · separat gewertet";
+    }
+    else if (IsAbgegangen)
+    {
+        footText = "Reizer abgegangen · Mitspieler +Pauschale";
+        footLoss = true;
+    }
+    else if (Round.LastTrickWinner >= 0 && Round.LastTrickWinner < Players.Count)
+    {
+        footText = $"★ Letzter Stich · +10 für {Players[Round.LastTrickWinner]}";
+    }
+}
+@if (!string.IsNullOrEmpty(footText))
+{
+    <div class="rc-foot">
+        <span class="rc-foot-chip @(footLoss ? "rc-foot-loss" : "")">@footText</span>
+    </div>
+}

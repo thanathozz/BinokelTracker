@@ -185,20 +185,22 @@
             <div class="round-card">
                 @if (Game.Rules.Id == "generic" && CustomFields.Any())
                 {
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                        <span class="round-num">R@(ri + 1)</span>
-                        @if (!Game.Finished)
-                        {
-                            <button class="btn" style="padding:3px;color:var(--dark)"
-                                    @onclick="() => OnDeleteRound.InvokeAsync(roundIdx)">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                </svg>
-                            </button>
-                        }
+                    <div style="padding:11px 13px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                            <span class="round-num">R@(ri + 1)</span>
+                            @if (!Game.Finished)
+                            {
+                                <button class="btn" style="padding:3px;color:var(--dark)"
+                                        @onclick="() => OnDeleteRound.InvokeAsync(roundIdx)">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                    </svg>
+                                </button>
+                            }
+                        </div>
+                        <CustomFieldDisplay Fields="CustomFields" Players="Game.Players" Values="r.CustomValues" />
                     </div>
-                    <CustomFieldDisplay Fields="CustomFields" Players="Game.Players" Values="r.CustomValues" />
                 }
                 else
                 {
