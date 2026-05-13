@@ -138,20 +138,20 @@ public class ScoringCalculatorTests
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Kein Stich — Meldung verfallen
+    // Meldung zählt immer
     // ══════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void Meldung_verfaellt_wenn_Spieler_keinen_Stich_gemacht()
+    public void Meldung_zaehlt_auch_ohne_Stich()
     {
         var round = Build.NormalRound(
             bidder: 0, bid: 200,
             meld:   new[] { 200, 150, 0 },
-            tricks: new[] { 200,   0, 0 });  // Spieler 1: kein Stich
+            tricks: new[] { 200,   0, 0 });  // Spieler 1: kein Stich, aber Meldung zählt
 
         var scores = ScoringCalculator.CalcRoundScores(round, Build.Rules.Default());
 
-        scores[1].Should().Be(0);  // 150 Meldung verfallen
+        scores[1].Should().Be(150);  // Meldung verfällt nicht
     }
 
     [Fact]
@@ -296,7 +296,7 @@ public class ScoringCalculatorTests
             PlayerScores = new List<PlayerScore>
             {
                 new() { Meld = 200, Tricks = 200 },  // A: 400 (gewinnt)
-                new() { Meld = 100, Tricks =   0 },  // B: 0   (kein Stich → verfallen)
+                new() { Meld = 100, Tricks =   0 },  // B: 100 (Meldung zählt auch ohne Stich)
                 new() { Meld =   0, Tricks = 100 },  // C: 100
                 new() { Meld =  50, Tricks =  50 },  // D: 100
             }
@@ -305,6 +305,6 @@ public class ScoringCalculatorTests
         var teams = ScoringCalculator.GetTeamTotals(game);
 
         teams[0].Should().Be(500);   // A(400) + C(100)
-        teams[1].Should().Be(100);   // B(0) + D(100)
+        teams[1].Should().Be(200);   // B(100) + D(100)
     }
 }

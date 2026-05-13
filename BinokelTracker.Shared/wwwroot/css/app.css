@@ -365,6 +365,91 @@ html, body {
     font-style: italic;
 }
 
+/* ═══ Game Type Select ═══ */
+.game-type-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.game-type-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px 14px; text-align: left; cursor: pointer; font-family: var(--font);
+    transition: background 0.15s, border-color 0.15s;
+    display: flex; flex-direction: column; gap: 3px; position: relative;
+}
+.game-type-card:active { background: var(--card-alt); }
+.game-type-card-featured {
+    border-color: rgba(200,149,108,0.35);
+    background: rgba(200,149,108,0.05);
+}
+.game-type-icon { font-size: 26px; margin-bottom: 4px; line-height: 1; }
+.game-type-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.game-type-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.game-type-badge {
+    margin-top: 8px; display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 10px; font-weight: 700; letter-spacing: .04em;
+    background: rgba(200,149,108,0.15); color: var(--accent);
+    font-family: var(--font-mono);
+}
+.game-type-badge-simple {
+    background: rgba(154,142,128,0.1); color: var(--muted);
+}
+
+/* ═══ Strichliste ═══ */
+.strichliste-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 16px 18px 8px;
+}
+.strichliste-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px 12px 16px; text-align: center; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    user-select: none; transition: background 0.1s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+}
+.strichliste-card:active { background: var(--card-alt); transform: scale(0.96); }
+.strichliste-name { font-size: 13px; font-weight: 600; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.strichliste-count { font-size: 52px; font-weight: 700; font-family: var(--font-mono); color: var(--accent-light); line-height: 1; margin: 6px 0; }
+.strichliste-add { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .04em; }
+
+/* ═══ Bottom Tab Bar ═══ */
+.tab-bar {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; z-index: 50;
+    padding-bottom: var(--safe-bottom);
+}
+.tab-bar-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 3px; background: none; border: none;
+    cursor: pointer; color: var(--dark); font-size: 10px; font-weight: 600;
+    font-family: var(--font); transition: color 0.15s;
+    padding: 10px 4px 12px; letter-spacing: 0.03em;
+}
+.tab-bar-item.active { color: var(--accent); }
+.tab-bar-item svg { display: block; }
+.tab-bar-clearance { height: calc(64px + var(--safe-bottom)); }
+
+/* ═══ FAB ═══ */
+.game-fab {
+    position: fixed;
+    bottom: calc(66px + var(--safe-bottom));
+    right: 18px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); color: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    border: none; cursor: pointer; z-index: 60;
+    box-shadow: 0 4px 20px rgba(200,149,108,0.4);
+    transition: opacity 0.15s, transform 0.15s;
+}
+.game-fab:active { opacity: 0.85; transform: scale(0.94); }
+
+/* ═══ Centered header variant ═══ */
+.header-center { position: relative; }
+.header-center .header-title {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    pointer-events: none;
+}
+
 /* ═══ Blazor error ═══ */
 #blazor-error-ui {
     background: var(--red); color: white; padding: 12px; text-align: center;
@@ -492,49 +577,56 @@ html, body {
 }
 
 /* ═══ Statistics dashboard ═══ */
-.stats-summary-row {
-    display: flex; justify-content: space-around; align-items: center;
-    padding: 14px 16px 10px; gap: 8px;
+.stats-kpi-bar {
+    display: flex; gap: 0; padding: 12px 16px 10px;
 }
-.stats-summary-cell  { text-align: center; flex: 1; }
-.stats-summary-value {
-    font-size: 26px; font-weight: 700; font-family: var(--font-mono);
+.stats-kpi-cell {
+    flex: 1; text-align: center; padding: 0 4px;
+    border-right: 1px solid var(--border);
+}
+.stats-kpi-cell:last-child { border-right: none; }
+.stats-kpi-value {
+    font-size: 20px; font-weight: 700; font-family: var(--font-mono);
     color: var(--accent-light);
 }
-.stats-summary-label {
-    font-size: 11px; color: var(--muted); margin-top: 2px;
+.stats-kpi-label {
+    font-size: 10px; color: var(--dark); margin-top: 1px;
     text-transform: uppercase; letter-spacing: .04em;
 }
-.stats-card {
-    background: var(--card); border-radius: 14px;
-    padding: 14px 16px; margin-bottom: 12px;
-    border: 1px solid var(--border);
+
+/* ═══ Compact player row ═══ */
+.stat-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--card); border-radius: 12px;
+    border: 1px solid var(--border); margin-bottom: 8px; gap: 10px;
 }
-.stats-card-header   { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.stats-card-rank     { width: 24px; text-align: center; flex-shrink: 0; }
-.stats-rank-num      { font-size: 13px; font-weight: 700; color: var(--muted); }
-.stats-card-name     { font-size: 17px; font-weight: 700; flex: 1; color: var(--text); }
-.stats-card-wins     { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600; color: var(--muted); }
-.stats-grid          { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
-.stats-cell          { text-align: center; padding: 6px 4px; }
-.stats-cell-value    { font-size: 18px; font-weight: 700; font-family: var(--font-mono); color: var(--text); }
-.stats-cell-label    {
-    font-size: 10px; color: var(--muted); margin-top: 2px;
-    text-transform: uppercase; letter-spacing: .03em;
+.stat-row-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.stat-badge {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    background: var(--card-alt); color: var(--muted); border: 1px solid var(--border);
 }
+.stat-badge.gold { background: rgba(200,149,108,0.15); color: var(--accent); border-color: rgba(200,149,108,0.4); }
+.stat-badge.silver { background: rgba(154,142,128,0.12); color: var(--muted); }
+.stat-badge.bronze { background: rgba(150,100,60,0.12); color: var(--accent-dim); }
+.stat-name { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-meta { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.stat-meta-sep { color: var(--border); margin: 0 3px; }
+.stat-row-right { text-align: right; flex-shrink: 0; }
+.stat-wins-num { font-size: 18px; font-weight: 700; font-family: var(--font-mono); color: var(--accent-light); }
+.stat-played { font-size: 10px; color: var(--dark); margin-top: 1px; }
+.stat-money { font-size: 11px; font-weight: 700; font-family: var(--font-mono); margin-top: 4px; padding: 1px 7px; border-radius: 20px; display: inline-block; }
+.stat-money.pos { background: rgba(106,172,106,0.12); color: var(--green); }
+.stat-money.neg { background: rgba(196,92,92,0.10); color: var(--red); }
+
+/* ═══ Win-rate bar ═══ */
+.stat-rate-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.stat-rate-fill { height: 100%; border-radius: 2px; }
+
+/* legacy kept for BarChart component */
 .stats-val-good { color: var(--green); }
 .stats-val-warn { color: var(--accent-light); }
-.stats-special-row {
-    display: flex; gap: 8px; margin-top: 10px; padding-top: 10px;
-    border-top: 1px solid var(--border);
-}
-.stats-money-badge {
-    display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: 13px; font-weight: 700; font-family: var(--font-mono);
-    margin-bottom: 10px;
-}
-.stats-money-badge.pos { background: rgba(76,175,80,.15);  color: var(--green); }
-.stats-money-badge.neg { background: rgba(229,57,53,.12);  color: var(--red);   }
 
 /* ═══ Feedback ═══ */
 .feedback-fab {

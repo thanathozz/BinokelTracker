@@ -1,0 +1,51 @@
+@code {
+    [Parameter] public List<CustomField> Fields   { get; set; } = new();
+    [Parameter] public List<string>      Players  { get; set; } = new();
+    [Parameter] public Dictionary<string, string> Values { get; set; } = new();
+
+    private string Get(string key) =>
+        Values.TryGetValue(key, out var v) ? v : string.Empty;
+
+    private void Set(string key, string val) => Values[key] = val;
+}
+
+<div>
+    @for (int pi = 0; pi < Players.Count; pi++)
+    {
+        var playerIdx = pi;
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 14px 8px;margin-bottom:12px">
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">@Players[playerIdx]</div>
+            @foreach (var field in Fields)
+            {
+                var f = field;
+                var key = $"{f.Id}:{playerIdx}";
+                <div class="form-group">
+                    <label class="form-label form-label-sm">@f.Name</label>
+                    @if (f.FieldType == CustomFieldType.Number)
+                    {
+                        <input class="form-input" type="number" style="font-size:15px;padding:8px 12px"
+                               value="@Get(key)"
+                               @oninput="e => Set(key, e.Value?.ToString() ?? string.Empty)" />
+                    }
+                    else if (f.FieldType == CustomFieldType.Text)
+                    {
+                        <input class="form-input" placeholder="@f.Name"
+                               value="@Get(key)"
+                               @oninput="e => Set(key, e.Value?.ToString() ?? string.Empty)" />
+                    }
+                    else if (f.FieldType == CustomFieldType.Dropdown && f.Options.Any())
+                    {
+                        <div class="pill-group">
+                            @foreach (var opt in f.Options)
+                            {
+                                var o = opt;
+                                <button class="pill pill-sm @(Get(key) == o ? "active" : "")"
+                                        @onclick="() => Set(key, o)">@o</button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>

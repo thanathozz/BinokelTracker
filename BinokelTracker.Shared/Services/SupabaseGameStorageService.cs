@@ -37,11 +37,16 @@ public class SupabaseGameStorageService : IGameStorageService
             var spielrundeRows = await GetAsync<List<SpielrundeRow>>(
                 "/rest/v1/spielrunden?select=id,data&order=id") ?? [];
 
+            var spielrunden = spielrundeRows.Select(r => r.Data).ToList();
+            foreach (var s in spielrunden)
+                if (string.IsNullOrEmpty(s.GameType))
+                    s.GameType = GameTypeInfo.Binokel;
+
             return new AppState
             {
                 Games        = gameRows.Select(r => r.Data).ToList(),
                 KnownPlayers = playerRows.Select(r => r.Name).ToList(),
-                Spielrunden  = spielrundeRows.Select(r => r.Data).ToList()
+                Spielrunden  = spielrunden
             };
         }
         catch (Exception ex)
@@ -51,7 +56,7 @@ public class SupabaseGameStorageService : IGameStorageService
         }
     }
 
-    public async Task SaveAsync(AppState state)
+    public async Task<string?> SaveAsync(AppState state)
     {
         try
         {
@@ -91,10 +96,13 @@ public class SupabaseGameStorageService : IGameStorageService
             {
                 await DeleteAsync("/rest/v1/spielrunden?id=gte.0");
             }
+
+            return null;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Supabase SaveAsync failed: {ex.Message}");
+            return ex.Message;
         }
     }
 
@@ -116,7 +124,12 @@ public class SupabaseGameStorageService : IGameStorageService
         var req     = await AuthorizedRequest(HttpMethod.Post, url);
         req.Content = content;
         req.Headers.Add("Prefer", "resolution=merge-duplicates,return=minimal");
-        await _http.SendAsync(req);
+        var resp = await _http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync();
+            throw new Exception($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {body}");
+        }
     }
 
     private async Task DeleteAsync(string url)
@@ -133,7 +146,7 @@ public class SupabaseGameStorageService : IGameStorageService
         return req;
     }
 
-    private record GameRow(long Id, Game Data, string UserId);
-    private record PlayerRow(string Name, string UserId);
-    private record SpielrundeRow(long Id, Spielrunde Data, string UserId);
+    private record GameRow(long Id, Game Data, [property: JsonPropertyName("user_id")] string UserId);
+    private record PlayerRow(string Name, [property: JsonPropertyName("user_id")] string UserId);
+    private record SpielrundeRow(long Id, Spielrunde Data, [property: JsonPropertyName("user_id")] string UserId);
 }

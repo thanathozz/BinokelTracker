@@ -1,0 +1,509 @@
+@using BinokelTracker.Services
+@inject IMeldScanService Scanner
+
+@code {
+    [Parameter] public Game Game { get; set; } = default!;
+    [Parameter] public EventCallback<Round> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
+
+    private AddRoundViewModel _vm = default!;
+
+    protected override void OnParametersSet()
+        => _vm = new AddRoundViewModel(Game);
+
+    private async Task Save()
+        => await OnSave.InvokeAsync(_vm.BuildRound());
+
+    private void OpenCalculatorForTricks()
+    {
+        OnOpenCalculator?.Invoke(Game.Players, (idx, score) =>
+        {
+            _vm.Tricks[idx] = score.ToString();
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private RenderFragment StarIcon => @<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>;
+}
+
+<div class="mode-toggle-bar">
+    <button class="pill pill-sm @(_vm.Mode == InputMode.Overview ? "active" : "")"
+            @onclick="() => _vm.SetMode(InputMode.Overview)">Übersicht</button>
+    <button class="pill pill-sm @(_vm.Mode == InputMode.StepByStep ? "active" : "")"
+            @onclick="() => _vm.SetMode(InputMode.StepByStep)">Schritt für Schritt</button>
+</div>
+
+<div class="section">
+
+    @if (_vm.Mode == InputMode.Overview)
+    {
+        @if (_vm.OverviewShowPreview)
+        {
+            <div class="step-label">Ergebnis</div>
+            @if (_vm.IsSpecial)
+            {
+                <div class="score-preview @(_vm.Won ? "won" : "lost")">
+                    <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
+                    @if (Game.Rules.DurchSeparate) { <span class="score-preview-note">(separat)</span> }
+                </div>
+            }
+            else
+            {
+                @foreach (var (p, i) in _vm.GetScorePreviews().Select((x, idx) => (x, idx)))
+                {
+                    <div class="@_vm.PlayerRowClass(i)" style="margin-bottom:10px">
+                        <div class="@_vm.PlayerNameClass(i)" style="margin-bottom:6px">
+                            @Game.Players[i]
+                            @if (_vm.IsBidder(i)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
+                        </div>
+                        @if (p.IsAbgegangen && _vm.IsBidder(i))
+                        {
+                            <div class="bd-row"><span class="bd-label">Abgegangen</span><span class="bd-val neg">@_vm.MinusPreview</span></div>
+                        }
+                        else if (p.LossReason == "Reizer abgegangen" && !_vm.IsBidder(i))
+                        {
+                            <div class="bd-row bd-row-total"><span class="bd-label">Reizer abgegangen</span><span class="bd-val neg">@_vm.MinusPreview</span></div>
+                        }
+                        else if (p.LossReason is "Abgegangen" or "Kein Stich — Meldung verfallen")
+                        {
+                            @if (p.Meld > 0) { <div class="bd-row"><span class="bd-label">Gemeldet</span><span class="bd-val muted">+@p.Meld (verfallen)</span></div> }
+                            @if (p.Tricks > 0) { <div class="bd-row"><span class="bd-label">Stiche</span><span class="bd-val">+@p.Tricks</span></div> }
+                            <div class="bd-row bd-row-total"><span class="bd-label">@p.LossReason</span><span class="bd-val zero">= 0</span></div>
+                        }
+                        else
+                        {
+                            <div class="bd-row"><span class="bd-label">Gemeldet</span><span class="bd-val">+@p.Meld</span></div>
+                            <div class="bd-row"><span class="bd-label">Stiche</span><span class="bd-val">+@p.Tricks</span></div>
+                            @if (p.Bonus > 0) { <div class="bd-row"><span class="bd-label">Bonus (Reizer abgegangen)</span><span class="bd-val pos">+@p.Bonus</span></div> }
+                            @if (p.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">Letzter Stich</span><span class="bd-val pos">+@p.LastTrickBonus</span></div> }
+                            @if (p.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@p.LossReason</span></div> }
+                            <div class="bd-row bd-row-total">
+                                <span class="bd-label">Gesamt</span>
+                                <span class="bd-val @(p.IsLoss ? "neg" : p.FinalScore > 0 ? "pos" : "zero")">
+                                    @(p.IsLoss || p.FinalScore < 0 ? "" : "+")@p.FinalScore
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+            <div class="step-nav" style="margin-top:14px">
+                <button class="btn-outline" style="flex:1" @onclick="_vm.HideOverviewPreview">Zurück</button>
+                <button class="btn-primary" style="flex:2" @onclick="Save">Speichern</button>
+            </div>
+        }
+        else
+        {
+            @if (_vm.ShowGameTypeSelector)
+            {
+                <div class="form-group">
+                    <label class="form-label">Spielart</label>
+                    <div class="pill-group">
+                        <button class="pill @(_vm.Type == RoundType.Normal ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Normal)">Normal</button>
+                        @if (Game.Rules.AllowDurch) { <button class="pill @(_vm.Type == RoundType.Durch ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Durch)">Durch</button> }
+                        @if (Game.Rules.AllowBettel) { <button class="pill @(_vm.Type == RoundType.Bettel ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Bettel)">Bettel</button> }
+                    </div>
+                </div>
+            }
+            <div class="form-group">
+                <label class="form-label">@_vm.BidderLabel</label>
+                <div class="pill-group">
+                    @for (int i = 0; i < Game.Players.Count; i++)
+                    {
+                        var idx = i;
+                        <button class="pill @(_vm.IsBidder(idx) ? "active" : "")" @onclick="() => _vm.SetBidder(idx)">@Game.Players[idx]</button>
+                    }
+                </div>
+            </div>
+            @if (_vm.IsSpecial)
+            {
+                <div class="form-group">
+                    <label class="form-label">@_vm.SpecialResultLabel</label>
+                    <div class="toggle-row">
+                        <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon"><div class="toggle-knob @_vm.WonClass"></div></button>
+                        <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
+                    </div>
+                    <div class="score-preview @(_vm.Won ? "won" : "lost")" style="margin-top:10px">
+                        <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
+                        @if (Game.Rules.DurchSeparate) { <span class="score-preview-note">(separat)</span> }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="form-group">
+                    <label class="form-label">Reizwert</label>
+                    <input class="form-input" type="number" inputmode="numeric" value="@_vm.Bid" placeholder="z.B. 150"
+                           @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty" />
+                </div>
+                @if (_vm.ShowBidderAbgehenInReizwert)
+                {
+                    <div class="form-group">
+                        <label class="form-label">@Game.Players[_vm.Bidder] abgegangen?</label>
+                        <div class="toggle-row">
+                            <button class="toggle-track @_vm.AbgehenClass(_vm.Bidder)" @onclick="() => _vm.ToggleAbgegangen(_vm.Bidder)">
+                                <div class="toggle-knob @_vm.AbgehenClass(_vm.Bidder)"></div>
+                            </button>
+                            <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">@_vm.BidderAbgehenLabel</span>
+                        </div>
+                        @if (_vm.BidderAbgegangen && _vm.BidValue > 0)
+                        {
+                            <div class="score-preview lost" style="margin-top:8px"><span class="score-preview-value red">@_vm.MinusPreview</span></div>
+                        }
+                    </div>
+                }
+                @if (!_vm.IsSpecial)
+                {
+                    <div class="form-group">
+                        <label class="form-label">Trumpf (optional)</label>
+                        <div class="pill-group">
+                            @foreach (var suit in Enum.GetValues<TrumpSuit>())
+                            {
+                                var s = suit;
+                                <button class="pill @(_vm.Trumpf == s ? "active" : "")" @onclick="() => _vm.SetTrump(_vm.Trumpf == s ? null : s)">@s</button>
+                            }
+                        </div>
+                    </div>
+                }
+                <label class="form-label">Punkte pro Spieler</label>
+                @for (int i = 0; i < Game.Players.Count; i++)
+                {
+                    var idx = i;
+                    var bidderAbg = _vm.IsBidder(idx) && _vm.BidderAbgegangen;
+                    <div class="@_vm.PlayerRowClass(idx)">
+                        <div class="@_vm.PlayerNameClass(idx)">
+                            @Game.Players[idx]
+                            @if (_vm.IsBidder(idx)) { @StarIcon }
+                        </div>
+                        <div class="player-inputs">
+                            <div style="flex:1">
+                                <label class="form-label form-label-sm">Melden</label>
+                                @if (bidderAbg) { <div class="abgegangen-note">Kein Melden</div> }
+                                else
+                                {
+                                    <div style="display:flex;gap:6px;align-items:center">
+                                        <input class="form-input form-input-center" type="number" inputmode="numeric" style="flex:1"
+                                               value="@_vm.Meld[idx]" placeholder="0"
+                                               @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty" />
+                                        @if (Scanner.IsAvailable)
+                                        {
+                                            <button class="btn-outline" style="padding:6px 8px;font-size:14px" disabled="@_vm.Scanning[idx]"
+                                                    @onclick="async () => { await _vm.ScanMeldAsync(idx, Scanner); StateHasChanged(); }">
+                                                @(_vm.Scanning[idx] ? "…" : "📷")
+                                            </button>
+                                        }
+                                    </div>
+                                    @if (_vm.ScanResult[idx] is { Count: > 0 } || _vm.ScanRaw[idx] is not null)
+                                    {
+                                        <div style="margin-top:5px">
+                                            @if (_vm.ScanResult[idx] is { Count: > 0 } combos)
+                                            {
+                                                <div style="display:flex;flex-wrap:wrap;gap:3px">
+                                                    @foreach (var c in combos) { <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);border-radius:10px;padding:1px 6px;font-size:11px;color:#6aac6a">@c.Name (+@c.Points)</span> }
+                                                </div>
+                                            }
+                                            @if (_vm.ScanTrump[idx] is { } trump) { <div style="font-size:11px;opacity:0.7;margin-top:3px">Trumpf erkannt: @trump</div> }
+                                            @if (_vm.ScanRaw[idx] is { } raw)
+                                            {
+                                                <details style="margin-top:4px">
+                                                    <summary style="font-size:11px;opacity:0.6;cursor:pointer">Claude-Antwort</summary>
+                                                    <pre style="font-size:10px;opacity:0.75;white-space:pre-wrap;word-break:break-all;margin-top:4px;padding:6px;background:rgba(255,255,255,0.05);border-radius:6px">@raw</pre>
+                                                </details>
+                                            }
+                                        </div>
+                                    }
+                                }
+                            </div>
+                            <div style="flex:1">
+                                <label class="form-label form-label-sm">Stiche</label>
+                                <input class="form-input form-input-center" type="number" inputmode="numeric"
+                                       value="@_vm.Tricks[idx]" placeholder="0"
+                                       disabled="@(_vm.BidderAbgegangen || _vm.Abgegangen[idx])"
+                                       @oninput="e => _vm.Tricks[idx] = e.Value?.ToString() ?? string.Empty" />
+                            </div>
+                            @if (_vm.ShowAbgehenFor(idx))
+                            {
+                                <div class="abgehen-col">
+                                    <label class="form-label form-label-sm">Abg.</label>
+                                    <button class="toggle-track @_vm.AbgehenClass(idx)" style="margin-top:4px" @onclick="() => _vm.ToggleAbgegangen(idx)">
+                                        <div class="toggle-knob @_vm.AbgehenClass(idx)"></div>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            @if (!_vm.IsSpecial && !_vm.BidderAbgegangen)
+            {
+                <div style="margin-top:8px;padding:8px 12px;border-radius:8px;font-size:14px;
+                            background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
+                            border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
+                            color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
+                    Summe Stiche: <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
+                    @if (!_vm.TricksSumValid && _vm.TricksSum > 0) { <div style="font-size:12px;margin-top:3px;opacity:0.85">Alle Stiche müssen zusammen @_vm.MaxTricksTotal Punkte ergeben.</div> }
+                </div>
+                <div class="form-group" style="margin-top:10px">
+                    <label class="form-label">Letzter Stich</label>
+                    <div class="pill-group">
+                        @for (int i = 0; i < Game.Players.Count; i++)
+                        {
+                            var idx = i;
+                            <button class="pill @(_vm.LastTrickWinner == idx ? "active" : "")" @onclick="() => _vm.SetLastTrickWinner(idx)">@Game.Players[idx]</button>
+                        }
+                    </div>
+                </div>
+            }
+            <button class="btn-primary" style="margin-top:14px;opacity:@(_vm.CanSave ? "1" : "0.4")"
+                    disabled="@(!_vm.CanSave)" @onclick="_vm.ShowOverviewPreview">Weiter</button>
+        }
+    }
+    else
+    {
+        <!-- ════ SCHRITT-FÜR-SCHRITT ════ -->
+        <div class="step-indicator">
+            @for (int i = 0; i < _vm.TotalSteps; i++)
+            {
+                var si = i;
+                <div class="step-dot-wrap">
+                    <div class="step-dot @(si < _vm.Step ? "done" : si == _vm.Step ? "active" : "")"></div>
+                    @if (si < _vm.TotalSteps - 1) { <div class="step-line @(si < _vm.Step ? "done" : "")"></div> }
+                </div>
+            }
+        </div>
+        <div class="step-label">@_vm.StepLabels[_vm.Step]</div>
+
+        <div class="step-content @(_vm.Forward ? "slide-in-right" : "slide-in-left")" @key="_vm.Step">
+            @if (_vm.CurrentStep == FormStep.Spielart)
+            {
+                @if (_vm.ShowGameTypeSelector)
+                {
+                    <div class="form-group">
+                        <label class="form-label">Spielart</label>
+                        <div class="pill-group">
+                            <button class="pill @(_vm.Type == RoundType.Normal ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Normal)">Normal</button>
+                            @if (Game.Rules.AllowDurch) { <button class="pill @(_vm.Type == RoundType.Durch ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Durch)">Durch</button> }
+                            @if (Game.Rules.AllowBettel) { <button class="pill @(_vm.Type == RoundType.Bettel ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Bettel)">Bettel</button> }
+                        </div>
+                    </div>
+                }
+                <label class="form-label">@_vm.BidderLabel</label>
+                <div class="pill-group">
+                    @for (int i = 0; i < Game.Players.Count; i++)
+                    {
+                        var idx = i;
+                        <button class="pill @(_vm.IsBidder(idx) ? "active" : "")" @onclick="() => _vm.SetBidder(idx)">@Game.Players[idx]</button>
+                    }
+                </div>
+            }
+            else if (_vm.CurrentStep == FormStep.Reizwert)
+            {
+                <input class="form-input bid-input" type="number" inputmode="numeric" value="@_vm.Bid" placeholder="z.B. 150"
+                       @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty" />
+                @if (_vm.ShowBidderAbgehenInReizwert)
+                {
+                    <label class="form-label" style="margin-top:18px">@Game.Players[_vm.Bidder] abgegangen?</label>
+                    <div class="toggle-row">
+                        <button class="toggle-track @_vm.AbgehenClass(_vm.Bidder)" @onclick="() => _vm.ToggleAbgegangen(_vm.Bidder)">
+                            <div class="toggle-knob @_vm.AbgehenClass(_vm.Bidder)"></div>
+                        </button>
+                        <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">@_vm.BidderAbgehenLabel</span>
+                    </div>
+                    @if (_vm.BidderAbgegangen && _vm.BidValue > 0) { <div class="score-preview lost" style="margin-top:10px"><span class="score-preview-value red">@_vm.MinusPreview</span></div> }
+                }
+            }
+            else if (_vm.CurrentStep == FormStep.Melden)
+            {
+                <div class="form-group">
+                    <label class="form-label">Trumpf (optional)</label>
+                    <div class="pill-group">
+                        @foreach (var suit in Enum.GetValues<TrumpSuit>())
+                        {
+                            var s = suit;
+                            <button class="pill @(_vm.Trumpf == s ? "active" : "")" @onclick="() => _vm.SetTrump(_vm.Trumpf == s ? null : s)">@s</button>
+                        }
+                    </div>
+                </div>
+                @for (int i = 0; i < Game.Players.Count; i++)
+                {
+                    var idx = i;
+                    var bidderAbg = _vm.IsBidder(idx) && _vm.BidderAbgegangen;
+                    <div class="@_vm.PlayerRowClass(idx)">
+                        <div class="@_vm.PlayerNameClass(idx)">
+                            @Game.Players[idx]
+                            @if (_vm.IsBidder(idx)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
+                        </div>
+                        @if (bidderAbg) { <div class="abgegangen-note">Kein Melden (abgegangen)</div> }
+                        else
+                        {
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <input class="form-input form-input-center" type="number" inputmode="numeric" style="flex:1"
+                                       value="@_vm.Meld[idx]" placeholder="0"
+                                       @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty" />
+                                @if (Scanner.IsAvailable)
+                                {
+                                    <button class="btn-outline" style="padding:8px 10px;font-size:16px" disabled="@_vm.Scanning[idx]"
+                                            @onclick="async () => { await _vm.ScanMeldAsync(idx, Scanner); StateHasChanged(); }">
+                                        @(_vm.Scanning[idx] ? "…" : "📷")
+                                    </button>
+                                }
+                            </div>
+                            @if (_vm.Scanning[idx]) { <div style="font-size:12px;opacity:0.7;margin-top:4px">Erkenne Karten…</div> }
+                            @if (_vm.ScanError[idx] is { } err) { <div style="font-size:12px;color:#c45c5c;margin-top:4px">@err</div> }
+                            @if (_vm.ScanResult[idx] is { Count: > 0 } || _vm.ScanRaw[idx] is not null || _vm.ScanError[idx] is not null)
+                            {
+                                <div style="margin-top:6px">
+                                    @if (_vm.ScanResult[idx] is { Count: > 0 } sbsCombos)
+                                    {
+                                        <div style="display:flex;flex-wrap:wrap;gap:4px">
+                                            @foreach (var c in sbsCombos) { <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);border-radius:12px;padding:2px 8px;font-size:12px;color:#6aac6a">@c.Name (+@c.Points)</span> }
+                                        </div>
+                                    }
+                                    @if (_vm.ScanTrump[idx] is { } sbsTrump) { <div style="font-size:12px;opacity:0.7;margin-top:4px">Trumpf erkannt: @sbsTrump</div> }
+                                    @if (_vm.ScanRaw[idx] is { } sbsRaw)
+                                    {
+                                        <details style="margin-top:5px">
+                                            <summary style="font-size:12px;opacity:0.6;cursor:pointer">Claude-Antwort anzeigen</summary>
+                                            <pre style="font-size:11px;opacity:0.75;white-space:pre-wrap;word-break:break-all;margin-top:4px;padding:8px;background:rgba(255,255,255,0.05);border-radius:8px">@sbsRaw</pre>
+                                        </details>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+            }
+            else if (_vm.CurrentStep == FormStep.Stiche)
+            {
+                @for (int i = 0; i < Game.Players.Count; i++)
+                {
+                    var idx = i;
+                    <div class="@_vm.PlayerRowClass(idx)">
+                        <div class="@_vm.PlayerNameClass(idx)">
+                            @Game.Players[idx]
+                            @if (_vm.IsBidder(idx)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
+                        </div>
+                        <input class="form-input form-input-center" type="number" inputmode="numeric"
+                               value="@_vm.Tricks[idx]" placeholder="0"
+                               @oninput="e => _vm.Tricks[idx] = e.Value?.ToString() ?? string.Empty" />
+                    </div>
+                }
+                <div style="margin-top:12px;padding:8px 12px;border-radius:8px;font-size:14px;
+                            background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
+                            border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
+                            color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
+                    Summe: <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
+                    @if (!_vm.TricksSumValid) { <div style="font-size:12px;margin-top:3px;opacity:0.85">Alle Stiche müssen zusammen @_vm.MaxTricksTotal Punkte ergeben.</div> }
+                </div>
+                @if (OnOpenCalculator != null)
+                {
+                    <button class="btn-outline" style="width:100%;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px"
+                            @onclick="OpenCalculatorForTricks">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/>
+                        </svg>
+                        Augen Rechner
+                    </button>
+                }
+            }
+            else if (_vm.CurrentStep == FormStep.LetzterStich)
+            {
+                <label class="form-label">Wer hat den letzten Stich?</label>
+                <div class="pill-group">
+                    @for (int i = 0; i < Game.Players.Count; i++)
+                    {
+                        var idx = i;
+                        <button class="pill @(_vm.LastTrickWinner == idx ? "active" : "")" @onclick="() => _vm.SetLastTrickWinner(idx)">@Game.Players[idx]</button>
+                    }
+                </div>
+                <div class="score-preview won" style="margin-top:14px">
+                    <span class="score-preview-value green">+@Game.Rules.LastTrickBonus Punkte für @Game.Players[_vm.LastTrickWinner]</span>
+                </div>
+            }
+            else if (_vm.CurrentStep == FormStep.Ergebnis && _vm.IsSpecial)
+            {
+                <label class="form-label">@_vm.SpecialResultLabel</label>
+                <div class="toggle-row" style="margin-bottom:12px">
+                    <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon"><div class="toggle-knob @_vm.WonClass"></div></button>
+                    <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
+                </div>
+                <div class="score-preview @(_vm.Won ? "won" : "lost")">
+                    <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
+                    @if (Game.Rules.DurchSeparate) { <span class="score-preview-note">(separat)</span> }
+                </div>
+            }
+            else if (_vm.CurrentStep == FormStep.Ergebnis)
+            {
+                @foreach (var (p, i) in _vm.GetScorePreviews().Select((x, idx) => (x, idx)))
+                {
+                    <div class="@_vm.PlayerRowClass(i)" style="margin-bottom:10px">
+                        <div class="@_vm.PlayerNameClass(i)" style="margin-bottom:6px">
+                            @Game.Players[i]
+                            @if (_vm.IsBidder(i)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
+                        </div>
+                        @if (p.IsAbgegangen && _vm.IsBidder(i))
+                        {
+                            <div class="bd-row"><span class="bd-label">Abgegangen</span><span class="bd-val neg">@_vm.MinusPreview</span></div>
+                        }
+                        else if (p.LossReason == "Reizer abgegangen" && !_vm.IsBidder(i))
+                        {
+                            <div class="bd-row bd-row-total"><span class="bd-label">Reizer abgegangen</span><span class="bd-val neg">@_vm.MinusPreview</span></div>
+                        }
+                        else if (p.LossReason is "Abgegangen" or "Kein Stich — Meldung verfallen")
+                        {
+                            @if (p.Meld > 0) { <div class="bd-row"><span class="bd-label">Gemeldet</span><span class="bd-val muted">+@p.Meld (verfallen)</span></div> }
+                            @if (p.Tricks > 0) { <div class="bd-row"><span class="bd-label">Stiche</span><span class="bd-val">+@p.Tricks</span></div> }
+                            <div class="bd-row bd-row-total"><span class="bd-label">@p.LossReason</span><span class="bd-val zero">= 0</span></div>
+                        }
+                        else
+                        {
+                            <div class="bd-row"><span class="bd-label">Gemeldet</span><span class="bd-val">+@p.Meld</span></div>
+                            <div class="bd-row"><span class="bd-label">Stiche</span><span class="bd-val">+@p.Tricks</span></div>
+                            @if (p.Bonus > 0) { <div class="bd-row"><span class="bd-label">Bonus (Reizer abgegangen)</span><span class="bd-val pos">+@p.Bonus</span></div> }
+                            @if (p.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">Letzter Stich</span><span class="bd-val pos">+@p.LastTrickBonus</span></div> }
+                            @if (p.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@p.LossReason</span></div> }
+                            <div class="bd-row bd-row-total">
+                                <span class="bd-label">Gesamt</span>
+                                <span class="bd-val @(p.IsLoss ? "neg" : p.FinalScore > 0 ? "pos" : "zero")">
+                                    @(p.IsLoss || p.FinalScore < 0 ? "" : "+")@p.FinalScore
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="step-nav">
+            <button class="btn-outline" style="flex:1;opacity:@(_vm.Step == 0 ? "0.3" : "1")" disabled="@(_vm.Step == 0)" @onclick="_vm.GoPrev">Zurück</button>
+            @if (_vm.Step < _vm.TotalSteps - 1)
+            {
+                <button class="btn-primary" style="flex:2;opacity:@(_vm.CanAdvance ? "1" : "0.4")" disabled="@(!_vm.CanAdvance)" @onclick="_vm.GoNext">Weiter</button>
+            }
+            else
+            {
+                <button class="btn-primary" style="flex:2" @onclick="Save">Speichern</button>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .step-indicator { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 6px; }
+    .step-dot-wrap { display: flex; align-items: center; }
+    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: background 0.2s, transform 0.2s; }
+    .step-dot.active { background: var(--accent); transform: scale(1.3); }
+    .step-dot.done   { background: var(--accent-dim); }
+    .step-line { width: 28px; height: 2px; background: var(--border); transition: background 0.2s; }
+    .step-line.done { background: var(--accent-dim); }
+    .step-label { text-align: center; font-size: 18px; font-weight: 700; color: var(--accent-light); margin-bottom: 20px; letter-spacing: 0.01em; }
+    .step-content { animation-duration: 0.22s; animation-fill-mode: both; animation-timing-function: ease-out; }
+    .step-content.slide-in-right { animation-name: step-from-right; }
+    .step-content.slide-in-left  { animation-name: step-from-left; }
+    @@keyframes step-from-right { from { opacity: 0; transform: translateX(32px); }  to { opacity: 1; transform: translateX(0); } }
+    @@keyframes step-from-left  { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: translateX(0); } }
+    .step-nav { display: flex; gap: 10px; margin-top: 20px; }
+</style>

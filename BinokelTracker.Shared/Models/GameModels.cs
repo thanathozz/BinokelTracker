@@ -86,6 +86,8 @@ public enum RoundType
     Bettel
 }
 
+public enum TrumpSuit { Eichel, Schippen, Herz, Schellen }
+
 public class Round
 {
     public long Id { get; set; }
@@ -93,7 +95,9 @@ public class Round
     public int Bidder { get; set; }
     public int Bid { get; set; }
     public bool Won { get; set; } = true;
+    public TrumpSuit? Trumpf { get; set; }
     public List<PlayerScore> PlayerScores { get; set; } = new();
+    public Dictionary<string, string> CustomValues { get; set; } = new();
     /// <summary>Index des Spielers mit dem letzten Stich. -1 = kein Stich gespielt (Reizer abgegangen).</summary>
     public int LastTrickWinner { get; set; } = -1;
 
@@ -103,6 +107,9 @@ public class Round
     public int[] CalcScores(RuleSet rules)
     {
         var scores = new int[PlayerScores.Count];
+
+        if (rules.Id == "generic")
+            return PlayerScores.Select(ps => ps.Tricks).ToArray();
 
         if (Type == RoundType.Durch)
         {
@@ -139,8 +146,6 @@ public class Round
                     scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
                 else if (bidderAbgegangen)
                     scores[i] = total + PlayerScores.Count * rules.AbgegangenBonusPerPlayer;
-                else if (ps.Tricks == 0 && ps.Meld > 0)
-                    scores[i] = 0;
                 else
                     scores[i] = total;
             }
@@ -220,6 +225,9 @@ public class Spielrunde
 {
     public long Id { get; set; }
     public string Name { get; set; } = "";
+    public string GameType { get; set; } = GameTypeInfo.Binokel;
+    public List<CustomField> CustomFields { get; set; } = new();
+    public bool StrichlisteMode { get; set; } = false;
     public List<string> Players { get; set; } = new();
     /// <summary>SHA-256 Hex des Passworts, oder null = kein Passwort.</summary>
     public string? PasswordHash { get; set; }

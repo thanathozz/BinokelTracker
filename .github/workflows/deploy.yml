@@ -36,6 +36,9 @@ jobs:
             "Supabase": {
               "Url": "${{ secrets.SUPABASE_URL }}",
               "AnonKey": "${{ secrets.SUPABASE_ANON_KEY }}"
+            },
+            "Anthropic": {
+              "ApiKey": "${{ secrets.ANTHROPIC_API_KEY }}"
             }
           }
           EOF

@@ -1,0 +1,56 @@
+@code {
+    [Parameter] public int AssValue              { get; set; } [Parameter] public EventCallback<int> AssValueChanged              { get; set; }
+    [Parameter] public int ZehnValue             { get; set; } [Parameter] public EventCallback<int> ZehnValueChanged             { get; set; }
+    [Parameter] public int KoenigValue           { get; set; } [Parameter] public EventCallback<int> KoenigValueChanged           { get; set; }
+    [Parameter] public int OberValue             { get; set; } [Parameter] public EventCallback<int> OberValueChanged             { get; set; }
+    [Parameter] public int UnterValue            { get; set; } [Parameter] public EventCallback<int> UnterValueChanged            { get; set; }
+    [Parameter] public int LastTrickBonus        { get; set; } [Parameter] public EventCallback<int> LastTrickBonusChanged        { get; set; }
+    [Parameter] public int AbgegangenBonus       { get; set; } [Parameter] public EventCallback<int> AbgegangenBonusChanged       { get; set; }
+
+    private void Update(EventCallback<int> cb, string? raw)
+    {
+        if (int.TryParse(raw, out var v)) cb.InvokeAsync(v);
+    }
+}
+
+<label class="form-label" style="margin-top:8px">Kartenwerte (Augen)</label>
+<div style="display:flex;gap:8px;margin-bottom:10px">
+    <div style="flex:1">
+        <label class="form-label" style="font-size:12px">Ass</label>
+        <input class="form-input" type="number" min="0" value="@AssValue"
+               @oninput="e => Update(AssValueChanged, e.Value?.ToString())" />
+    </div>
+    <div style="flex:1">
+        <label class="form-label" style="font-size:12px">Zehn</label>
+        <input class="form-input" type="number" min="0" value="@ZehnValue"
+               @oninput="e => Update(ZehnValueChanged, e.Value?.ToString())" />
+    </div>
+    <div style="flex:1">
+        <label class="form-label" style="font-size:12px">König</label>
+        <input class="form-input" type="number" min="0" value="@KoenigValue"
+               @oninput="e => Update(KoenigValueChanged, e.Value?.ToString())" />
+    </div>
+    <div style="flex:1">
+        <label class="form-label" style="font-size:12px">Ober</label>
+        <input class="form-input" type="number" min="0" value="@OberValue"
+               @oninput="e => Update(OberValueChanged, e.Value?.ToString())" />
+    </div>
+    <div style="flex:1">
+        <label class="form-label" style="font-size:12px">Unter</label>
+        <input class="form-input" type="number" min="0" value="@UnterValue"
+               @oninput="e => Update(UnterValueChanged, e.Value?.ToString())" />
+    </div>
+</div>
+<label class="form-label" style="margin-top:4px">Boni</label>
+<div style="display:flex;gap:8px;margin-bottom:16px">
+    <div style="flex:1">
+        <label class="form-label" style="font-size:12px">Letzter Stich</label>
+        <input class="form-input" type="number" min="0" value="@LastTrickBonus"
+               @oninput="e => Update(LastTrickBonusChanged, e.Value?.ToString())" />
+    </div>
+    <div style="flex:1">
+        <label class="form-label" style="font-size:12px">Abg.-Bonus/Sp.</label>
+        <input class="form-input" type="number" min="0" value="@AbgegangenBonus"
+               @oninput="e => Update(AbgegangenBonusChanged, e.Value?.ToString())" />
+    </div>
+</div>

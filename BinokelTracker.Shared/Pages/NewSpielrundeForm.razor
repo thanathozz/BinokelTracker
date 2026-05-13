@@ -2,6 +2,7 @@
     [Parameter] public EventCallback<Spielrunde> OnSave       { get; set; }
     [Parameter] public EventCallback             OnCancel     { get; set; }
     [Parameter] public List<string>              KnownPlayers { get; set; } = new();
+    [Parameter] public string                    GameType     { get; set; } = GameTypeInfo.Binokel;
 
     private string       _name            = "";
     private List<string> _players         = new();
@@ -15,6 +16,14 @@
     private int          _unterValue       = 2;
     private int          _lastTrickBonus  = 10;
     private int          _abgegangenBonus = 10;
+    private List<CustomField> _customFields = new();
+    private bool _strichlisteMode = false;
+
+    protected override void OnParametersSet()
+    {
+        if (!GameTypeInfo.IsBinokel(GameType) && _players.Count == 0)
+            _players = new List<string> { string.Empty, string.Empty };
+    }
 
     private bool CanSave =>
         !string.IsNullOrWhiteSpace(_name) &&
@@ -33,6 +42,7 @@
         {
             Id                      = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Name                    = _name.Trim(),
+            GameType                = GameType,
             Players                 = _players.ToList(),
             PasswordHash            = _usePassword ? PasswordHelper.Hash(_password) : null,
             AssValue                = _assValue,
@@ -42,6 +52,8 @@
             UnterValue               = _unterValue,
             LastTrickBonus          = _lastTrickBonus,
             AbgegangenBonusPerPlayer = _abgegangenBonus,
+            CustomFields      = _customFields.ToList(),
+            StrichlisteMode   = _strichlisteMode,
         };
         await OnSave.InvokeAsync(s);
     }
@@ -106,47 +118,52 @@
             </div>
         }
 
-        <label class="form-label" style="margin-top:8px">Kartenwerte (Augen)</label>
-        <div style="display:flex;gap:8px;margin-bottom:10px">
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Ass</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_assValue" @bind:event="oninput" />
+        @if (GameTypeInfo.IsBinokel(GameType))
+        {
+            <BinokelSpielrundeSettings
+                @bind-AssValue="_assValue"
+                @bind-ZehnValue="_zehnValue"
+                @bind-KoenigValue="_koenigValue"
+                @bind-OberValue="_oberValue"
+                @bind-UnterValue="_unterValue"
+                @bind-LastTrickBonus="_lastTrickBonus"
+                @bind-AbgegangenBonus="_abgegangenBonus" />
+        }
+
+        @if (!GameTypeInfo.IsBinokel(GameType))
+        {
+            <label class="form-label" style="margin-bottom:8px">Spieler</label>
+            <div style="margin-bottom:16px">
+                @for (int pi = 0; pi < _players.Count; pi++)
+                {
+                    var pidx = pi;
+                    <input class="form-input" style="margin-bottom:6px" placeholder="Spieler @(pidx + 1)"
+                           value="@_players[pidx]"
+                           @oninput="e => _players[pidx] = e.Value?.ToString() ?? string.Empty" />
+                }
+                <div style="display:flex;gap:8px;margin-top:6px">
+                    <button class="btn-outline" style="flex:1;padding:8px" type="button" @onclick="() => _players.Add(string.Empty)">+ Spieler</button>
+                    @if (_players.Count > 2)
+                    {
+                        <button class="btn-outline" style="flex:1;padding:8px;color:var(--red);border-color:rgba(196,92,92,.3)" type="button"
+                                @onclick="() => _players.RemoveAt(_players.Count - 1)">− Entfernen</button>
+                    }
+                </div>
             </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Zehn</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_zehnValue" @bind:event="oninput" />
+
+            <div class="toggle-row" style="margin-bottom:16px">
+                <button class="toggle-track @(_strichlisteMode ? "on" : "off")" @onclick="() => _strichlisteMode = !_strichlisteMode">
+                    <div class="toggle-knob @(_strichlisteMode ? "on" : "off")"></div>
+                </button>
+                <span class="toggle-label @(_strichlisteMode ? "on" : "off")">Strichliste-Modus</span>
             </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">König</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_koenigValue" @bind:event="oninput" />
-            </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Ober</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_oberValue" @bind:event="oninput" />
-            </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Unter</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_unterValue" @bind:event="oninput" />
-            </div>
-        </div>
-        <label class="form-label" style="margin-top:4px">Boni</label>
-        <div style="display:flex;gap:8px;margin-bottom:16px">
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Letzter Stich</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_lastTrickBonus" @bind:event="oninput" />
-            </div>
-            <div style="flex:1">
-                <label class="form-label" style="font-size:12px">Abg.-Bonus/Sp.</label>
-                <input class="form-input" type="number" min="0"
-                       @bind="_abgegangenBonus" @bind:event="oninput" />
-            </div>
-        </div>
+
+            @if (!_strichlisteMode)
+            {
+                <label class="form-label" style="margin-top:4px;margin-bottom:10px">Tracking-Felder</label>
+                <CustomFieldBuilder Fields="_customFields" />
+            }
+        }
 
         <button class="btn-primary" style="margin-top:8px;opacity:@(CanSave ? "1" : "0.4")" disabled="@(!CanSave)"
                 @onclick="Save">

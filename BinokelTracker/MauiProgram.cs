@@ -21,6 +21,10 @@ public static class MauiProgram
         var supabaseConfig = LoadSupabaseConfig();
         builder.Services.AddSingleton(supabaseConfig);
 
+        var anthropicConfig = LoadAnthropicConfig();
+        builder.Services.AddSingleton(anthropicConfig);
+        builder.Services.AddSingleton<Services.IMeldScanService, Services.MeldScanService>();
+
         builder.Services.AddHttpClient("auth");
         builder.Services.AddScoped<Services.IAuthService>(sp =>
             new Services.AuthService(
@@ -52,6 +56,20 @@ public static class MauiProgram
         {
             Url     = section.GetProperty("Url").GetString()     ?? throw new InvalidOperationException("Supabase:Url fehlt"),
             AnonKey = section.GetProperty("AnonKey").GetString() ?? throw new InvalidOperationException("Supabase:AnonKey fehlt"),
+        };
+    }
+
+    private static Services.AnthropicConfig LoadAnthropicConfig()
+    {
+        using var stream = Assembly.GetExecutingAssembly()
+            .GetManifestResourceStream("appsettings.json");
+        if (stream is null) return new Services.AnthropicConfig();
+
+        using var doc = JsonDocument.Parse(stream);
+        if (!doc.RootElement.TryGetProperty("Anthropic", out var section)) return new Services.AnthropicConfig();
+        return new Services.AnthropicConfig
+        {
+            ApiKey = section.TryGetProperty("ApiKey", out var k) ? k.GetString() ?? "" : "",
         };
     }
 }

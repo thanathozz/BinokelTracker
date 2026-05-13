@@ -16,18 +16,25 @@
         {
             <LoginPage OnLoggedIn="OnLoggedIn" />
         }
+        else if (_view == View.GameTypeSelect)
+        {
+            <GameTypeSelectPage OnSelect="SelectGameType" />
+        }
         else if (_view == View.SpielrundeList)
         {
             <SpielrundeList
-                Spielrunden="_state.Spielrunden"
+                Spielrunden="GameTypeSpielrunden"
                 AllGames="_state.Games"
+                GameType="@_gameType"
                 OnEnter="EnterSpielrunde"
                 OnNew="() => _view = View.NewSpielrunde"
+                OnBack="() => _view = View.GameTypeSelect"
                 OnLogout="Logout" />
         }
         else if (_view == View.NewSpielrunde)
         {
             <NewSpielrundeForm
+                GameType="@_gameType"
                 OnSave="AddSpielrunde"
                 OnCancel="() => _view = View.SpielrundeList" />
         }
@@ -35,29 +42,31 @@
         {
             <GameList Games="SessionGames"
                       SessionTitle="@_activeSession?.Name"
-                      OnBack="() => _view = View.SpielrundeList"
+                      OnBack="LeaveSession"
                       OnSelect="SelectGame"
                       OnNew="() => _view = View.NewGame"
                       OnQuickGame="() => _view = View.QuickGame"
-                      OnStats="() => _view = View.Statistics"
                       OnRules="() => _rulesDialog!.Open()"
                       OnCalculator="() => _calculatorDialog!.Open(null, null, _activeSession?.AssValue ?? 11, _activeSession?.ZehnValue ?? 10, _activeSession?.KoenigValue ?? 4, _activeSession?.OberValue ?? 3, _activeSession?.UnterValue ?? 2, _activeSession?.LastTrickBonus ?? 10)" />
         }
         else if (_view == View.NewGame)
         {
-            <NewGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
+            <NewGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" IsGeneric="(!GameTypeInfo.IsBinokel(_gameType))" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
         }
         else if (_view == View.Detail && _selectedGame != null)
         {
             <GameDetail Game="_selectedGame"
+                        CustomFields="@(_activeSession?.CustomFields ?? new())"
+                        StrichlisteMode="@(_activeSession?.StrichlisteMode ?? false)"
                         OnBack="() => _view = View.List"
                         OnAddRound="() => _view = View.AddRound"
                         OnDeleteRound="DeleteRound"
-                        OnFinishGame="FinishGame" />
+                        OnFinishGame="FinishGame"
+                        OnTallyPlayer="TallyPlayer" />
         }
         else if (_view == View.AddRound && _selectedGame != null)
         {
-            <AddRoundForm Game="_selectedGame" OnSave="AddRound" OnCancel="() => _view = View.Detail"
+            <AddRoundForm Game="_selectedGame" CustomFields="@(_activeSession?.CustomFields ?? new())" OnSave="AddRound" OnCancel="() => _view = View.Detail"
                           OnOpenCalculator="(players, assign) => _calculatorDialog!.Open(players, assign, _selectedGame?.Rules.AssValue ?? 11, _selectedGame?.Rules.ZehnValue ?? 10, _selectedGame?.Rules.KoenigValue ?? 4, _selectedGame?.Rules.OberValue ?? 3, _selectedGame?.Rules.UnterValue ?? 2, _selectedGame?.Rules.LastTrickBonus ?? 10)" />
         }
         else if (_view == View.QuickGame)
@@ -66,27 +75,87 @@
         }
         else if (_view == View.Statistics)
         {
-            <Statistics Games="SessionGames" OnBack="() => _view = View.List" />
+            <Statistics Games="(_activeSession != null ? SessionGames : _state.Games)"
+                        OnBack="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)" />
+        }
+        else if (_view == View.Profile)
+        {
+            <ProfilePage OnLogout="Logout" />
         }
     </div>
+
+    @if (_loaded && _view is not (View.Login or View.GameTypeSelect))
+    {
+        <div class="tab-bar">
+            <button class="tab-bar-item @(_view is View.SpielrundeList or View.NewSpielrunde or View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame ? "active" : "")"
+                    @onclick="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
+                    <rect x="8" y="2" width="14" height="18" rx="2" transform="rotate(6 8 2)"/>
+                </svg>
+                <span>Spiele</span>
+            </button>
+            <button class="tab-bar-item @(_view == View.Statistics ? "active" : "")"
+                    @onclick="() => _view = View.Statistics">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                <span>Statistik</span>
+            </button>
+            <button class="tab-bar-item @(_view == View.Profile ? "active" : "")"
+                    @onclick="() => _view = View.Profile">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+                <span>Profil</span>
+            </button>
+        </div>
+    }
+
+    @if (_saveError != null)
+    {
+        <div style="position:fixed;bottom:calc(70px + var(--safe-bottom));left:18px;right:18px;z-index:200;
+                    background:var(--red);color:#fff;border-radius:12px;padding:12px 16px;font-size:13px;
+                    display:flex;justify-content:space-between;align-items:flex-start;gap:8px;
+                    box-shadow:0 4px 16px rgba(0,0,0,0.4)">
+            <div>
+                <div style="font-weight:700;margin-bottom:2px">Speichern fehlgeschlagen</div>
+                <div style="opacity:0.85;word-break:break-all">@_saveError</div>
+            </div>
+            <button style="background:none;border:none;color:#fff;cursor:pointer;padding:0;flex-shrink:0"
+                    @onclick="() => _saveError = null">✕</button>
+        </div>
+    }
+
     <RulesDialog @ref="_rulesDialog" />
     <AugenCalculator @ref="_calculatorDialog" />
     <FeedbackDialog />
 </div>
 
 @code {
-    enum View { Login, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics }
+    enum View { Login, GameTypeSelect, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, Profile }
 
     private AppState _state = new();
-    private View _view = View.SpielrundeList;
+    private View _view = View.GameTypeSelect;
     private Game? _selectedGame;
     private Spielrunde? _activeSession;
+    private string _gameType = GameTypeInfo.Binokel;
     private bool _loaded;
     private RulesDialog? _rulesDialog;
     private AugenCalculator? _calculatorDialog;
+    private string? _saveError;
 
     private List<Game> SessionGames =>
         _state.Games.Where(g => g.SpielrundeId == _activeSession?.Id).ToList();
+
+    private List<Spielrunde> GameTypeSpielrunden =>
+        _state.Spielrunden
+            .Where(s => string.Equals(
+                string.IsNullOrEmpty(s.GameType) ? GameTypeInfo.Binokel : s.GameType,
+                _gameType,
+                StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -109,13 +178,14 @@
 
     private async Task Save()
     {
-        await Storage.SaveAsync(_state);
+        _saveError = await Storage.SaveAsync(_state);
+        if (_saveError != null) StateHasChanged();
     }
 
     private async Task OnLoggedIn()
     {
         _state = await Storage.LoadAsync();
-        _view  = View.SpielrundeList;
+        _view  = View.GameTypeSelect;
         StateHasChanged();
     }
 
@@ -126,17 +196,46 @@
         _view  = View.Login;
     }
 
+    private async Task TallyPlayer(int playerIdx)
+    {
+        if (_selectedGame is null) return;
+        var scores = Enumerable.Range(0, _selectedGame.Players.Count)
+            .Select(i => new PlayerScore { Tricks = i == playerIdx ? 1 : 0 })
+            .ToList();
+        var round = new Round
+        {
+            Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Bidder = playerIdx,
+            PlayerScores = scores
+        };
+        _selectedGame.Rounds.Add(round);
+        await Save();
+        StateHasChanged();
+    }
+
+    private void SelectGameType(string type)
+    {
+        _gameType = type;
+        _view = View.SpielrundeList;
+    }
+
+    private void LeaveSession()
+    {
+        _activeSession = null;
+        _view = View.SpielrundeList;
+    }
+
     private void EnterSpielrunde(Spielrunde s)
     {
         _activeSession = s;
+        _gameType = s.GameType ?? GameTypeInfo.Binokel;
         _view = View.List;
     }
 
     private async Task AddSpielrunde(Spielrunde s)
     {
         _state.Spielrunden.Add(s);
-        _activeSession = s;
-        _view = View.List;
+        _view = View.SpielrundeList;
         await Save();
     }
 

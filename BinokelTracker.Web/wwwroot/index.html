@@ -20,6 +20,26 @@
         Verbindungsfehler. <a href="">Neu laden</a>
     </div>
     <script src="_content/BinokelTracker.Shared/js/theme.js"></script>
+    <script>
+        window.captureWebcamPhoto = function () {
+            return new Promise(function (resolve) {
+                var input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = function () {
+                    var file = input.files && input.files[0];
+                    if (!file) { resolve(null); return; }
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        var dataUrl = e.target.result;
+                        resolve(dataUrl.split(',')[1]);
+                    };
+                    reader.readAsDataURL(file);
+                };
+                input.click();
+            });
+        };
+    </script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 </html>
