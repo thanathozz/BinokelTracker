@@ -14,7 +14,7 @@ public class MeldScanService : IMeldScanService
 
     private static readonly string Prompt = """
         Du bist ein Binokel-Kartenexperte. Analysiere das Foto einer Binokel-Kartenhand.
-        Binokel verwendet württembergische Spielkarten mit den Farben: Eichel, Gras, Herz, Schellen.
+        Binokel verwendet württembergische Spielkarten mit den Farben: Eichel, Schippen, Herz, Schellen.
         Kartenwerte: Ass, Zehn, König, Ober, Unter, Neun, Acht, Sieben.
 
         Erkenne:
@@ -34,7 +34,7 @@ public class MeldScanService : IMeldScanService
 
         Antworte AUSSCHLIESSLICH mit gültigem JSON (kein Markdown, keine Erklärung):
         {{"trumpf":"Herz","meldungen":[{{"name":"Binokel","punkte":40}}],"gesamt":40}}
-        Mögliche trumpf-Werte: "Eichel", "Gras", "Herz", "Schellen" oder null.
+        Mögliche trumpf-Werte: "Eichel", "Schippen", "Herz", "Schellen" oder null.
         """;
 
     public MeldScanService(IHttpClientFactory httpFactory, AnthropicConfig config, IJSRuntime js)

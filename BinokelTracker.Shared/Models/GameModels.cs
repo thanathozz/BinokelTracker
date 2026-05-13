@@ -86,7 +86,7 @@ public enum RoundType
     Bettel
 }
 
-public enum TrumpSuit { Eichel, Gras, Herz, Schellen }
+public enum TrumpSuit { Eichel, Schippen, Herz, Schellen }
 
 public class Round
 {
