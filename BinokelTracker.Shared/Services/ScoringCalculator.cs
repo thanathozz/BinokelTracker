@@ -27,7 +27,8 @@ public static class ScoringCalculator
         for (int i = 0; i < round.PlayerScores.Count; i++)
         {
             var ps = round.PlayerScores[i];
-            int total = ps.Meld + ps.Tricks;
+            int effectiveMeld = (!ps.Abgegangen && !bidderAbgegangen && ps.Meld > 0 && ps.Tricks == 0) ? 0 : ps.Meld;
+            int total = effectiveMeld + ps.Tricks;
 
             if (i == round.Bidder)
             {
@@ -44,9 +45,9 @@ public static class ScoringCalculator
                 else if (bidderAbgegangen && isPartner)   // Team-Mitspieler → gleiche Strafe wie Reizer
                     scores[i] = rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid;
                 else if (bidderAbgegangen)
-                    scores[i] = ps.Meld + abgBonus;       // Gegner → Meld + Bonus
+                    scores[i] = effectiveMeld + abgBonus; // Gegner → Meld + Bonus
                 else
-                    scores[i] = ps.Meld + ps.Tricks;
+                    scores[i] = total;
             }
         }
 
@@ -119,6 +120,7 @@ public static class ScoringCalculator
             int tVal = tricks.ElementAtOrDefault(i);
             bool pAbg = abgegangen.ElementAtOrDefault(i);
             bool isBidder = i == bidder;
+            int effectiveMeld = (!pAbg && !bidderAbgegangen && mVal > 0 && tVal == 0) ? 0 : mVal;
 
             int finalScore;
             bool isLoss;
@@ -133,7 +135,7 @@ public static class ScoringCalculator
                     isLoss = true;
                     lossReason = "Abgegangen";
                 }
-                else if (mVal + tVal < bidValue)
+                else if (effectiveMeld + tVal < bidValue)
                 {
                     finalScore = rules.DoubleMinus ? -(bidValue * 2) : -bidValue;
                     isLoss = true;
@@ -143,7 +145,7 @@ public static class ScoringCalculator
                 }
                 else
                 {
-                    finalScore = mVal + tVal;
+                    finalScore = effectiveMeld + tVal;
                     isLoss = false;
                     lossReason = null;
                 }
@@ -162,9 +164,15 @@ public static class ScoringCalculator
                 else if (bidderAbgegangen)
                 {
                     bonus = abgBonus;
-                    finalScore = mVal + bonus;
+                    finalScore = effectiveMeld + bonus;
                     isLoss = false;
                     lossReason = null;
+                }
+                else if (!pAbg && mVal > 0 && tVal == 0)
+                {
+                    finalScore = 0;
+                    isLoss = false;
+                    lossReason = "Kein Stich — Meldung verfallen";
                 }
                 else
                 {

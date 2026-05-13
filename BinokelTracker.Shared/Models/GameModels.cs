@@ -123,12 +123,12 @@ public class Round
             return scores;
         }
 
+        bool bidderAbgegangen = PlayerScores.Count > Bidder && PlayerScores[Bidder].Abgegangen;
         for (int i = 0; i < PlayerScores.Count; i++)
         {
             var ps = PlayerScores[i];
-            int total = ps.Meld + ps.Tricks;
-
-            var bidderAbgegangen = PlayerScores.Count > Bidder && PlayerScores[Bidder].Abgegangen;
+            int effectiveMeld = (!ps.Abgegangen && !bidderAbgegangen && ps.Meld > 0 && ps.Tricks == 0) ? 0 : ps.Meld;
+            int total = effectiveMeld + ps.Tricks;
 
             if (i == Bidder)
             {
