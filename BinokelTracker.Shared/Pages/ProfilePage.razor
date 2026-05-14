@@ -54,10 +54,14 @@
         <!-- Konto -->
         <div class="form-label" style="margin-bottom:10px">@S.Account</div>
         <div class="stats-card" style="margin-bottom:20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-                <div>
-                    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">@S.Email</div>
-                    <div style="font-size:15px;font-weight:600">@(AuthService.Session?.Email ?? "–")</div>
+            <div style="margin-bottom:14px">
+                <div style="font-size:12px;color:var(--muted);margin-bottom:4px">@S.Email</div>
+                <div style="font-size:15px;font-weight:600">@(AuthService.Session?.Email ?? "–")</div>
+            </div>
+            <div style="margin-bottom:14px">
+                <div style="font-size:12px;color:var(--muted);margin-bottom:4px">@S.NickLabel</div>
+                <div style="font-size:15px;font-weight:600;font-family:var(--font-mono)">
+                    @(string.IsNullOrEmpty(AuthService.Session?.Nick) ? "–" : "@" + AuthService.Session!.Nick)
                 </div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between">

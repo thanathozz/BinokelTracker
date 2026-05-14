@@ -202,6 +202,12 @@ public class StringsDe : IStrings
     public string DisplayNameHint   => "Dieser Name wird beim Spielen angezeigt.";
     public string MissingCredentials => "Bitte E-Mail und Passwort eingeben.";
     public string MissingName       => "Bitte einen Namen eingeben.";
+    public string NickLabel         => "Nick";
+    public string NickHint          => "Dein eindeutiger Nutzername";
+    public string NickChecking      => "Wird geprüft…";
+    public string NickAvailable     => "Verfügbar";
+    public string NickTaken         => "Nick bereits vergeben.";
+    public string NickInvalid       => "3–20 Zeichen, nur a–z, 0–9 und _";
 
     public string ChooseGame        => "Spiel wählen";
     public string BadgeFull         => "Vollständig";

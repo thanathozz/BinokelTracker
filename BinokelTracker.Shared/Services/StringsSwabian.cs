@@ -202,6 +202,12 @@ public class StringsSwabian : IStrings
     public string DisplayNameHint   => "Des wird beim Spiela anzeigt.";
     public string MissingCredentials => "Bitte E-Mail ond Passwort eingeba.";
     public string MissingName       => "Bitte oin Name eingeba.";
+    public string NickLabel         => "Nick";
+    public string NickHint          => "Dein einzigartiger Nutzername";
+    public string NickChecking      => "Wird gprüft…";
+    public string NickAvailable     => "Frei";
+    public string NickTaken         => "Nick scho vergeba.";
+    public string NickInvalid       => "3–20 Zeiche, nur a–z, 0–9 ond _";
 
     public string ChooseGame        => "Spiel aussucha";
     public string BadgeFull         => "Vollständig";

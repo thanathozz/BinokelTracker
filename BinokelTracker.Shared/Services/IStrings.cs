@@ -219,6 +219,12 @@ public interface IStrings
     string DisplayNameHint { get; }
     string MissingCredentials { get; }
     string MissingName { get; }
+    string NickLabel     { get; }
+    string NickHint      { get; }
+    string NickChecking  { get; }
+    string NickAvailable { get; }
+    string NickTaken     { get; }
+    string NickInvalid   { get; }
 
     // GameTypeSelect
     string ChooseGame { get; }

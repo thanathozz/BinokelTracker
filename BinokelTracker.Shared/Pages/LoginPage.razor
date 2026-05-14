@@ -72,24 +72,76 @@
                     @(_loading ? "..." : S.Continue)
                 </button>
             }
+            else if (_step == Step.Nick)
+            {
+                <div style="text-align:center;margin-bottom:20px">
+                    <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">@S.NickLabel</div>
+                    <div style="font-size:13px;color:var(--muted)">@S.NickHint</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">@S.NickLabel</label>
+                    <input class="form-input" type="text" placeholder="z.B. binokel_king"
+                           value="@_nick"
+                           @oninput="OnNickInput"
+                           @onkeydown="HandleNickKeyDown"
+                           autocomplete="username" style="font-family:var(--font-mono)" />
+                    @if (!string.IsNullOrEmpty(_nick))
+                    {
+                        @if (_nickChecking)
+                        {
+                            <div style="font-size:12px;color:var(--muted);margin-top:5px">@S.NickChecking</div>
+                        }
+                        else if (!NickValid)
+                        {
+                            <div style="font-size:12px;color:var(--red);margin-top:5px">@S.NickInvalid</div>
+                        }
+                        else if (_nickAvailable)
+                        {
+                            <div style="font-size:12px;color:var(--green);margin-top:5px">✓ @S.NickAvailable</div>
+                        }
+                        else
+                        {
+                            <div style="font-size:12px;color:var(--red);margin-top:5px">@S.NickTaken</div>
+                        }
+                    }
+                </div>
+
+                @if (_error != null)
+                {
+                    <div style="color:var(--red);font-size:13px;margin-bottom:12px;line-height:1.4">@_error</div>
+                }
+
+                <button class="btn-primary" @onclick="SubmitNick"
+                        disabled="@(!NickValid || !_nickAvailable || _nickChecking || _loading)">
+                    @(_loading ? "..." : S.Continue)
+                </button>
+            }
         </div>
     </div>
 </div>
 
 @code {
     enum Mode { Login, Register }
-    enum Step { Auth, Name }
+    enum Step { Auth, Name, Nick }
 
     [Parameter] public EventCallback OnLoggedIn { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = new StringsDe();
 
-    private Mode    _mode        = Mode.Login;
-    private Step    _step        = Step.Auth;
-    private string  _email       = "";
-    private string  _password    = "";
-    private string  _displayName = "";
+    private Mode    _mode         = Mode.Login;
+    private Step    _step         = Step.Auth;
+    private string  _email        = "";
+    private string  _password     = "";
+    private string  _displayName  = "";
+    private string  _nick         = "";
+    private bool    _nickChecking  = false;
+    private bool    _nickAvailable = false;
+    private System.Threading.Timer? _debounce;
     private string? _error;
     private bool    _loading;
+
+    private bool NickValid =>
+        System.Text.RegularExpressions.Regex.IsMatch(_nick, @"^[a-z0-9_]{3,20}$");
 
     private async Task SubmitAuth()
     {
@@ -116,13 +168,11 @@
             }
 
             if (string.IsNullOrEmpty(AuthService.Session?.DisplayName))
-            {
                 _step = Step.Name;
-            }
+            else if (string.IsNullOrEmpty(AuthService.Session?.Nick))
+                _step = Step.Nick;
             else
-            {
                 await OnLoggedIn.InvokeAsync();
-            }
         }
         finally
         {
@@ -150,12 +200,48 @@
                 _error = result.ErrorMessage;
                 return;
             }
-            await OnLoggedIn.InvokeAsync();
+            if (string.IsNullOrEmpty(AuthService.Session?.Nick))
+                _step = Step.Nick;
+            else
+                await OnLoggedIn.InvokeAsync();
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    private async Task SubmitNick()
+    {
+        if (!NickValid || !_nickAvailable || _nickChecking) return;
+        _error   = null;
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            var result = await AuthService.SetNickAsync(_nick);
+            if (!result.Success) { _error = result.ErrorMessage; return; }
+            await OnLoggedIn.InvokeAsync();
+        }
+        finally { _loading = false; }
+    }
+
+    private void OnNickInput(ChangeEventArgs e)
+    {
+        _nick         = (e.Value?.ToString() ?? "").ToLowerInvariant();
+        _nickAvailable = false;
+        _debounce?.Dispose();
+
+        if (!NickValid) { _nickChecking = false; StateHasChanged(); return; }
+
+        _nickChecking = true;
+        StateHasChanged();
+        _debounce = new System.Threading.Timer(async _ =>
+        {
+            _nickAvailable = await AuthService.CheckNickAvailableAsync(_nick);
+            _nickChecking  = false;
+            await InvokeAsync(StateHasChanged);
+        }, null, 500, System.Threading.Timeout.Infinite);
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -166,5 +252,10 @@
     private async Task HandleNameKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") await SubmitName();
+    }
+
+    private async Task HandleNickKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SubmitNick();
     }
 }

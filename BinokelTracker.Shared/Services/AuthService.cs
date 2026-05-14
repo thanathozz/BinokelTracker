@@ -48,6 +48,7 @@ public class AuthService : IAuthService
             if (!candidate.IsExpired)
             {
                 Session = candidate;
+                await LoadNickAsync();
                 SessionChanged?.Invoke();
                 return true;
             }
@@ -58,6 +59,7 @@ public class AuthService : IAuthService
                 if (refreshed != null)
                 {
                     Session = refreshed;
+                    await LoadNickAsync();
                     await PersistSessionAsync(refreshed);
                     SessionChanged?.Invoke();
                     return true;
@@ -134,6 +136,7 @@ public class AuthService : IAuthService
 
             var session = ToSession(authResp);
             Session = session;
+            await LoadNickAsync();
             await PersistSessionAsync(session);
             SessionChanged?.Invoke();
             return new AuthResult(true, null);
@@ -245,5 +248,57 @@ public class AuthService : IAuthService
         return "Anmeldung fehlgeschlagen";
     }
 
+    public async Task<bool> CheckNickAvailableAsync(string nick)
+    {
+        try
+        {
+            var encoded = Uri.EscapeDataString(nick.ToLowerInvariant());
+            var resp = await _http.GetAsync($"/rest/v1/profiles?nick=eq.{encoded}&select=nick");
+            if (!resp.IsSuccessStatusCode) return false;
+            var rows = await resp.Content.ReadFromJsonAsync<NickRow[]>(JsonOpts);
+            return rows?.Length == 0;
+        }
+        catch { return false; }
+    }
+
+    public async Task<AuthResult> SetNickAsync(string nick)
+    {
+        try
+        {
+            if (Session is null) return new AuthResult(false, "Nicht angemeldet");
+            var token = await GetValidTokenAsync();
+            var body  = JsonSerializer.Serialize(new { user_id = Session.UserId, nick = nick.ToLowerInvariant() }, JsonOpts);
+            var req   = new HttpRequestMessage(HttpMethod.Post, "/rest/v1/profiles")
+            {
+                Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
+            };
+            req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            req.Headers.Add("Prefer", "resolution=merge-duplicates,return=minimal");
+            var resp = await _http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+                return new AuthResult(false, "Nick konnte nicht gespeichert werden.");
+            Session.Nick = nick.ToLowerInvariant();
+            SessionChanged?.Invoke();
+            return new AuthResult(true, null);
+        }
+        catch (Exception ex) { return new AuthResult(false, ex.Message); }
+    }
+
+    private async Task LoadNickAsync()
+    {
+        if (Session is null || string.IsNullOrEmpty(Session.UserId)) return;
+        try
+        {
+            var encoded = Uri.EscapeDataString(Session.UserId);
+            var resp    = await _http.GetAsync($"/rest/v1/profiles?user_id=eq.{encoded}&select=nick");
+            if (!resp.IsSuccessStatusCode) return;
+            var rows = await resp.Content.ReadFromJsonAsync<NickRow[]>(JsonOpts);
+            if (rows?.Length > 0)
+                Session.Nick = rows[0].Nick ?? "";
+        }
+        catch { }
+    }
+
     private record StoredSession(string AccessToken, string RefreshToken, long ExpiresAt);
+    private record NickRow(string? Nick);
 }

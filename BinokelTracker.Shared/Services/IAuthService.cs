@@ -10,4 +10,6 @@ public interface IAuthService
     Task             LogoutAsync();
     Task<string>     GetValidTokenAsync();
     Task<AuthResult> UpdateDisplayNameAsync(string displayName);
+    Task<bool>       CheckNickAvailableAsync(string nick);
+    Task<AuthResult> SetNickAsync(string nick);
 }
