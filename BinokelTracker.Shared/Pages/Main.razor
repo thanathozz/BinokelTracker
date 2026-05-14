@@ -56,7 +56,7 @@
         }
         else if (_view == View.NewGame)
         {
-            <NewGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" IsGeneric="(!GameTypeInfo.IsBinokel(_gameType))" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
+            <NewGameForm KnownPlayers="@SessionKnownPlayers" IsGeneric="(!GameTypeInfo.IsBinokel(_gameType))" OnSave="AddGame" OnCancel="() => _view = View.List" OnRemovePlayer="RemoveKnownPlayer" />
         }
         else if (_view == View.Detail && _selectedGame != null)
         {
@@ -81,7 +81,7 @@
         }
         else if (_view == View.QuickGame)
         {
-            <QuickGameForm KnownPlayers="@(_activeSession?.Players ?? _state.KnownPlayers)" OnSave="AddQuickGame" OnCancel="() => _view = View.List" />
+            <QuickGameForm KnownPlayers="@SessionKnownPlayers" OnSave="AddQuickGame" OnCancel="() => _view = View.List" />
         }
         else if (_view == View.Statistics)
         {
@@ -163,6 +163,19 @@
 
     private List<Game> SessionGames =>
         _state.Games.Where(g => g.SpielrundeId == _activeSession?.Id).ToList();
+
+    private List<string> SessionKnownPlayers
+    {
+        get
+        {
+            var players = (_activeSession?.Players ?? _state.KnownPlayers).ToList();
+            if (_activeSession != null)
+                foreach (var nick in _activeSession.InvitedNicks)
+                    if (!players.Contains(nick, StringComparer.OrdinalIgnoreCase))
+                        players.Add(nick);
+            return players;
+        }
+    }
 
     private List<Spielrunde> GameTypeSpielrunden =>
         _state.Spielrunden
