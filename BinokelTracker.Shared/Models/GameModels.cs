@@ -134,7 +134,8 @@ public class Round
 
             if (i == Bidder)
             {
-                if (ps.Abgegangen || total < Bid)
+                int totalWithBonus = total + (LastTrickWinner == i ? rules.LastTrickBonus : 0);
+                if (ps.Abgegangen || totalWithBonus < Bid)
                     scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
                 else
                     scores[i] = total;
