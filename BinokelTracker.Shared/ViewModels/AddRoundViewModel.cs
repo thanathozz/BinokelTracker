@@ -94,7 +94,8 @@ public class AddRoundViewModel
     public bool CanSave => IsSpecial || BidderAbgegangen || TricksSumValid;
 
     /// Hat der Reizer gewonnen? (Normal-Runde)
-    public bool BidderWon => !BidderAbgegangen && BidValue > 0 && BidderTotal >= BidValue;
+    public bool BidderWon => !BidderAbgegangen && BidValue > 0 &&
+        BidderTotal + (LastTrickWinner == Bidder ? _game.Rules.LastTrickBonus : 0) >= BidValue;
 
     // ══════════════════════════════════════════════════════════════════════
     // Schritt-Navigation

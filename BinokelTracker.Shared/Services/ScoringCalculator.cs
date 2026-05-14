@@ -32,7 +32,8 @@ public static class ScoringCalculator
 
             if (i == round.Bidder)
             {
-                scores[i] = (ps.Abgegangen || total < round.Bid)
+                int totalWithBonus = total + (round.LastTrickWinner == i ? rules.LastTrickBonus : 0);
+                scores[i] = (ps.Abgegangen || totalWithBonus < round.Bid)
                     ? (rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid)
                     : total;
             }
@@ -135,7 +136,7 @@ public static class ScoringCalculator
                     isLoss = true;
                     lossReason = "Abgegangen";
                 }
-                else if (effectiveMeld + tVal < bidValue)
+                else if (effectiveMeld + tVal + (lastTrickWinner == i ? rules.LastTrickBonus : 0) < bidValue)
                 {
                     finalScore = rules.DoubleMinus ? -(bidValue * 2) : -bidValue;
                     isLoss = true;
