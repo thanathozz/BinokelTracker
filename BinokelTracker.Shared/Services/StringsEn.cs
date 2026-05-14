@@ -222,6 +222,8 @@ public class StringsEn : IStrings
     public string DeleteRoundBody    => "This round will be permanently deleted.";
     public string DeleteGameTitle    => "Delete game?";
     public string DeleteGameBody     => "This game and all its rounds will be permanently deleted.";
+    public string DeleteSpielrundeTitle => "Delete session?";
+    public string DeleteSpielrundeBody  => "This session and all its games will be permanently deleted.";
 
     public string ReportBug         => "Report bug";
     public string NoScreenshot      => "No screenshot available";

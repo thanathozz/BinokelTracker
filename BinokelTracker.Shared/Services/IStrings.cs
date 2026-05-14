@@ -243,6 +243,8 @@ public interface IStrings
     string DeleteRoundBody { get; }
     string DeleteGameTitle { get; }
     string DeleteGameBody { get; }
+    string DeleteSpielrundeTitle { get; }
+    string DeleteSpielrundeBody { get; }
 
     // FeedbackDialog
     string ReportBug { get; }

@@ -6,10 +6,11 @@
     [Parameter] public List<Spielrunde> Spielrunden { get; set; } = new();
     [Parameter] public List<Game>       AllGames    { get; set; } = new();
     [Parameter] public string           GameType    { get; set; } = GameTypeInfo.Binokel;
-    [Parameter] public EventCallback<Spielrunde> OnEnter { get; set; }
-    [Parameter] public EventCallback    OnNew       { get; set; }
-    [Parameter] public EventCallback    OnBack      { get; set; }
-    [Parameter] public EventCallback    OnLogout    { get; set; }
+    [Parameter] public EventCallback<Spielrunde> OnEnter           { get; set; }
+    [Parameter] public EventCallback<long>       OnDeleteSpielrunde { get; set; }
+    [Parameter] public EventCallback             OnNew              { get; set; }
+    [Parameter] public EventCallback             OnBack             { get; set; }
+    [Parameter] public EventCallback             OnLogout           { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private bool   _editingName;
@@ -47,6 +48,17 @@
     {
         if (e.Key == "Enter") await SaveName();
         if (e.Key == "Escape") _editingName = false;
+    }
+
+    private long? _confirmDeleteId;
+    private void AskDelete(long id)    => _confirmDeleteId = id;
+    private void CancelDelete()        => _confirmDeleteId = null;
+    private async Task ConfirmDelete()
+    {
+        if (_confirmDeleteId is null) return;
+        var id = _confirmDeleteId.Value;
+        _confirmDeleteId = null;
+        await OnDeleteSpielrunde.InvokeAsync(id);
     }
 
     private Spielrunde? _pendingUnlock;
@@ -158,6 +170,17 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                     <span style="font-size:16px;font-weight:700">@s.Name</span>
                     <div style="display:flex;gap:6px;align-items:center">
+                    @if (AuthService.Session?.IsAdmin == true)
+                    {
+                        var sid = s.Id;
+                        <button style="background:none;border:none;padding:4px;cursor:pointer;color:var(--red);opacity:0.7;line-height:1"
+                                @onclick:stopPropagation="true"
+                                @onclick="() => AskDelete(sid)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                            </svg>
+                        </button>
+                    }
                         @if (isShared)
                         {
                             <span class="chip chip-blue">@S.SharedChip</span>
@@ -200,6 +223,20 @@
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
     </button>
+
+    @if (_confirmDeleteId != null)
+    {
+        <div class="confirm-overlay" @onclick="CancelDelete">
+            <div class="confirm-dialog" @onclick:stopPropagation="true">
+                <div class="confirm-title">@S.DeleteSpielrundeTitle</div>
+                <div class="confirm-body">@S.DeleteSpielrundeBody</div>
+                <div class="confirm-actions">
+                    <button class="btn-secondary" @onclick="CancelDelete">@S.Cancel</button>
+                    <button class="btn-danger"    @onclick="ConfirmDelete">@S.Delete</button>
+                </div>
+            </div>
+        </div>
+    }
 
     @if (_pendingUnlock != null)
     {

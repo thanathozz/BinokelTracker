@@ -31,6 +31,7 @@
                 AllGames="_state.Games"
                 GameType="@_gameType"
                 OnEnter="EnterSpielrunde"
+                OnDeleteSpielrunde="DeleteSpielrunde"
                 OnNew="() => _view = View.NewSpielrunde"
                 OnBack="() => _view = View.GameTypeSelect"
                 OnLogout="Logout" />
@@ -397,6 +398,13 @@
     private async Task DeleteGame(long id)
     {
         _state.Games.RemoveAll(g => g.Id == id);
+        await Save();
+    }
+
+    private async Task DeleteSpielrunde(long id)
+    {
+        _state.Games.RemoveAll(g => g.SpielrundeId == id);
+        _state.Spielrunden.RemoveAll(s => s.Id == id);
         await Save();
     }
 

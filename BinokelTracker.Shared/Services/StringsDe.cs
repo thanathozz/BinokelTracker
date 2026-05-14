@@ -222,6 +222,8 @@ public class StringsDe : IStrings
     public string DeleteRoundBody    => "Diese Runde wird unwiderruflich gelöscht.";
     public string DeleteGameTitle    => "Spiel löschen?";
     public string DeleteGameBody     => "Dieses Spiel wird mit allen Runden unwiderruflich gelöscht.";
+    public string DeleteSpielrundeTitle => "Spielrunde löschen?";
+    public string DeleteSpielrundeBody  => "Diese Spielrunde und alle zugehörigen Spiele werden unwiderruflich gelöscht.";
 
     public string ReportBug         => "Bug melden";
     public string NoScreenshot      => "Kein Screenshot verfügbar";
