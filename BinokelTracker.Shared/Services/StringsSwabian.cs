@@ -139,6 +139,18 @@ public class StringsSwabian : IStrings
     public string OpenCalculator    => "Augen Rechner";
     public string LastTrickPoints   => "+{0} Punkte für {1}";
 
+    public string ColPlayer          => "Spieler";
+    public string ColBoni            => "Boni / Strafen";
+    public string ColTotal           => "Σ Punkte";
+    public string RolePartner        => "PARTNER";
+    public string ModAbgangBonus     => "Abgangs-Bonus";
+    public string ModDurchBonus      => "Durch-Bonus";
+    public string ModBettelBonus     => "Bettel-Bonus";
+    public string ModBidDeducted     => "Gebot abzoga";
+    public string MeldDiscarded      => "hi";
+    public string SummaryBidSaldoLabel      => "Reizer-Saldo";
+    public string SummarySpecialBonusLabel  => "Sonderbonus";
+
     public string RoundPrefix       => "RUNDE";
     public string TagNormal         => "NORMAL";
     public string TagDurch          => "DURCH";

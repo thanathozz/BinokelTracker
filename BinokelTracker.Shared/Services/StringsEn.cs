@@ -139,6 +139,18 @@ public class StringsEn : IStrings
     public string OpenCalculator    => "Eye calculator";
     public string LastTrickPoints   => "+{0} pts for {1}";
 
+    public string ColPlayer          => "Player";
+    public string ColBoni            => "Bonuses";
+    public string ColTotal           => "Σ Points";
+    public string RolePartner        => "PARTNER";
+    public string ModAbgangBonus     => "Fold Bonus";
+    public string ModDurchBonus      => "Durch Bonus";
+    public string ModBettelBonus     => "Bettel Bonus";
+    public string ModBidDeducted     => "Bid deducted";
+    public string MeldDiscarded      => "discarded";
+    public string SummaryBidSaldoLabel      => "Bidder Saldo";
+    public string SummarySpecialBonusLabel  => "Special Bonus";
+
     public string RoundPrefix       => "ROUND";
     public string TagNormal         => "NORMAL";
     public string TagDurch          => "DURCH";

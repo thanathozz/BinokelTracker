@@ -8,7 +8,7 @@
     [Parameter] public EventCallback<int> OnEdit   { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
-    private int[] Scores       => Round.CalcScores(Rules);
+    private int[] Scores    => Round.CalcScores(Rules);
     private bool  IsSpecial    => Round.Type is RoundType.Durch or RoundType.Bettel;
     private bool  IsAbgegangen => Round.Abgegangen;
 
@@ -33,18 +33,18 @@
         _                => "rc-tag-normal"
     };
 
-    private string OutcomeTag      => IsAbgegangen ? S.TagFolded : Round.Won ? S.TagWon : S.TagLost;
-    private string OutcomeTagClass => Round.Won && !IsAbgegangen ? "rc-tag-win" : "rc-tag-loss";
-
-    private int BidderMeld   => Round.PlayerScores.Count > Round.Bidder ? Round.PlayerScores[Round.Bidder].Meld   : 0;
-    private int BidderTricks => Round.PlayerScores.Count > Round.Bidder ? Round.PlayerScores[Round.Bidder].Tricks : 0;
-
     private string TypeLabel => Round.Type switch
     {
         RoundType.Durch  => "Durch",
         RoundType.Bettel => "Bettel",
         _                => ""
     };
+
+    private string OutcomeTag      => IsAbgegangen ? S.TagFolded : Round.Won ? S.TagWon : S.TagLost;
+    private string OutcomeTagClass => Round.Won && !IsAbgegangen ? "rc-tag-win" : "rc-tag-loss";
+
+    private int BidderMeld   => Round.PlayerScores.Count > Round.Bidder ? Round.PlayerScores[Round.Bidder].Meld   : 0;
+    private int BidderTricks => Round.PlayerScores.Count > Round.Bidder ? Round.PlayerScores[Round.Bidder].Tricks : 0;
 
     private ScoreBreakdown[]? _breakdown;
     private ScoreBreakdown[] Breakdown => _breakdown ??= Round.PlayerScores.Count == Players.Count
@@ -55,15 +55,6 @@
             Round.PlayerScores.Select(ps => ps.Tricks).ToArray(),
             Rules, Round.LastTrickWinner)
         : Array.Empty<ScoreBreakdown>();
-
-    private string LocalizeLossReason(string? r) => r switch
-    {
-        "Reizer abgegangen"                 => S.BidderFolded,
-        "Abgegangen"                        => S.Folded,
-        "Kein Stich — Meldung verfallen"    => S.NoTrickMeld,
-        "Reizwert nicht erreicht"           => S.NotFulfilled,
-        _                                   => r ?? ""
-    };
 }
 
 <!-- Color strip -->
@@ -92,107 +83,156 @@
 
 <!-- Summary sentence -->
 <div class="rc-summary">
-    <span class="rc-bidder-name">@Players[Round.Bidder]</span>@(" ")@if (IsSpecial)
-    {
-        <span class="rc-summary-text">@(Round.Type == RoundType.Durch ? S.PlaysDurch : S.PlaysBettel) </span><b>@TypeLabel</b>
-        <span class="rc-arrow"> · </span>
-        <span class="rc-result-text @(Round.Won ? "win" : "loss")">@(Round.Won ? S.WonWord : S.LostWord)</span>
+    <div class="rc-summary-left">
+        <span class="rc-bidder-name">@Players[Round.Bidder]</span>@(" ")@if (IsSpecial)
+        {
+            <span class="rc-summary-text">@(Round.Type == RoundType.Durch ? S.PlaysDurch : S.PlaysBettel) </span><b>@TypeLabel</b>
+            <span class="rc-arrow"> · </span>
+            <span class="rc-result-text @(Round.Won ? "win" : "loss")">@(Round.Won ? S.WonWord : S.LostWord)</span>
+        }
+        else if (IsAbgegangen)
+        {
+            <span class="rc-arrow">@S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
+            <span class="rc-arrow"> → </span>
+            <span class="rc-result-text loss">@S.FoldedWord</span>
+        }
+        else if (Round.Won)
+        {
+            <span class="rc-arrow">@S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
+            <span class="rc-arrow"> → </span>
+            <span class="rc-result-text win">@(BidderMeld + BidderTricks) @S.Points</span>
+        }
+        else
+        {
+            <span class="rc-arrow">@S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
+            <span class="rc-arrow"> → </span>
+            <span class="rc-result-text loss">@S.NotFulfilled</span>
+        }
+    </div>
+    @{
+        var bidderScore = Scores.Length > Round.Bidder ? Scores[Round.Bidder] : 0;
+        bool showRight  = IsSpecial
+            || IsAbgegangen
+            || !Round.Won
+            || (Round.LastTrickWinner >= 0 && Round.LastTrickWinner < Players.Count);
     }
-    else if (IsAbgegangen)
+    @if (showRight)
     {
-        <span class="rc-arrow">@S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
-        <span class="rc-arrow"> → </span>
-        <span class="rc-result-text loss">@S.FoldedWord</span>
-    }
-    else if (Round.Won)
-    {
-        <span class="rc-arrow">@S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
-        <span class="rc-arrow"> → </span>
-        <span class="rc-result-text win">@(BidderMeld + BidderTricks) @S.Points</span>
-    }
-    else
-    {
-        <span class="rc-arrow">@S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
-        <span class="rc-arrow"> → </span>
-        <span class="rc-result-text loss">@S.NotFulfilled</span>
+        <div class="rc-summary-right">
+            @if (IsSpecial)
+            {
+                <span class="rc-summary-meta-label">@S.SummarySpecialBonusLabel</span>
+                <span class="rc-summary-meta-val @(bidderScore >= 0 ? "pos" : "neg")">
+                    @(bidderScore > 0 ? $"+{bidderScore}" : bidderScore.ToString())
+                </span>
+            }
+            else if (IsAbgegangen || !Round.Won)
+            {
+                <span class="rc-summary-meta-label">@S.SummaryBidSaldoLabel</span>
+                <span class="rc-summary-meta-val neg">@bidderScore</span>
+            }
+            else if (Round.LastTrickWinner >= 0 && Round.LastTrickWinner < Players.Count)
+            {
+                <span class="rc-summary-meta-label">@S.LastTrickBonus</span>
+                <span class="rc-summary-meta-val pos">@Players[Round.LastTrickWinner]</span>
+            }
+        </div>
     }
 </div>
 
-<!-- Player table -->
-<div class="rc-player-table">
+<!-- Structured player table -->
+<div class="ptable">
+    <div class="ptable-head">
+        <div class="h-name">@S.ColPlayer</div>
+        <div class="h-meld">@S.MeldLabel</div>
+        <div class="h-plus"></div>
+        <div class="h-stiche">@S.TricksLabel</div>
+        <div class="h-mods">@S.ColBoni</div>
+        <div class="h-total">@S.ColTotal</div>
+    </div>
+
     @for (int pi = 0; pi < Players.Count; pi++)
     {
-        var pIdx     = pi;
-        var isBidder = pIdx == Round.Bidder;
-        var delta    = Scores[pIdx];
-        var bd       = (!IsSpecial && pIdx < Breakdown.Length) ? Breakdown[pIdx] : null;
+        var pIdx      = pi;
+        var isBidder  = pIdx == Round.Bidder;
+        var isPartner = Rules.TeamMode && Players.Count == 4 && pIdx == (Round.Bidder + 2) % 4;
+        var delta     = Scores.Length > pIdx ? Scores[pIdx] : 0;
+        var bd        = (!IsSpecial && pIdx < Breakdown.Length) ? Breakdown[pIdx] : null;
+        var ps        = Round.PlayerScores.Count > pIdx ? Round.PlayerScores[pIdx] : new PlayerScore();
 
-        <div class="rc-player-row @(isBidder ? "rc-bidder-row" : "")">
-            <!-- Line 1: name + role badge | delta pill -->
-            <div class="rc-pl-line1">
-                <div class="rc-pl-name">
-                    <span class="rc-bidder-dot @(isBidder ? "show" : "")"></span>
-                    @Players[pIdx]
-                    @if (isBidder && !IsSpecial)
-                    {
-                        <span class="rc-role-badge">@S.Bidder</span>
-                    }
-                </div>
-                <div class="rc-pl-delta @(delta > 0 ? "pos" : delta < 0 ? "neg" : "zero")">
-                    @(delta == 0 ? "±0" : delta > 0 ? $"+{delta}" : delta.ToString())
-                </div>
+        bool strikeMeld = isBidder && ps.Abgegangen && !IsSpecial;
+        int  meldVal    = IsSpecial ? 0 : ps.Meld;
+        int  tricksVal  = (IsSpecial || (isBidder && ps.Abgegangen)) ? 0 : ps.Tricks;
+        bool dimMeld    = IsSpecial;
+        bool dimTricks  = IsSpecial || (isBidder && ps.Abgegangen);
+
+        bool hasMods = (IsSpecial && isBidder)
+                    || (bd != null && bd.IsLoss)
+                    || (bd != null && bd.Bonus > 0)
+                    || (bd != null && bd.LastTrickBonus > 0);
+
+        <div class="prow @((isBidder || isPartner) ? "bidder" : "")">
+            <div class="pc-name">
+                <span class="pc-name-marker"></span>
+                @Players[pIdx]
+                @if (isBidder)      { <span class="pc-role">@S.Bidder</span> }
+                else if (isPartner) { <span class="pc-role partner">@S.RolePartner</span> }
             </div>
-            <!-- Line 2: calc breakdown or loss note -->
-            @if (bd != null && !bd.IsLoss && string.IsNullOrEmpty(bd.LossReason)
-                 && (bd.Meld > 0 || bd.Tricks > 0 || bd.Bonus > 0))
-            {
-                <div class="rc-pl-calc">
-                    @if (bd.Meld > 0)
-                    {
-                        <span class="rc-calc-val">@bd.Meld</span>
-                        <span class="rc-calc-label">@S.MeldLabel</span>
-                    }
-                    @if (bd.Meld > 0 && bd.Tricks > 0)
-                    {
-                        <span class="rc-calc-op">+</span>
-                    }
-                    @if (bd.Tricks > 0)
-                    {
-                        <span class="rc-calc-val">@bd.Tricks</span>
-                        <span class="rc-calc-label">@S.TricksLabel</span>
-                    }
-                    @if (bd.Bonus > 0)
-                    {
-                        <span class="rc-calc-op">+</span>
-                        <span class="rc-calc-bonus">
-                            <span class="rc-calc-val">+@bd.Bonus</span>
-                            <span class="rc-calc-bonus-label">@S.FoldedAbbr</span>
-                        </span>
-                    }
-                    @if (bd.LastTrickBonus > 0)
-                    {
-                        <span class="rc-calc-op">+</span>
-                        <span class="rc-calc-bonus">
-                            <span class="rc-calc-val">+@bd.LastTrickBonus</span>
-                            <span class="rc-calc-bonus-label">★</span>
-                        </span>
-                    }
-                    <span class="rc-calc-op eq">=</span>
-                    <span class="rc-calc-val @(bd.FinalScore > 0 ? "pos" : bd.FinalScore < 0 ? "neg" : "")">@bd.FinalScore</span>
-                </div>
-            }
-            else if (bd != null && !string.IsNullOrEmpty(bd.LossReason))
-            {
-                <div class="rc-pl-note">@LocalizeLossReason(bd.LossReason)</div>
-            }
+            <div class="pc-stat @(strikeMeld ? "struck" : dimMeld ? "empty" : "")">
+                <span class="stat-num">@meldVal</span>
+                @if (strikeMeld) { <span class="stat-sub">@S.MeldDiscarded</span> }
+            </div>
+            <div class="pc-plus">+</div>
+            <div class="pc-stat @(dimTricks ? "empty" : "")">
+                <span class="stat-num">@tricksVal</span>
+            </div>
+            <div class="pc-mods">
+                @if (IsSpecial && isBidder)
+                {
+                    var bonusLbl = Round.Type == RoundType.Durch ? S.ModDurchBonus : S.ModBettelBonus;
+                    <span class="mod-pill @(delta >= 0 ? "mod-pos" : "mod-neg")">
+                        <span class="mod-label">@bonusLbl</span>
+                        <span class="mod-value">@(delta > 0 ? $"+{delta}" : delta.ToString())</span>
+                    </span>
+                }
+                else if (bd != null && bd.IsLoss)
+                {
+                    var lossLbl = isBidder ? S.ModBidDeducted : S.BidderFolded;
+                    <span class="mod-pill mod-neg">
+                        <span class="mod-label">@lossLbl</span>
+                        <span class="mod-value">@bd.FinalScore</span>
+                    </span>
+                }
+                @if (bd != null && bd.Bonus > 0)
+                {
+                    <span class="mod-pill mod-pos">
+                        <span class="mod-label">@S.ModAbgangBonus</span>
+                        <span class="mod-value">+@bd.Bonus</span>
+                    </span>
+                }
+                @if (bd != null && bd.LastTrickBonus > 0)
+                {
+                    <span class="mod-pill mod-pos">
+                        <span class="mod-label">@S.LastTrickBonus</span>
+                        <span class="mod-value">+@bd.LastTrickBonus</span>
+                    </span>
+                }
+                @if (!hasMods)
+                {
+                    <span class="mod-empty">—</span>
+                }
+            </div>
+            <div class="pc-total @(delta > 0 ? "pos" : delta < 0 ? "neg" : "zero")">
+                <span class="total-pill">@(delta == 0 ? "±0" : delta > 0 ? $"+{delta}" : delta.ToString())</span>
+            </div>
         </div>
     }
 </div>
 
 <!-- Footer info chip -->
 @{
-    string footText  = "";
-    bool   footLoss  = false;
+    string footText = "";
+    bool   footLoss = false;
     if (IsSpecial)
     {
         footText = S.SpecialRoundNote;

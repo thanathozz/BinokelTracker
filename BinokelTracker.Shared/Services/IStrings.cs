@@ -152,6 +152,19 @@ public interface IStrings
     string OpenCalculator { get; }
     string LastTrickPoints { get; }   // "+{0} Punkte für {1}"
 
+    // BinokelRoundCard – table & modifier pills
+    string ColPlayer { get; }
+    string ColBoni { get; }
+    string ColTotal { get; }
+    string RolePartner { get; }
+    string ModAbgangBonus { get; }
+    string ModDurchBonus { get; }
+    string ModBettelBonus { get; }
+    string ModBidDeducted { get; }
+    string MeldDiscarded { get; }
+    string SummaryBidSaldoLabel { get; }
+    string SummarySpecialBonusLabel { get; }
+
     // BinokelRoundCard
     string RoundPrefix { get; }
     string TagNormal { get; }
