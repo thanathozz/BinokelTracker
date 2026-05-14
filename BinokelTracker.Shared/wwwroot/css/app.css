@@ -857,3 +857,9 @@ html, body {
 .rc-foot-chip.rc-foot-loss {
     background: rgba(208,69,69,0.1); color: var(--red);
 }
+
+@keyframes ptr-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.ptr-spinning { animation: ptr-spin 0.7s linear infinite; }

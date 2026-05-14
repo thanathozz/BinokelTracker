@@ -2,6 +2,8 @@
 @inject BinokelTracker.Shared.Services.ThemeService ThemeService
 @inject BinokelTracker.Shared.Services.LanguageService LangSvc
 @inject IAuthService AuthService
+@inject IJSRuntime JS
+@implements IDisposable
 
 <div class="app-container">
     <div class="app-bg"></div>
@@ -156,6 +158,8 @@
     private AugenCalculator? _calculatorDialog;
     private string? _saveError;
     private IStrings _s = new StringsDe();
+    private bool _ptrInitialized;
+    private DotNetObjectReference<Main>? _dotNetRef;
 
     private List<Game> SessionGames =>
         _state.Games.Where(g => g.SpielrundeId == _activeSession?.Id).ToList();
@@ -189,6 +193,26 @@
             _loaded = true;
             StateHasChanged();
         }
+
+        if (_loaded && !_ptrInitialized)
+        {
+            _ptrInitialized = true;
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("PullToRefresh.init", _dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task Reload()
+    {
+        _state = await Storage.LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+        LangSvc.LanguageChanged -= OnLanguageChanged;
     }
 
     private void OnLanguageChanged()
