@@ -48,7 +48,7 @@
                     @(_loading ? "..." : (_mode == Mode.Login ? S.SignIn : S.Register))
                 </button>
             }
-            else
+            else if (_step == Step.Name)
             {
                 <div style="text-align:center;margin-bottom:20px">
                     <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">@S.WhatIsYourName</div>
