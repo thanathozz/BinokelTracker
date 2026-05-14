@@ -57,7 +57,7 @@
                     var isW = Game.Finished && score >= Game.Rules.TargetScore;
                     <div class="score-col @(isW ? "winner" : "")">
                         @if (isW) { <div class="score-trophy">★</div> }
-                        <div class="score-name">@Game.Players[ti * 2] & @Game.Players[ti * 2 + 1]</div>
+                        <div class="score-name">@Game.Players[ti] & @Game.Players[ti + 2]</div>
                         <div class="score-value @(score >= 0 ? "positive" : "negative")"
                              style="font-size:26px">@score</div>
                         <div class="score-target">
@@ -211,7 +211,7 @@
                 @if (Game.Rules.TeamMode)
                 {
                     var winTeam = TeamT[0] >= TeamT[1] ? 0 : 1;
-                    @string.Format(S.WinsTeam, Game.Players[winTeam * 2], Game.Players[winTeam * 2 + 1])
+                    @string.Format(S.WinsTeam, Game.Players[winTeam], Game.Players[winTeam + 2])
                 }
                 else
                 {
