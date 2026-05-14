@@ -206,6 +206,9 @@ public class StringsEn : IStrings
     public string BadgeFull         => "Full";
     public string BadgeSimple       => "Simple";
 
+    public string DeleteRoundTitle   => "Delete round?";
+    public string DeleteRoundBody    => "This round will be permanently deleted.";
+
     public string ReportBug         => "Report bug";
     public string NoScreenshot      => "No screenshot available";
     public string BugDescriptionPlaceholder => "What happened? Describe the bug briefly...";

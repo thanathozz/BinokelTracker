@@ -20,6 +20,17 @@
 
     private double Progress(int score) =>
         Math.Min(100, Math.Max(0, (double)score / Game.Rules.TargetScore * 100));
+
+    private int? _confirmRoundIdx;
+
+    private void AskDeleteRound(int idx) => _confirmRoundIdx = idx;
+    private void CancelDeleteRound()     => _confirmRoundIdx = null;
+    private async Task ConfirmDeleteRound()
+    {
+        if (_confirmRoundIdx is not { } idx) return;
+        _confirmRoundIdx = null;
+        await OnDeleteRound.InvokeAsync(idx);
+    }
 }
 
 <div>
@@ -190,7 +201,7 @@
                             @if (!Game.Finished)
                             {
                                 <button class="btn" style="padding:3px;color:var(--dark)"
-                                        @onclick="() => OnDeleteRound.InvokeAsync(roundIdx)">
+                                        @onclick="() => AskDeleteRound(roundIdx)">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                         <polyline points="3 6 5 6 21 6"/>
                                         <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
@@ -205,7 +216,7 @@
                 {
                     <BinokelRoundCard Round="r" Players="Game.Players" Rules="Game.Rules"
                                       RoundIndex="ri" GameFinished="Game.Finished"
-                                      OnDelete="OnDeleteRound" OnEdit="OnEditRound" />
+                                      OnDelete="EventCallback.Factory.Create<int>(this, AskDeleteRound)" OnEdit="OnEditRound" />
                 } @* end else (not custom fields) *@
             </div>
         }
@@ -239,3 +250,17 @@
     </div>
     } @* end else (not StrichlisteMode) *@
 </div>
+
+@if (_confirmRoundIdx is not null)
+{
+    <div class="confirm-overlay" @onclick="CancelDeleteRound">
+        <div class="confirm-dialog" @onclick:stopPropagation="true">
+            <div class="confirm-title">@S.DeleteRoundTitle</div>
+            <div class="confirm-body">@S.DeleteRoundBody</div>
+            <div class="confirm-actions">
+                <button class="btn-secondary" @onclick="CancelDeleteRound">@S.Cancel</button>
+                <button class="btn-danger"    @onclick="ConfirmDeleteRound">@S.Delete</button>
+            </div>
+        </div>
+    </div>
+}

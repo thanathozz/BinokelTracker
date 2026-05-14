@@ -224,6 +224,10 @@ public interface IStrings
     string BadgeFull { get; }
     string BadgeSimple { get; }
 
+    // DeleteRound confirm
+    string DeleteRoundTitle { get; }
+    string DeleteRoundBody { get; }
+
     // FeedbackDialog
     string ReportBug { get; }
     string NoScreenshot { get; }

@@ -206,6 +206,9 @@ public class StringsSwabian : IStrings
     public string BadgeFull         => "Vollständig";
     public string BadgeSimple       => "Einfach";
 
+    public string DeleteRoundTitle   => "Runde wegschmeißa?";
+    public string DeleteRoundBody    => "Des isch dann für immer weg.";
+
     public string ReportBug         => "Bug melde";
     public string NoScreenshot      => "Koi Screenshot verfügbar";
     public string BugDescriptionPlaceholder => "Was isch passiert? Beschreib'n Bug kurz...";
