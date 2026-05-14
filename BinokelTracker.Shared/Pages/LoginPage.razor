@@ -17,16 +17,16 @@
                 <div class="auth-tab-row">
                     <button class="auth-tab @(_mode == Mode.Login ? "active" : "")"
                             @onclick="() => { _mode = Mode.Login; _error = null; }">
-                        Anmelden
+                        @S.SignIn
                     </button>
                     <button class="auth-tab @(_mode == Mode.Register ? "active" : "")"
                             @onclick="() => { _mode = Mode.Register; _error = null; }">
-                        Registrieren
+                        @S.Register
                     </button>
                 </div>
 
                 <div class="form-group" style="margin-top:20px">
-                    <label class="form-label">E-Mail</label>
+                    <label class="form-label">@S.Email</label>
                     <input class="form-input" type="email" placeholder="name@beispiel.de"
                            @bind="_email" @bind:event="oninput" autocomplete="email" />
                 </div>
@@ -45,18 +45,18 @@
                 }
 
                 <button class="btn-primary" @onclick="SubmitAuth" disabled="@_loading">
-                    @(_loading ? "..." : (_mode == Mode.Login ? "Anmelden" : "Registrieren"))
+                    @(_loading ? "..." : (_mode == Mode.Login ? S.SignIn : S.Register))
                 </button>
             }
             else
             {
                 <div style="text-align:center;margin-bottom:20px">
-                    <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Wie heißt du?</div>
-                    <div style="font-size:13px;color:var(--muted)">Dieser Name wird beim Spielen angezeigt.</div>
+                    <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">@S.WhatIsYourName</div>
+                    <div style="font-size:13px;color:var(--muted)">@S.DisplayNameHint</div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Anzeigename</label>
+                    <label class="form-label">@S.DisplayName</label>
                     <input class="form-input" type="text" placeholder="z.B. Max"
                            @bind="_displayName" @bind:event="oninput"
                            @onkeydown="HandleNameKeyDown"
@@ -69,7 +69,7 @@
                 }
 
                 <button class="btn-primary" @onclick="SubmitName" disabled="@_loading">
-                    @(_loading ? "..." : "Weiter")
+                    @(_loading ? "..." : S.Continue)
                 </button>
             }
         </div>
@@ -81,6 +81,7 @@
     enum Step { Auth, Name }
 
     [Parameter] public EventCallback OnLoggedIn { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = new StringsDe();
 
     private Mode    _mode        = Mode.Login;
     private Step    _step        = Step.Auth;
@@ -94,7 +95,7 @@
     {
         if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
         {
-            _error = "Bitte E-Mail und Passwort eingeben.";
+            _error = S.MissingCredentials;
             return;
         }
 
@@ -114,7 +115,6 @@
                 return;
             }
 
-            // Kein Anzeigename gesetzt → Namens-Schritt zeigen
             if (string.IsNullOrEmpty(AuthService.Session?.DisplayName))
             {
                 _step = Step.Name;
@@ -134,7 +134,7 @@
     {
         if (string.IsNullOrWhiteSpace(_displayName))
         {
-            _error = "Bitte einen Namen eingeben.";
+            _error = S.MissingName;
             return;
         }
 

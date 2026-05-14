@@ -8,6 +8,7 @@
     [Parameter] public EventCallback<int> OnEditRound   { get; set; }
     [Parameter] public EventCallback OnFinishGame { get; set; }
     [Parameter] public EventCallback<int> OnTallyPlayer { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private int[] Totals => Game.GetPlayerTotals();
     private int[] DurchTotals => Game.GetDurchTotals();
@@ -19,7 +20,6 @@
 
     private double Progress(int score) =>
         Math.Min(100, Math.Max(0, (double)score / Game.Rules.TargetScore * 100));
-
 }
 
 <div>
@@ -58,7 +58,7 @@
                                     <path d="M18 2H6v7a6 6 0 1012 0V2z"/>
                                 </svg>
                             </div>
-                            <div style="font-size:12px;color:var(--accent);margin-bottom:4px">Gewinn: @(int.TryParse(Game.Einsatz, out var e1) ? e1 * Game.Players.Count : 0)</div>
+                            <div style="font-size:12px;color:var(--accent);margin-bottom:4px">@S.WinBonus @(int.TryParse(Game.Einsatz, out var e1) ? e1 * Game.Players.Count : 0)</div>
 
                         }
                         <div class="score-name">@Game.Players[ti * 2] & @Game.Players[ti * 2 + 1]</div>
@@ -94,7 +94,7 @@
                                     <path d="M18 2H6v7a6 6 0 1012 0V2z"/>
                                 </svg>
                             </div>
-                            <div style="font-size:12px;color:var(--accent);margin-bottom:4px">Gewinn: @(int.TryParse(Game.Einsatz, out var e1) ? e1 * Game.Players.Count : 0)</div>
+                            <div style="font-size:12px;color:var(--accent);margin-bottom:4px">@S.WinBonus @(int.TryParse(Game.Einsatz, out var e1) ? e1 * Game.Players.Count : 0)</div>
 
                         }
                         <div class="score-name">@Game.Players[idx]</div>
@@ -145,20 +145,20 @@
                 <button class="strichliste-card" @onclick="() => OnTallyPlayer.InvokeAsync(idx)">
                     <div class="strichliste-name">@Game.Players[idx]</div>
                     <div class="strichliste-count">@count</div>
-                    <div class="strichliste-add">+ Strich</div>
+                    <div class="strichliste-add">@S.TallyAdd</div>
                 </button>
             }
         </div>
         @if (!Game.Finished)
         {
             <div class="section" style="padding-top:0">
-                <button class="btn-outline" style="width:100%" @onclick="OnFinishGame">Spiel beenden</button>
+                <button class="btn-outline" style="width:100%" @onclick="OnFinishGame">@S.FinishGameBtn</button>
             </div>
         }
         @if (Game.Finished)
         {
             <div class="win-banner">
-                🏆 @Game.Players[Array.IndexOf(Totals, Totals.Max())] gewinnt mit @Totals.Max() Strichen!
+                @string.Format(S.WinsStrichliste, Game.Players[Array.IndexOf(Totals, Totals.Max())], Totals.Max())
             </div>
         }
     }
@@ -168,13 +168,12 @@
     <!-- Rounds -->
     <div class="section" style="padding-top:4px">
         <span class="form-label" style="margin-bottom:10px;display:block">
-            @Game.Rounds.Count Runde@(Game.Rounds.Count != 1 ? "n" : "")
+            @Game.Rounds.Count @(Game.Rounds.Count != 1 ? S.Rounds : S.Round)
         </span>
 
         @if (Game.Rounds.Count == 0)
         {
-            <div style="text-align:center;padding:28px 0;color:var(--dark);font-size:13px">Noch keine Runden gespielt
-            </div>
+            <div style="text-align:center;padding:28px 0;color:var(--dark);font-size:13px">@S.NoRounds</div>
         }
 
         @for (int ri = 0; ri < Game.Rounds.Count; ri++)
@@ -214,10 +213,10 @@
         @if (!Game.Finished)
         {
             <div class="action-bar">
-                <button class="btn-primary" style="flex:2" @onclick="OnAddRound">+ Runde</button>
+                <button class="btn-primary" style="flex:2" @onclick="OnAddRound">@S.AddRound</button>
                 @if (Game.Rounds.Count > 0)
                 {
-                    <button class="btn-outline" style="flex:1" @onclick="OnFinishGame">Beenden</button>
+                    <button class="btn-outline" style="flex:1" @onclick="OnFinishGame">@S.FinishGame</button>
                 }
             </div>
         }
@@ -228,11 +227,11 @@
                 @if (Game.Rules.TeamMode)
                 {
                     var winTeam = TeamT[0] >= TeamT[1] ? 0 : 1;
-                    <text>🏆 @Game.Players[winTeam * 2] & @Game.Players[winTeam * 2 + 1] gewinnen!</text>
+                    @string.Format(S.WinsTeam, Game.Players[winTeam * 2], Game.Players[winTeam * 2 + 1])
                 }
                 else
                 {
-                    <text>🏆 @Game.Players[Winner] gewinnt mit @Totals[Winner] Punkten!</text>
+                    @string.Format(S.WinsWithPoints, Game.Players[Winner], Totals[Winner])
                 }
             </div>
         }

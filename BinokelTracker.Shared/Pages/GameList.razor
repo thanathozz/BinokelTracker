@@ -7,6 +7,7 @@
     [Parameter] public EventCallback OnCalculator { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public string? SessionTitle { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private string FormatDate(Game g) =>
         new DateTime(1970, 1, 1).AddMilliseconds(g.Date).ToLocalTime().ToString("dd. MMM yyyy · HH:mm");
@@ -59,8 +60,8 @@
         {
             <div class="empty-state">
                 <div class="empty-suits">♠ ♥ ♣ ♦</div>
-                <div class="empty-title">Noch keine Spiele</div>
-                <div class="empty-sub">Starte dein erstes Binokel-Spiel!</div>
+                <div class="empty-title">@S.NoGames</div>
+                <div class="empty-sub">@S.NoGamesHint</div>
             </div>
         }
 
@@ -77,14 +78,14 @@
                     <div style="display:flex;gap:6px;align-items:center">
                         @if (isQuick)
                         {
-                            <span class="chip chip-muted">Schnell</span>
-                            <span class="chip chip-green">Beendet</span>
+                            <span class="chip chip-muted">@S.QuickChip</span>
+                            <span class="chip chip-green">@S.FinishedChip</span>
                         }
                         else
                         {
                             <span class="chip chip-blue">@g.Rules.Name</span>
                             <span class="chip @(g.Finished ? "chip-green" : "chip-accent")">
-                                @(g.Finished ? "Beendet" : $"{g.Rounds.Count} Rdn.")
+                                @(g.Finished ? S.FinishedChip : $"{g.Rounds.Count} {S.RoundsAbbr}")
                             </span>
                         }
                     </div>
@@ -114,7 +115,7 @@
                                 <div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@g.Players[idx]</div>
                                 @if (isQuick)
                                 {
-                                    @if (idx == leader) { <div style="font-size:13px;color:var(--accent);font-weight:700;margin-top:2px">Sieger</div> }
+                                    @if (idx == leader) { <div style="font-size:13px;color:var(--accent);font-weight:700;margin-top:2px">@S.WinnerLabel</div> }
                                 }
                                 else
                                 {
@@ -131,7 +132,7 @@
     </div>
 
     <!-- FAB: Neues Spiel -->
-    <button class="game-fab" @onclick="OnNew" title="Neues Spiel">
+    <button class="game-fab" @onclick="OnNew" title="@S.NewGame">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>

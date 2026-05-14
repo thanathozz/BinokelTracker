@@ -1,15 +1,17 @@
 @inject IGameStorageService Storage
 @inject BinokelTracker.Shared.Services.ThemeService ThemeService
+@inject BinokelTracker.Shared.Services.LanguageService LangSvc
 @inject IAuthService AuthService
 
 <div class="app-container">
     <div class="app-bg"></div>
+    <CascadingValue Value="@_s">
     <div class="app-content fade-in">
         @if (!_loaded)
         {
             <div class="loading-screen">
                 <div class="loading-suits">♠ ♥ ♣ ♦</div>
-                <div class="loading-text">Laden...</div>
+                <div class="loading-text">@_s.Loading</div>
             </div>
         }
         else if (_view == View.Login)
@@ -98,14 +100,14 @@
                     <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
                     <rect x="8" y="2" width="14" height="18" rx="2" transform="rotate(6 8 2)"/>
                 </svg>
-                <span>Spiele</span>
+                <span>@_s.TabGames</span>
             </button>
             <button class="tab-bar-item @(_view == View.Statistics ? "active" : "")"
                     @onclick="() => _view = View.Statistics">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
                 </svg>
-                <span>Statistik</span>
+                <span>@_s.TabStats</span>
             </button>
             <button class="tab-bar-item @(_view == View.Profile ? "active" : "")"
                     @onclick="() => _view = View.Profile">
@@ -113,7 +115,7 @@
                     <circle cx="12" cy="8" r="4"/>
                     <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
                 </svg>
-                <span>Profil</span>
+                <span>@_s.TabProfile</span>
             </button>
         </div>
     }
@@ -125,7 +127,7 @@
                     display:flex;justify-content:space-between;align-items:flex-start;gap:8px;
                     box-shadow:0 4px 16px rgba(0,0,0,0.4)">
             <div>
-                <div style="font-weight:700;margin-bottom:2px">Speichern fehlgeschlagen</div>
+                <div style="font-weight:700;margin-bottom:2px">@_s.SaveFailed</div>
                 <div style="opacity:0.85;word-break:break-all">@_saveError</div>
             </div>
             <button style="background:none;border:none;color:#fff;cursor:pointer;padding:0;flex-shrink:0"
@@ -136,6 +138,7 @@
     <RulesDialog @ref="_rulesDialog" />
     <AugenCalculator @ref="_calculatorDialog" />
     <FeedbackDialog />
+    </CascadingValue>
 </div>
 
 @code {
@@ -151,6 +154,7 @@
     private RulesDialog? _rulesDialog;
     private AugenCalculator? _calculatorDialog;
     private string? _saveError;
+    private IStrings _s = new StringsDe();
 
     private List<Game> SessionGames =>
         _state.Games.Where(g => g.SpielrundeId == _activeSession?.Id).ToList();
@@ -168,6 +172,10 @@
         if (firstRender)
         {
             await ThemeService.LoadAsync();
+            await LangSvc.LoadAsync();
+            _s = LangSvc.Current;
+            LangSvc.LanguageChanged += OnLanguageChanged;
+
             var authenticated = await AuthService.TryRestoreSessionAsync();
             if (!authenticated)
             {
@@ -180,6 +188,12 @@
             _loaded = true;
             StateHasChanged();
         }
+    }
+
+    private void OnLanguageChanged()
+    {
+        _s = LangSvc.Current;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task Save()
@@ -253,7 +267,6 @@
 
     private async Task AddGame(Game game)
     {
-        // Spieler in die aktive Spielrunde aufnehmen (nicht global)
         if (_activeSession != null)
         {
             foreach (var name in game.Players)

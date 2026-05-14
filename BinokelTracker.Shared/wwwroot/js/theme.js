@@ -27,3 +27,8 @@ window.BinokelTheme = {
         return saved;
     }
 };
+
+window.BinokelLang = {
+    save: (lang) => localStorage.setItem('binokel-lang', lang),
+    load: () => localStorage.getItem('binokel-lang') ?? 'de'
+};

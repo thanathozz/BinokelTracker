@@ -6,6 +6,7 @@
     [Parameter] public bool         GameFinished { get; set; }
     [Parameter] public EventCallback<int> OnDelete { get; set; }
     [Parameter] public EventCallback<int> OnEdit   { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private int[] Scores       => Round.CalcScores(Rules);
     private bool  IsSpecial    => Round.Type is RoundType.Durch or RoundType.Bettel;
@@ -20,9 +21,9 @@
 
     private string TypeTag => Round.Type switch
     {
-        RoundType.Durch  => "DURCH",
-        RoundType.Bettel => "BETTEL",
-        _                => "NORMAL"
+        RoundType.Durch  => S.TagDurch,
+        RoundType.Bettel => S.TagBettel,
+        _                => S.TagNormal
     };
 
     private string TypeTagClass => Round.Type switch
@@ -32,7 +33,7 @@
         _                => "rc-tag-normal"
     };
 
-    private string OutcomeTag      => IsAbgegangen ? "ABGEGANGEN" : Round.Won ? "GEWONNEN" : "VERLOREN";
+    private string OutcomeTag      => IsAbgegangen ? S.TagFolded : Round.Won ? S.TagWon : S.TagLost;
     private string OutcomeTagClass => Round.Won && !IsAbgegangen ? "rc-tag-win" : "rc-tag-loss";
 
     private int BidderMeld   => Round.PlayerScores.Count > Round.Bidder ? Round.PlayerScores[Round.Bidder].Meld   : 0;
@@ -51,7 +52,7 @@
 
 <!-- Header: round number + type/outcome tags + action buttons -->
 <div class="rc-head">
-    <span class="rc-num">RUNDE @(RoundIndex + 1)</span>
+    <span class="rc-num">@S.RoundPrefix @(RoundIndex + 1)</span>
     <div class="rc-tags">
         <span class="rc-tag @TypeTagClass">@TypeTag</span>
         <span class="rc-tag @OutcomeTagClass">@OutcomeTag</span>
@@ -78,30 +79,30 @@
     <span class="rc-bidder-name">@Players[Round.Bidder]</span>
     @if (IsSpecial)
     {
-        <span class="rc-summary-text"> spielt einen </span><b>@TypeLabel</b>
+        <span class="rc-summary-text"> @(Round.Type == RoundType.Durch ? S.PlaysDurch : S.PlaysBettel) </span><b>@TypeLabel</b>
         <span class="rc-arrow"> · </span>
-        <span class="rc-result-text @(Round.Won ? "win" : "loss")">@(Round.Won ? "gewonnen" : "verloren")</span>
+        <span class="rc-result-text @(Round.Won ? "win" : "loss")">@(Round.Won ? S.WonWord : S.LostWord)</span>
     }
     else if (IsAbgegangen)
     {
-        <span class="rc-arrow"> reizt </span>
+        <span class="rc-arrow"> @S.Bids </span>
         <span class="rc-bid-val">@Round.Bid</span>
         <span class="rc-arrow"> → </span>
-        <span class="rc-result-text loss">abgegangen</span>
+        <span class="rc-result-text loss">@S.FoldedWord</span>
     }
     else if (Round.Won)
     {
-        <span class="rc-arrow"> reizt </span>
+        <span class="rc-arrow"> @S.Bids </span>
         <span class="rc-bid-val">@Round.Bid</span>
         <span class="rc-arrow"> → </span>
-        <span class="rc-result-text win">@(BidderMeld + BidderTricks) Pkt.</span>
+        <span class="rc-result-text win">@(BidderMeld + BidderTricks) @S.Points</span>
     }
     else
     {
-        <span class="rc-arrow"> reizt </span>
+        <span class="rc-arrow"> @S.Bids </span>
         <span class="rc-bid-val">@Round.Bid</span>
         <span class="rc-arrow"> → </span>
-        <span class="rc-result-text loss">nicht erfüllt</span>
+        <span class="rc-result-text loss">@S.NotFulfilled</span>
     }
 </div>
 
@@ -111,9 +112,9 @@
     {
         <div class="rc-player-row rc-head-row">
             <div></div>
-            <div class="rc-col-label">Meld</div>
-            <div class="rc-col-label">Stiche</div>
-            <div class="rc-col-label" style="text-align:right">Punkte</div>
+            <div class="rc-col-label">@S.MeldLabel</div>
+            <div class="rc-col-label">@S.TricksLabel</div>
+            <div class="rc-col-label" style="text-align:right">@S.Points</div>
         </div>
     }
     @for (int pi = 0; pi < Players.Count; pi++)
@@ -153,16 +154,16 @@
     bool   footLoss  = false;
     if (IsSpecial)
     {
-        footText = "Sonderrunde · separat gewertet";
+        footText = S.SpecialRoundNote;
     }
     else if (IsAbgegangen)
     {
-        footText = "Reizer abgegangen · Mitspieler +Pauschale";
+        footText = S.BidderFoldedNote;
         footLoss = true;
     }
     else if (Round.LastTrickWinner >= 0 && Round.LastTrickWinner < Players.Count)
     {
-        footText = $"★ Letzter Stich · +10 für {Players[Round.LastTrickWinner]}";
+        footText = string.Format(S.LastTrickNote, Rules.LastTrickBonus, Players[Round.LastTrickWinner]);
     }
 }
 @if (!string.IsNullOrEmpty(footText))

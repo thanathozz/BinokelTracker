@@ -4,6 +4,7 @@
     [Parameter] public List<string>          KnownPlayers   { get; set; } = new();
     [Parameter] public EventCallback<string> OnRemovePlayer { get; set; }
     [Parameter] public bool                  IsGeneric      { get; set; } = false;
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private List<string> _players     = new() { string.Empty, string.Empty };
     private string       _einsatz     = "0";
@@ -42,7 +43,7 @@
                 <polyline points="15 18 9 12 15 6"/>
             </svg>
         </button>
-        <span class="header-title">Neues Spiel</span>
+        <span class="header-title">@S.NewGame</span>
         <div style="width:36px"></div>
     </div>
 
@@ -51,7 +52,7 @@
         {
             @if (KnownPlayers.Count > 0)
             {
-                <label class="form-label" style="margin-bottom:8px">Bekannte Spieler</label>
+                <label class="form-label" style="margin-bottom:8px">@S.KnownPlayers</label>
                 <div class="pill-group" style="flex-wrap:wrap;margin-bottom:14px">
                     @foreach (var kp in KnownPlayers)
                     {
@@ -64,33 +65,33 @@
                     }
                 </div>
             }
-            <label class="form-label" style="margin-bottom:8px">Spieler</label>
+            <label class="form-label" style="margin-bottom:8px">@S.Players</label>
             <div style="margin-bottom:16px">
                 @for (int i = 0; i < _players.Count; i++)
                 {
                     var idx = i;
-                    <input class="form-input" style="margin-bottom:6px" placeholder="Spieler @(idx + 1)"
+                    <input class="form-input" style="margin-bottom:6px" placeholder="@($"{S.Players} {idx + 1}")"
                            value="@_players[idx]" @oninput="e => _players[idx] = e.Value?.ToString() ?? string.Empty" />
                 }
                 <div style="display:flex;gap:8px;margin-top:6px">
-                    <button class="btn-outline" style="flex:1;padding:8px" @onclick="() => _players.Add(string.Empty)">+ Spieler</button>
+                    <button class="btn-outline" style="flex:1;padding:8px" @onclick="() => _players.Add(string.Empty)">@S.AddPlayer</button>
                     @if (_players.Count > 2)
                     {
                         <button class="btn-outline" style="flex:1;padding:8px;color:var(--red);border-color:rgba(196,92,92,.3)"
-                                @onclick="() => _players.RemoveAt(_players.Count - 1)">− Entfernen</button>
+                                @onclick="() => _players.RemoveAt(_players.Count - 1)">@S.RemovePlayerBtn</button>
                     }
                 </div>
             </div>
-            <label class="form-label">Zielwert (Punkte)</label>
+            <label class="form-label">@S.TargetScore</label>
             <div style="margin-bottom:16px">
                 <input class="form-input" type="number" min="1" @bind="_targetScore" @bind:event="oninput" />
             </div>
-            <label class="form-label">Einsatz (optional)</label>
+            <label class="form-label">@S.Stakes</label>
             <div style="margin-bottom:20px">
                 <input class="form-input" placeholder="z.B. 0.10" @bind="_einsatz" @bind:event="oninput" />
             </div>
             <button class="btn-primary" disabled="@(!CanSave)" style="opacity:@(CanSave ? "1" : "0.4")" @onclick="SaveGeneric">
-                Spiel erstellen
+                @S.CreateGame
             </button>
         }
         else

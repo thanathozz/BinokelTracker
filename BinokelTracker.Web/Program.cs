@@ -23,6 +23,7 @@ builder.Services.AddHttpClient<IGameStorageService, SupabaseGameStorageService>(
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<BinokelTracker.Shared.Services.ThemeService>();
+builder.Services.AddScoped<BinokelTracker.Shared.Services.LanguageService>();
 var anthropicConfig = new BinokelTracker.Services.AnthropicConfig
 {
     ApiKey = builder.Configuration["Anthropic:ApiKey"] ?? ""

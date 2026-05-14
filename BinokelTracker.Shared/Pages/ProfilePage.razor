@@ -1,9 +1,11 @@
 @inject IAuthService AuthService
 @inject BinokelTracker.Shared.Services.ThemeService ThemeService
+@inject BinokelTracker.Shared.Services.LanguageService LangSvc
 @implements IDisposable
 
 @code {
     [Parameter] public EventCallback OnLogout { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private bool   _editingName;
     private string _nameInput = "";
@@ -43,24 +45,24 @@
 <div>
     <div class="header header-center">
         <div></div>
-        <div class="header-title">Profil ◉</div>
+        <div class="header-title">@S.ProfileTitle</div>
         <div></div>
     </div>
 
     <div class="section" style="padding-bottom:80px">
 
         <!-- Konto -->
-        <div class="form-label" style="margin-bottom:10px">Konto</div>
+        <div class="form-label" style="margin-bottom:10px">@S.Account</div>
         <div class="stats-card" style="margin-bottom:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
                 <div>
-                    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">E-Mail</div>
+                    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">@S.Email</div>
                     <div style="font-size:15px;font-weight:600">@(AuthService.Session?.Email ?? "–")</div>
                 </div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between">
                 <div style="flex:1">
-                    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Anzeigename</div>
+                    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">@S.DisplayName</div>
                     @if (_editingName)
                     {
                         <input class="form-input" style="font-size:15px;padding:6px 10px;height:auto"
@@ -97,23 +99,35 @@
         </div>
 
         <!-- Erscheinungsbild -->
-        <div class="form-label" style="margin-bottom:10px">Erscheinungsbild</div>
+        <div class="form-label" style="margin-bottom:10px">@S.Appearance</div>
         <div class="stats-card" style="margin-bottom:20px">
             <div style="display:flex;align-items:center;justify-content:space-between">
                 <div>
-                    <div style="font-size:15px;font-weight:600">Design-Theme</div>
-                    <div style="font-size:12px;color:var(--muted);margin-top:2px">Warmes Braun / Dunkelgrau</div>
+                    <div style="font-size:15px;font-weight:600">@S.DesignTheme</div>
                 </div>
                 <button class="btn-outline" style="padding:8px 16px;font-size:13px;width:auto" @onclick="() => ThemeService.ToggleAsync()">
-                    Wechseln
+                    @S.Switch
                 </button>
+            </div>
+        </div>
+
+        <!-- Sprache -->
+        <div class="form-label" style="margin-bottom:10px">@S.LanguageLabel</div>
+        <div class="stats-card" style="margin-bottom:20px">
+            <div class="pill-group">
+                <button class="pill @(LangSvc.CurrentLang == "de" ? "active" : "")"
+                        @onclick='() => LangSvc.SetAsync("de")'>Deutsch</button>
+                <button class="pill @(LangSvc.CurrentLang == "swabian" ? "active" : "")"
+                        @onclick='() => LangSvc.SetAsync("swabian")'>Schwäbisch</button>
+                <button class="pill @(LangSvc.CurrentLang == "en" ? "active" : "")"
+                        @onclick='() => LangSvc.SetAsync("en")'>English</button>
             </div>
         </div>
 
         <!-- Abmelden -->
         <button class="btn-danger" style="width:100%;border-radius:12px;padding:13px;font-size:16px;font-family:var(--font)"
                 @onclick="OnLogout">
-            Abmelden
+            @S.Logout
         </button>
     </div>
 

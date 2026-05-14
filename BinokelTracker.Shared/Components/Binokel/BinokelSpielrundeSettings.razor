@@ -6,6 +6,7 @@
     [Parameter] public int UnterValue            { get; set; } [Parameter] public EventCallback<int> UnterValueChanged            { get; set; }
     [Parameter] public int LastTrickBonus        { get; set; } [Parameter] public EventCallback<int> LastTrickBonusChanged        { get; set; }
     [Parameter] public int AbgegangenBonus       { get; set; } [Parameter] public EventCallback<int> AbgegangenBonusChanged       { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private void Update(EventCallback<int> cb, string? raw)
     {
@@ -13,43 +14,43 @@
     }
 }
 
-<label class="form-label" style="margin-top:8px">Kartenwerte (Augen)</label>
+<label class="form-label" style="margin-top:8px">@S.CardValues</label>
 <div style="display:flex;gap:8px;margin-bottom:10px">
     <div style="flex:1">
-        <label class="form-label" style="font-size:12px">Ass</label>
+        <label class="form-label" style="font-size:12px">@S.CardAss</label>
         <input class="form-input" type="number" min="0" value="@AssValue"
                @oninput="e => Update(AssValueChanged, e.Value?.ToString())" />
     </div>
     <div style="flex:1">
-        <label class="form-label" style="font-size:12px">Zehn</label>
+        <label class="form-label" style="font-size:12px">@S.CardZehn</label>
         <input class="form-input" type="number" min="0" value="@ZehnValue"
                @oninput="e => Update(ZehnValueChanged, e.Value?.ToString())" />
     </div>
     <div style="flex:1">
-        <label class="form-label" style="font-size:12px">König</label>
+        <label class="form-label" style="font-size:12px">@S.CardKoenig</label>
         <input class="form-input" type="number" min="0" value="@KoenigValue"
                @oninput="e => Update(KoenigValueChanged, e.Value?.ToString())" />
     </div>
     <div style="flex:1">
-        <label class="form-label" style="font-size:12px">Ober</label>
+        <label class="form-label" style="font-size:12px">@S.CardOber</label>
         <input class="form-input" type="number" min="0" value="@OberValue"
                @oninput="e => Update(OberValueChanged, e.Value?.ToString())" />
     </div>
     <div style="flex:1">
-        <label class="form-label" style="font-size:12px">Unter</label>
+        <label class="form-label" style="font-size:12px">@S.CardUnter</label>
         <input class="form-input" type="number" min="0" value="@UnterValue"
                @oninput="e => Update(UnterValueChanged, e.Value?.ToString())" />
     </div>
 </div>
-<label class="form-label" style="margin-top:4px">Boni</label>
+<label class="form-label" style="margin-top:4px">@S.Bonuses</label>
 <div style="display:flex;gap:8px;margin-bottom:16px">
     <div style="flex:1">
-        <label class="form-label" style="font-size:12px">Letzter Stich</label>
+        <label class="form-label" style="font-size:12px">@S.LastTrickBonus</label>
         <input class="form-input" type="number" min="0" value="@LastTrickBonus"
                @oninput="e => Update(LastTrickBonusChanged, e.Value?.ToString())" />
     </div>
     <div style="flex:1">
-        <label class="form-label" style="font-size:12px">Abg.-Bonus/Sp.</label>
+        <label class="form-label" style="font-size:12px">@S.FoldedBonusPerPlayer</label>
         <input class="form-input" type="number" min="0" value="@AbgegangenBonus"
                @oninput="e => Update(AbgegangenBonusChanged, e.Value?.ToString())" />
     </div>

@@ -10,6 +10,7 @@
     [Parameter] public EventCallback    OnNew       { get; set; }
     [Parameter] public EventCallback    OnBack      { get; set; }
     [Parameter] public EventCallback    OnLogout    { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private bool   _editingName;
     private string _nameInput = "";
@@ -136,7 +137,7 @@
         {
             <div class="empty-state">
                 <div class="empty-suits">@GameTypeInfo.GetIcon(GameType)</div>
-                <div class="empty-title">Noch keine Spielrunde</div>
+                <div class="empty-title">@S.NoSpielrunde</div>
                 <div class="empty-sub">Erstelle deine erste @GameTypeInfo.GetName(GameType)-Spielrunde!</div>
             </div>
         }
@@ -151,7 +152,7 @@
                     <div style="display:flex;gap:6px;align-items:center">
                         @if (!string.IsNullOrEmpty(s.PasswordHash))
                         {
-                            <span class="chip chip-muted">Privat</span>
+                            <span class="chip chip-muted">@S.PrivateChip</span>
                         }
                         <span class="chip chip-blue">@FormatDate(s)</span>
                     </div>
@@ -166,14 +167,14 @@
                     </div>
                 }
                 <div style="font-size:12px;color:var(--muted)">
-                    @gameCount Spiel(e)@(activeCount > 0 ? $" · {activeCount} laufend" : "")
+                    @gameCount @S.GamesLabel@(activeCount > 0 ? $" · {activeCount} {S.ActiveLabel}" : "")
                 </div>
             </div>
         }
     </div>
 
     <!-- FAB: Neue Spielrunde -->
-    <button class="game-fab" @onclick="OnNew" title="Neue Spielrunde">
+    <button class="game-fab" @onclick="OnNew" title="@S.NewSpielrunde">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
@@ -183,9 +184,9 @@
     {
         <div class="confirm-overlay" @onclick="CancelUnlock">
             <div class="confirm-dialog" @onclick:stopPropagation="true">
-                <div class="confirm-title">Passwort eingeben</div>
+                <div class="confirm-title">@S.EnterPassword</div>
                 <div class="confirm-body" style="margin-bottom:14px">
-                    „@_pendingUnlock.Name" ist passwortgeschützt.
+                    „@_pendingUnlock.Name" @S.PasswordProtected.
                 </div>
                 <input class="form-input"
                        type="password"
@@ -195,11 +196,11 @@
                        style="margin-bottom:8px" />
                 @if (_wrongPassword)
                 {
-                    <div style="color:var(--red);font-size:13px;margin-bottom:10px">Falsches Passwort.</div>
+                    <div style="color:var(--red);font-size:13px;margin-bottom:10px">@S.WrongPassword</div>
                 }
                 <div class="confirm-actions">
-                    <button class="btn-secondary" @onclick="CancelUnlock">Abbrechen</button>
-                    <button class="btn-primary" style="flex:1" @onclick="SubmitPassword">Öffnen</button>
+                    <button class="btn-secondary" @onclick="CancelUnlock">@S.Cancel</button>
+                    <button class="btn-primary" style="flex:1" @onclick="SubmitPassword">@S.Open</button>
                 </div>
             </div>
         </div>

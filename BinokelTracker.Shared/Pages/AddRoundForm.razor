@@ -5,6 +5,7 @@
     [Parameter] public EventCallback<Round> OnSave  { get; set; }
     [Parameter] public EventCallback        OnCancel { get; set; }
     [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private int[] _genericScores = Array.Empty<int>();
     private Dictionary<string, string> _customValues = new();
@@ -47,7 +48,7 @@
                 <polyline points="15 18 9 12 15 6"/>
             </svg>
         </button>
-        <span class="header-title">@(EditRound != null ? "Runde bearbeiten" : "Neue Runde")</span>
+        <span class="header-title">@(EditRound != null ? S.EditRoundTitle : S.NewRoundTitle)</span>
         <div style="width:36px"></div>
     </div>
 
@@ -58,8 +59,8 @@
             {
                 <CustomFieldEntry Fields="CustomFields" Players="Game.Players" Values="_customValues" />
                 <div class="action-bar">
-                    <button class="btn-primary" style="flex:2" @onclick="SaveCustomFields">Speichern</button>
-                    <button class="btn-outline" style="flex:1" @onclick="OnCancel">Abbrechen</button>
+                    <button class="btn-primary" style="flex:2" @onclick="SaveCustomFields">@S.Save</button>
+                    <button class="btn-outline" style="flex:1" @onclick="OnCancel">@S.Cancel</button>
                 </div>
             }
             else
@@ -75,8 +76,8 @@
                     </div>
                 }
                 <div class="action-bar">
-                    <button class="btn-primary" style="flex:2" @onclick="SaveGeneric">Speichern</button>
-                    <button class="btn-outline" style="flex:1" @onclick="OnCancel">Abbrechen</button>
+                    <button class="btn-primary" style="flex:2" @onclick="SaveGeneric">@S.Save</button>
+                    <button class="btn-outline" style="flex:1" @onclick="OnCancel">@S.Cancel</button>
                 </div>
             }
         </div>

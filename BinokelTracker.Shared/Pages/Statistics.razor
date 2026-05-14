@@ -1,6 +1,7 @@
 @code {
     [Parameter] public List<Game> Games { get; set; } = new();
     [Parameter] public EventCallback OnBack { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private enum Tab { Players, Charts }
     private Tab _tab = Tab.Players;
@@ -12,7 +13,6 @@
     private static string Pct(double v) => $"{v:F0}%";
     private static string Avg(double v) => $"{v:F0}";
 
-    // Chart data helpers — sorted descending by value
     private IReadOnlyList<(string, double)> ChartWins =>
         _stats.Players
               .OrderByDescending(p => p.GamesWon)
@@ -76,7 +76,7 @@
 <div>
     <div class="header header-center">
         <div></div>
-        <span class="header-title">Statistiken</span>
+        <span class="header-title">@S.StatsTitle</span>
         <div style="width:36px"></div>
     </div>
 
@@ -84,28 +84,28 @@
     <div class="stats-kpi-bar">
         <div class="stats-kpi-cell">
             <div class="stats-kpi-value">@_stats.TotalGames</div>
-            <div class="stats-kpi-label">Spiele</div>
+            <div class="stats-kpi-label">@S.StatsGames</div>
         </div>
         <div class="stats-kpi-cell">
             <div class="stats-kpi-value">@_stats.TotalRounds</div>
-            <div class="stats-kpi-label">Runden</div>
+            <div class="stats-kpi-label">@S.StatsRounds</div>
         </div>
         <div class="stats-kpi-cell">
             <div class="stats-kpi-value">@_stats.Players.Count</div>
-            <div class="stats-kpi-label">Spieler</div>
+            <div class="stats-kpi-label">@S.StatsPlayers</div>
         </div>
         <div class="stats-kpi-cell">
             <div class="stats-kpi-value">@_stats.FinishedGames</div>
-            <div class="stats-kpi-label">Beendet</div>
+            <div class="stats-kpi-label">@S.StatsFinished</div>
         </div>
     </div>
 
     <!-- Tab -->
     <div class="mode-toggle-bar">
         <button class="pill pill-sm @(_tab == Tab.Players ? "active" : "")"
-                @onclick="() => _tab = Tab.Players">Rangliste</button>
+                @onclick="() => _tab = Tab.Players">@S.Rankings</button>
         <button class="pill pill-sm @(_tab == Tab.Charts ? "active" : "")"
-                @onclick="() => _tab = Tab.Charts">Diagramme</button>
+                @onclick="() => _tab = Tab.Charts">@S.Charts</button>
     </div>
 
     @if (_stats.Players.Count == 0)
@@ -113,8 +113,8 @@
         <div class="section" style="padding-top:8px">
             <div class="empty-state">
                 <div class="empty-suits">♠ ♥ ♣ ♦</div>
-                <div class="empty-title">Noch keine Daten</div>
-                <div class="empty-sub">Spiele erst ein paar Runden!</div>
+                <div class="empty-title">@S.NoData</div>
+                <div class="empty-sub">@S.NoDataHint</div>
             </div>
         </div>
     }
@@ -142,14 +142,14 @@
                             <div class="stat-meta">
                                 @if (p.RoundsAsBidder > 0)
                                 {
-                                    <text>@Pct(p.BidderWinRate) Reizquote</text>
+                                    <text>@Pct(p.BidderWinRate) @S.BidRate</text>
                                     <span class="stat-meta-sep">·</span>
                                     <text>Ø @Avg(p.AvgBidValue)</text>
                                 }
                                 @if (p.BidderAbgegangen > 0)
                                 {
                                     <span class="stat-meta-sep">·</span>
-                                    <text>Abg. @(p.BidderAbgegangen)×</text>
+                                    <text>@S.FoldedAbbr @(p.BidderAbgegangen)×</text>
                                 }
                                 @if (p.DurchPlayed > 0)
                                 {
@@ -172,7 +172,7 @@
                     </div>
                     <div class="stat-row-right">
                         <div class="stat-wins-num">@p.GamesWon</div>
-                        <div class="stat-played">/ @p.GamesPlayed Sp.</div>
+                        <div class="stat-played">/ @p.GamesPlayed @S.GamesPlayedAbbr</div>
                         @if (p.MoneyBalance != 0)
                         {
                             <div class="stat-money @(p.MoneyBalance >= 0 ? "pos" : "neg")">@FormatMoney(p.MoneyBalance)</div>
@@ -187,22 +187,22 @@
         <div class="section" style="padding-top:12px">
             @if (HasMoney)
             {
-                <BarChart Title="Gewinn / Verlust (€)" Data="ChartMoney" Unit=" €" ColorResolver="MoneyColor" />
+                <BarChart Title="@S.ChartMoneyTitle" Data="ChartMoney" Unit=" €" ColorResolver="MoneyColor" />
             }
-            <BarChart Title="Siege"        Data="ChartWins"    Color="var(--green)" />
-            <BarChart Title="Reizquote"    Data="ChartWinRate" Unit="%" FixedMax="100" Color="var(--accent-light)" />
-            <BarChart Title="Ø Reizwert"   Data="ChartAvgBid"  Color="var(--accent)" />
+            <BarChart Title="@S.ChartWinsTitle"    Data="ChartWins"    Color="var(--green)" />
+            <BarChart Title="@S.ChartWinRateTitle" Data="ChartWinRate" Unit="%" FixedMax="100" Color="var(--accent-light)" />
+            <BarChart Title="@S.ChartAvgBidTitle"  Data="ChartAvgBid"  Color="var(--accent)" />
             @if (ChartAbgegangen.Count > 0)
             {
-                <BarChart Title="Abgegangen" Data="ChartAbgegangen" Color="var(--dark)" />
+                <BarChart Title="@S.ChartFoldedTitle" Data="ChartAbgegangen" Color="var(--dark)" />
             }
             @if (ChartBidderLosses.Count > 0)
             {
-                <BarChart Title="Überreizt" Data="ChartBidderLosses" Color="var(--red)" />
+                <BarChart Title="@S.ChartOverbidTitle" Data="ChartBidderLosses" Color="var(--red)" />
             }
             @if (ChartDurch.Count > 0)
             {
-                <BarChart Title="Durch — Siege" Data="ChartDurch" Color="var(--yellow, #d4a017)" />
+                <BarChart Title="@S.ChartDurchTitle" Data="ChartDurch" Color="var(--yellow, #d4a017)" />
             }
         </div>
     }

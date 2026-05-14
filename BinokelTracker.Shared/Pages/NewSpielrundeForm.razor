@@ -3,6 +3,7 @@
     [Parameter] public EventCallback             OnCancel     { get; set; }
     [Parameter] public List<string>              KnownPlayers { get; set; } = new();
     [Parameter] public string                    GameType     { get; set; } = GameTypeInfo.Binokel;
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private string       _name            = "";
     private List<string> _players         = new();
@@ -67,12 +68,12 @@
                 <polyline points="15 18 9 12 15 6"/>
             </svg>
         </button>
-        <span class="header-title">Neue Spielrunde</span>
+        <span class="header-title">@S.NewSpielrundeTitle</span>
         <div style="width:36px"></div>
     </div>
 
     <div class="section">
-        <label class="form-label">Name</label>
+        <label class="form-label">@S.Name</label>
         <div style="margin-bottom:16px">
             <input class="form-input" placeholder="z.B. Freitagsrunde"
                    @bind="_name" @bind:event="oninput" />
@@ -80,7 +81,7 @@
 
         @if (KnownPlayers.Count > 0)
         {
-            <label class="form-label" style="margin-bottom:10px">Spieler</label>
+            <label class="form-label" style="margin-bottom:10px">@S.Players</label>
             <div class="pill-group" style="flex-wrap:wrap;margin-bottom:16px">
                 @foreach (var name in KnownPlayers)
                 {
@@ -99,7 +100,7 @@
             <button class="toggle-track @(_usePassword ? "on" : "off")" @onclick="() => _usePassword = !_usePassword">
                 <div class="toggle-knob @(_usePassword ? "on" : "off")"></div>
             </button>
-            <span class="toggle-label @(_usePassword ? "on" : "off")">Passwort schützen</span>
+            <span class="toggle-label @(_usePassword ? "on" : "off")">@S.UsePassword</span>
         </div>
 
         @if (_usePassword)
@@ -113,7 +114,7 @@
                        @bind="_passwordConfirm" @bind:event="oninput" />
                 @if (_usePassword && _password.Length > 0 && _passwordConfirm.Length > 0 && _password != _passwordConfirm)
                 {
-                    <div style="color:var(--red);font-size:13px;margin-top:6px">Passwörter stimmen nicht überein.</div>
+                    <div style="color:var(--red);font-size:13px;margin-top:6px">@S.PasswordMismatch</div>
                 }
             </div>
         }
@@ -132,21 +133,21 @@
 
         @if (!GameTypeInfo.IsBinokel(GameType))
         {
-            <label class="form-label" style="margin-bottom:8px">Spieler</label>
+            <label class="form-label" style="margin-bottom:8px">@S.Players</label>
             <div style="margin-bottom:16px">
                 @for (int pi = 0; pi < _players.Count; pi++)
                 {
                     var pidx = pi;
-                    <input class="form-input" style="margin-bottom:6px" placeholder="Spieler @(pidx + 1)"
+                    <input class="form-input" style="margin-bottom:6px" placeholder="@($"{S.Players} {pidx + 1}")"
                            value="@_players[pidx]"
                            @oninput="e => _players[pidx] = e.Value?.ToString() ?? string.Empty" />
                 }
                 <div style="display:flex;gap:8px;margin-top:6px">
-                    <button class="btn-outline" style="flex:1;padding:8px" type="button" @onclick="() => _players.Add(string.Empty)">+ Spieler</button>
+                    <button class="btn-outline" style="flex:1;padding:8px" type="button" @onclick="() => _players.Add(string.Empty)">@S.AddPlayer</button>
                     @if (_players.Count > 2)
                     {
                         <button class="btn-outline" style="flex:1;padding:8px;color:var(--red);border-color:rgba(196,92,92,.3)" type="button"
-                                @onclick="() => _players.RemoveAt(_players.Count - 1)">− Entfernen</button>
+                                @onclick="() => _players.RemoveAt(_players.Count - 1)">@S.RemovePlayerBtn</button>
                     }
                 </div>
             </div>
@@ -155,19 +156,19 @@
                 <button class="toggle-track @(_strichlisteMode ? "on" : "off")" @onclick="() => _strichlisteMode = !_strichlisteMode">
                     <div class="toggle-knob @(_strichlisteMode ? "on" : "off")"></div>
                 </button>
-                <span class="toggle-label @(_strichlisteMode ? "on" : "off")">Strichliste-Modus</span>
+                <span class="toggle-label @(_strichlisteMode ? "on" : "off")">@S.StrichlisteMode</span>
             </div>
 
             @if (!_strichlisteMode)
             {
-                <label class="form-label" style="margin-top:4px;margin-bottom:10px">Tracking-Felder</label>
+                <label class="form-label" style="margin-top:4px;margin-bottom:10px">@S.TrackingFields</label>
                 <CustomFieldBuilder Fields="_customFields" />
             }
         }
 
         <button class="btn-primary" style="margin-top:8px;opacity:@(CanSave ? "1" : "0.4")" disabled="@(!CanSave)"
                 @onclick="Save">
-            Spielrunde erstellen
+            @S.CreateSpielrunde
         </button>
     </div>
 </div>

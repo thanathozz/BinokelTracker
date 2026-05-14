@@ -34,6 +34,7 @@ public static class MauiProgram
         builder.Services.AddHttpClient<Services.IGameStorageService, Services.SupabaseGameStorageService>();
         builder.Services.AddHttpClient<Services.IFeedbackService, Services.FeedbackService>();
         builder.Services.AddScoped<BinokelTracker.Shared.Services.ThemeService>();
+        builder.Services.AddScoped<BinokelTracker.Shared.Services.LanguageService>();
 
 #if DEBUG
     builder.Services.AddBlazorWebViewDeveloperTools();

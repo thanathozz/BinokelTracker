@@ -7,6 +7,7 @@
     [Parameter] public EventCallback<Round> OnSave  { get; set; }
     [Parameter] public EventCallback        OnCancel { get; set; }
     [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private AddRoundViewModel _vm = default!;
 
@@ -29,6 +30,29 @@
         });
     }
 
+    private string StepLabel(FormStep s) => s switch
+    {
+        FormStep.Spielart     => S.StepPlayer,
+        FormStep.Reizwert     => S.StepBidValue,
+        FormStep.Melden       => S.StepMeld,
+        FormStep.Stiche       => S.StepTricks,
+        FormStep.LetzterStich => S.StepLastTrick,
+        FormStep.Ergebnis     => S.StepResult,
+        _                     => ""
+    };
+
+    private string LocalizeLossReason(string? r) => r switch
+    {
+        "Reizer abgegangen"            => S.BidderFolded,
+        "Abgegangen"                   => S.Folded,
+        "Kein Stich — Meldung verfallen" => S.NoTrickMeld,
+        _                              => r ?? ""
+    };
+
+    private string LocalizeMinusPreview() => Game.Rules.DoubleMinus
+        ? $"−{_vm.BidValue * 2} ({S.DoubleSuffix})"
+        : $"−{_vm.BidValue}";
+
     private RenderFragment StarIcon => @<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
     </svg>;
@@ -36,9 +60,9 @@
 
 <div class="mode-toggle-bar">
     <button class="pill pill-sm @(_vm.Mode == InputMode.Overview ? "active" : "")"
-            @onclick="() => _vm.SetMode(InputMode.Overview)">Übersicht</button>
+            @onclick="() => _vm.SetMode(InputMode.Overview)">@S.Overview</button>
     <button class="pill pill-sm @(_vm.Mode == InputMode.StepByStep ? "active" : "")"
-            @onclick="() => _vm.SetMode(InputMode.StepByStep)">Schritt für Schritt</button>
+            @onclick="() => _vm.SetMode(InputMode.StepByStep)">@S.StepByStep</button>
 </div>
 
 <div class="section">
@@ -47,11 +71,11 @@
     {
         @if (_vm.OverviewShowPreview)
         {
-            <div class="step-label">Ergebnis</div>
+            <div class="step-label">@S.StepResult</div>
             @if (_vm.IsSpecial)
             {
                 <div class="score-preview @(_vm.Won ? "won" : "lost")">
-                    <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
+                    <span class="score-preview-value @_vm.WonColorClass">@(_vm.Won ? $"+{Game.Rules.DurchPoints}" : $"−{Game.Rules.DurchPoints}")</span>
                     @if (Game.Rules.DurchSeparate) { <span class="score-preview-note">(separat)</span> }
                 </div>
             }
@@ -66,27 +90,27 @@
                         </div>
                         @if (p.IsAbgegangen && _vm.IsBidder(i))
                         {
-                            <div class="bd-row"><span class="bd-label">Abgegangen</span><span class="bd-val neg">@_vm.MinusPreview</span></div>
+                            <div class="bd-row"><span class="bd-label">@S.Folded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
                         }
                         else if (p.LossReason == "Reizer abgegangen" && !_vm.IsBidder(i))
                         {
-                            <div class="bd-row bd-row-total"><span class="bd-label">Reizer abgegangen</span><span class="bd-val neg">@_vm.MinusPreview</span></div>
+                            <div class="bd-row bd-row-total"><span class="bd-label">@S.BidderFolded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
                         }
                         else if (p.LossReason is "Abgegangen" or "Kein Stich — Meldung verfallen")
                         {
-                            @if (p.Meld > 0) { <div class="bd-row"><span class="bd-label">Gemeldet</span><span class="bd-val muted">+@p.Meld (verfallen)</span></div> }
-                            @if (p.Tricks > 0) { <div class="bd-row"><span class="bd-label">Stiche</span><span class="bd-val">+@p.Tricks</span></div> }
-                            <div class="bd-row bd-row-total"><span class="bd-label">@p.LossReason</span><span class="bd-val zero">= 0</span></div>
+                            @if (p.Meld > 0) { <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val muted">+@p.Meld (verfallen)</span></div> }
+                            @if (p.Tricks > 0) { <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@p.Tricks</span></div> }
+                            <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(p.LossReason)</span><span class="bd-val zero">= 0</span></div>
                         }
                         else
                         {
-                            <div class="bd-row"><span class="bd-label">Gemeldet</span><span class="bd-val">+@p.Meld</span></div>
-                            <div class="bd-row"><span class="bd-label">Stiche</span><span class="bd-val">+@p.Tricks</span></div>
-                            @if (p.Bonus > 0) { <div class="bd-row"><span class="bd-label">Bonus (Reizer abgegangen)</span><span class="bd-val pos">+@p.Bonus</span></div> }
-                            @if (p.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">Letzter Stich</span><span class="bd-val pos">+@p.LastTrickBonus</span></div> }
-                            @if (p.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@p.LossReason</span></div> }
+                            <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val">+@p.Meld</span></div>
+                            <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@p.Tricks</span></div>
+                            @if (p.Bonus > 0) { <div class="bd-row"><span class="bd-label">@S.BidderFoldedBonus</span><span class="bd-val pos">+@p.Bonus</span></div> }
+                            @if (p.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">@S.LastTrickLabel</span><span class="bd-val pos">+@p.LastTrickBonus</span></div> }
+                            @if (p.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@LocalizeLossReason(p.LossReason)</span></div> }
                             <div class="bd-row bd-row-total">
-                                <span class="bd-label">Gesamt</span>
+                                <span class="bd-label">@S.TotalLabel</span>
                                 <span class="bd-val @(p.IsLoss ? "neg" : p.FinalScore > 0 ? "pos" : "zero")">
                                     @(p.IsLoss || p.FinalScore < 0 ? "" : "+")@p.FinalScore
                                 </span>
@@ -96,8 +120,8 @@
                 }
             }
             <div class="step-nav" style="margin-top:14px">
-                <button class="btn-outline" style="flex:1" @onclick="_vm.HideOverviewPreview">Zurück</button>
-                <button class="btn-primary" style="flex:2" @onclick="Save">Speichern</button>
+                <button class="btn-outline" style="flex:1" @onclick="_vm.HideOverviewPreview">@S.Back</button>
+                <button class="btn-primary" style="flex:2" @onclick="Save">@S.Save</button>
             </div>
         }
         else
@@ -105,16 +129,16 @@
             @if (_vm.ShowGameTypeSelector)
             {
                 <div class="form-group">
-                    <label class="form-label">Spielart</label>
+                    <label class="form-label">@S.GameTypeLabel</label>
                     <div class="pill-group">
-                        <button class="pill @(_vm.Type == RoundType.Normal ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Normal)">Normal</button>
-                        @if (Game.Rules.AllowDurch) { <button class="pill @(_vm.Type == RoundType.Durch ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Durch)">Durch</button> }
-                        @if (Game.Rules.AllowBettel) { <button class="pill @(_vm.Type == RoundType.Bettel ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Bettel)">Bettel</button> }
+                        <button class="pill @(_vm.Type == RoundType.Normal ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Normal)">@S.TypeNormal</button>
+                        @if (Game.Rules.AllowDurch) { <button class="pill @(_vm.Type == RoundType.Durch ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Durch)">@S.TagDurch</button> }
+                        @if (Game.Rules.AllowBettel) { <button class="pill @(_vm.Type == RoundType.Bettel ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Bettel)">@S.TagBettel</button> }
                     </div>
                 </div>
             }
             <div class="form-group">
-                <label class="form-label">@_vm.BidderLabel</label>
+                <label class="form-label">@(_vm.IsSpecial ? S.StepPlayer : S.Bidder)</label>
                 <div class="pill-group">
                     @for (int i = 0; i < Game.Players.Count; i++)
                     {
@@ -126,13 +150,13 @@
             @if (_vm.IsSpecial)
             {
                 <div class="form-group">
-                    <label class="form-label">@_vm.SpecialResultLabel</label>
+                    <label class="form-label">@(_vm.Type == RoundType.Durch ? S.DurchMade : S.BettelMade)</label>
                     <div class="toggle-row">
                         <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon"><div class="toggle-knob @_vm.WonClass"></div></button>
-                        <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
+                        <span class="toggle-label @_vm.WonClass">@(_vm.Won ? S.Done : S.NotDone)</span>
                     </div>
                     <div class="score-preview @(_vm.Won ? "won" : "lost")" style="margin-top:10px">
-                        <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
+                        <span class="score-preview-value @_vm.WonColorClass">@(_vm.Won ? $"+{Game.Rules.DurchPoints}" : $"−{Game.Rules.DurchPoints}")</span>
                         @if (Game.Rules.DurchSeparate) { <span class="score-preview-note">(separat)</span> }
                     </div>
                 </div>
@@ -140,30 +164,30 @@
             else
             {
                 <div class="form-group">
-                    <label class="form-label">Reizwert</label>
+                    <label class="form-label">@S.BidValueLabel</label>
                     <input class="form-input" type="number" inputmode="numeric" value="@_vm.Bid" placeholder="z.B. 150"
                            @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty" />
                 </div>
                 @if (_vm.ShowBidderAbgehenInReizwert)
                 {
                     <div class="form-group">
-                        <label class="form-label">@Game.Players[_vm.Bidder] abgegangen?</label>
+                        <label class="form-label">@Game.Players[_vm.Bidder] @S.FoldedWord?</label>
                         <div class="toggle-row">
                             <button class="toggle-track @_vm.AbgehenClass(_vm.Bidder)" @onclick="() => _vm.ToggleAbgegangen(_vm.Bidder)">
                                 <div class="toggle-knob @_vm.AbgehenClass(_vm.Bidder)"></div>
                             </button>
-                            <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">@_vm.BidderAbgehenLabel</span>
+                            <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">@(_vm.BidderAbgegangen ? S.YesFolded : S.NoStillPlaying)</span>
                         </div>
                         @if (_vm.BidderAbgegangen && _vm.BidValue > 0)
                         {
-                            <div class="score-preview lost" style="margin-top:8px"><span class="score-preview-value red">@_vm.MinusPreview</span></div>
+                            <div class="score-preview lost" style="margin-top:8px"><span class="score-preview-value red">@LocalizeMinusPreview()</span></div>
                         }
                     </div>
                 }
                 @if (!_vm.IsSpecial)
                 {
                     <div class="form-group">
-                        <label class="form-label">Trumpf (optional)</label>
+                        <label class="form-label">@S.TrumpLabel</label>
                         <div class="pill-group">
                             @foreach (var suit in Enum.GetValues<TrumpSuit>())
                             {
@@ -173,7 +197,7 @@
                         </div>
                     </div>
                 }
-                <label class="form-label">Punkte pro Spieler</label>
+                <label class="form-label">@S.PointsPerPlayer</label>
                 @for (int i = 0; i < Game.Players.Count; i++)
                 {
                     var idx = i;
@@ -185,8 +209,8 @@
                         </div>
                         <div class="player-inputs">
                             <div style="flex:1">
-                                <label class="form-label form-label-sm">Melden</label>
-                                @if (bidderAbg) { <div class="abgegangen-note">Kein Melden</div> }
+                                <label class="form-label form-label-sm">@S.MeldLabel</label>
+                                @if (bidderAbg) { <div class="abgegangen-note">@S.NoMeld</div> }
                                 else
                                 {
                                     <div style="display:flex;gap:6px;align-items:center">
@@ -223,7 +247,7 @@
                                 }
                             </div>
                             <div style="flex:1">
-                                <label class="form-label form-label-sm">Stiche</label>
+                                <label class="form-label form-label-sm">@S.TricksLabel</label>
                                 <input class="form-input form-input-center" type="number" inputmode="numeric"
                                        value="@_vm.Tricks[idx]" placeholder="0"
                                        disabled="@(_vm.BidderAbgegangen || _vm.Abgegangen[idx])"
@@ -232,7 +256,7 @@
                             @if (_vm.ShowAbgehenFor(idx))
                             {
                                 <div class="abgehen-col">
-                                    <label class="form-label form-label-sm">Abg.</label>
+                                    <label class="form-label form-label-sm">@S.FoldedAbbr</label>
                                     <button class="toggle-track @_vm.AbgehenClass(idx)" style="margin-top:4px" @onclick="() => _vm.ToggleAbgegangen(idx)">
                                         <div class="toggle-knob @_vm.AbgehenClass(idx)"></div>
                                     </button>
@@ -248,11 +272,11 @@
                             background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
                             border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
                             color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
-                    Summe Stiche: <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
-                    @if (!_vm.TricksSumValid && _vm.TricksSum > 0) { <div style="font-size:12px;margin-top:3px;opacity:0.85">Alle Stiche müssen zusammen @_vm.MaxTricksTotal Punkte ergeben.</div> }
+                    @S.TricksSum <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
+                    @if (!_vm.TricksSumValid && _vm.TricksSum > 0) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotal)</div> }
                 </div>
                 <div class="form-group" style="margin-top:10px">
-                    <label class="form-label">Letzter Stich</label>
+                    <label class="form-label">@S.LastTrickLabel</label>
                     <div class="pill-group">
                         @for (int i = 0; i < Game.Players.Count; i++)
                         {
@@ -263,7 +287,7 @@
                 </div>
             }
             <button class="btn-primary" style="margin-top:14px;opacity:@(_vm.CanSave ? "1" : "0.4")"
-                    disabled="@(!_vm.CanSave)" @onclick="_vm.ShowOverviewPreview">Weiter</button>
+                    disabled="@(!_vm.CanSave)" @onclick="_vm.ShowOverviewPreview">@S.Continue</button>
         }
     }
     else
@@ -279,7 +303,7 @@
                 </div>
             }
         </div>
-        <div class="step-label">@_vm.StepLabels[_vm.Step]</div>
+        <div class="step-label">@StepLabel(_vm.CurrentStep)</div>
 
         <div class="step-content @(_vm.Forward ? "slide-in-right" : "slide-in-left")" @key="_vm.Step">
             @if (_vm.CurrentStep == FormStep.Spielart)
@@ -287,15 +311,15 @@
                 @if (_vm.ShowGameTypeSelector)
                 {
                     <div class="form-group">
-                        <label class="form-label">Spielart</label>
+                        <label class="form-label">@S.GameTypeLabel</label>
                         <div class="pill-group">
-                            <button class="pill @(_vm.Type == RoundType.Normal ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Normal)">Normal</button>
-                            @if (Game.Rules.AllowDurch) { <button class="pill @(_vm.Type == RoundType.Durch ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Durch)">Durch</button> }
-                            @if (Game.Rules.AllowBettel) { <button class="pill @(_vm.Type == RoundType.Bettel ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Bettel)">Bettel</button> }
+                            <button class="pill @(_vm.Type == RoundType.Normal ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Normal)">@S.TypeNormal</button>
+                            @if (Game.Rules.AllowDurch) { <button class="pill @(_vm.Type == RoundType.Durch ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Durch)">@S.TagDurch</button> }
+                            @if (Game.Rules.AllowBettel) { <button class="pill @(_vm.Type == RoundType.Bettel ? "active" : "")" @onclick="() => _vm.SetType(RoundType.Bettel)">@S.TagBettel</button> }
                         </div>
                     </div>
                 }
-                <label class="form-label">@_vm.BidderLabel</label>
+                <label class="form-label">@(_vm.IsSpecial ? S.StepPlayer : S.Bidder)</label>
                 <div class="pill-group">
                     @for (int i = 0; i < Game.Players.Count; i++)
                     {
@@ -310,20 +334,20 @@
                        @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty" />
                 @if (_vm.ShowBidderAbgehenInReizwert)
                 {
-                    <label class="form-label" style="margin-top:18px">@Game.Players[_vm.Bidder] abgegangen?</label>
+                    <label class="form-label" style="margin-top:18px">@Game.Players[_vm.Bidder] @S.FoldedWord?</label>
                     <div class="toggle-row">
                         <button class="toggle-track @_vm.AbgehenClass(_vm.Bidder)" @onclick="() => _vm.ToggleAbgegangen(_vm.Bidder)">
                             <div class="toggle-knob @_vm.AbgehenClass(_vm.Bidder)"></div>
                         </button>
-                        <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">@_vm.BidderAbgehenLabel</span>
+                        <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">@(_vm.BidderAbgegangen ? S.YesFolded : S.NoStillPlaying)</span>
                     </div>
-                    @if (_vm.BidderAbgegangen && _vm.BidValue > 0) { <div class="score-preview lost" style="margin-top:10px"><span class="score-preview-value red">@_vm.MinusPreview</span></div> }
+                    @if (_vm.BidderAbgegangen && _vm.BidValue > 0) { <div class="score-preview lost" style="margin-top:10px"><span class="score-preview-value red">@LocalizeMinusPreview()</span></div> }
                 }
             }
             else if (_vm.CurrentStep == FormStep.Melden)
             {
                 <div class="form-group">
-                    <label class="form-label">Trumpf (optional)</label>
+                    <label class="form-label">@S.TrumpLabel</label>
                     <div class="pill-group">
                         @foreach (var suit in Enum.GetValues<TrumpSuit>())
                         {
@@ -341,7 +365,7 @@
                             @Game.Players[idx]
                             @if (_vm.IsBidder(idx)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
                         </div>
-                        @if (bidderAbg) { <div class="abgegangen-note">Kein Melden (abgegangen)</div> }
+                        @if (bidderAbg) { <div class="abgegangen-note">@S.NoMeldFolded</div> }
                         else
                         {
                             <div style="display:flex;gap:8px;align-items:center">
@@ -400,8 +424,8 @@
                             background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
                             border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
                             color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
-                    Summe: <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
-                    @if (!_vm.TricksSumValid) { <div style="font-size:12px;margin-top:3px;opacity:0.85">Alle Stiche müssen zusammen @_vm.MaxTricksTotal Punkte ergeben.</div> }
+                    @S.TricksSum <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
+                    @if (!_vm.TricksSumValid) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotal)</div> }
                 </div>
                 @if (OnOpenCalculator != null)
                 {
@@ -410,11 +434,11 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/>
                         </svg>
-                        Augen Rechner
+                        @S.OpenCalculator
                     </button>
                 }
                 <div class="form-group" style="margin-top:14px">
-                    <label class="form-label">Letzter Stich</label>
+                    <label class="form-label">@S.LastTrickLabel</label>
                     <div class="pill-group">
                         @for (int i = 0; i < Game.Players.Count; i++)
                         {
@@ -425,20 +449,20 @@
                     @if (_vm.LastTrickWinner >= 0)
                     {
                         <div class="score-preview won" style="margin-top:10px">
-                            <span class="score-preview-value green">+@Game.Rules.LastTrickBonus Punkte für @Game.Players[_vm.LastTrickWinner]</span>
+                            <span class="score-preview-value green">@string.Format(S.LastTrickPoints, Game.Rules.LastTrickBonus, Game.Players[_vm.LastTrickWinner])</span>
                         </div>
                     }
                 </div>
             }
             else if (_vm.CurrentStep == FormStep.Ergebnis && _vm.IsSpecial)
             {
-                <label class="form-label">@_vm.SpecialResultLabel</label>
+                <label class="form-label">@(_vm.Type == RoundType.Durch ? S.DurchMade : S.BettelMade)</label>
                 <div class="toggle-row" style="margin-bottom:12px">
                     <button class="toggle-track @_vm.WonClass" @onclick="_vm.ToggleWon"><div class="toggle-knob @_vm.WonClass"></div></button>
-                    <span class="toggle-label @_vm.WonClass">@(_vm.Won ? "Geschafft" : "Nicht geschafft")</span>
+                    <span class="toggle-label @_vm.WonClass">@(_vm.Won ? S.Done : S.NotDone)</span>
                 </div>
                 <div class="score-preview @(_vm.Won ? "won" : "lost")">
-                    <span class="score-preview-value @_vm.WonColorClass">@_vm.DurchPointsDisplay</span>
+                    <span class="score-preview-value @_vm.WonColorClass">@(_vm.Won ? $"+{Game.Rules.DurchPoints}" : $"−{Game.Rules.DurchPoints}")</span>
                     @if (Game.Rules.DurchSeparate) { <span class="score-preview-note">(separat)</span> }
                 </div>
             }
@@ -453,27 +477,27 @@
                         </div>
                         @if (p.IsAbgegangen && _vm.IsBidder(i))
                         {
-                            <div class="bd-row"><span class="bd-label">Abgegangen</span><span class="bd-val neg">@_vm.MinusPreview</span></div>
+                            <div class="bd-row"><span class="bd-label">@S.Folded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
                         }
                         else if (p.LossReason == "Reizer abgegangen" && !_vm.IsBidder(i))
                         {
-                            <div class="bd-row bd-row-total"><span class="bd-label">Reizer abgegangen</span><span class="bd-val neg">@_vm.MinusPreview</span></div>
+                            <div class="bd-row bd-row-total"><span class="bd-label">@S.BidderFolded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
                         }
                         else if (p.LossReason is "Abgegangen" or "Kein Stich — Meldung verfallen")
                         {
-                            @if (p.Meld > 0) { <div class="bd-row"><span class="bd-label">Gemeldet</span><span class="bd-val muted">+@p.Meld (verfallen)</span></div> }
-                            @if (p.Tricks > 0) { <div class="bd-row"><span class="bd-label">Stiche</span><span class="bd-val">+@p.Tricks</span></div> }
-                            <div class="bd-row bd-row-total"><span class="bd-label">@p.LossReason</span><span class="bd-val zero">= 0</span></div>
+                            @if (p.Meld > 0) { <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val muted">+@p.Meld (verfallen)</span></div> }
+                            @if (p.Tricks > 0) { <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@p.Tricks</span></div> }
+                            <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(p.LossReason)</span><span class="bd-val zero">= 0</span></div>
                         }
                         else
                         {
-                            <div class="bd-row"><span class="bd-label">Gemeldet</span><span class="bd-val">+@p.Meld</span></div>
-                            <div class="bd-row"><span class="bd-label">Stiche</span><span class="bd-val">+@p.Tricks</span></div>
-                            @if (p.Bonus > 0) { <div class="bd-row"><span class="bd-label">Bonus (Reizer abgegangen)</span><span class="bd-val pos">+@p.Bonus</span></div> }
-                            @if (p.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">Letzter Stich</span><span class="bd-val pos">+@p.LastTrickBonus</span></div> }
-                            @if (p.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@p.LossReason</span></div> }
+                            <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val">+@p.Meld</span></div>
+                            <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@p.Tricks</span></div>
+                            @if (p.Bonus > 0) { <div class="bd-row"><span class="bd-label">@S.BidderFoldedBonus</span><span class="bd-val pos">+@p.Bonus</span></div> }
+                            @if (p.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">@S.LastTrickLabel</span><span class="bd-val pos">+@p.LastTrickBonus</span></div> }
+                            @if (p.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@LocalizeLossReason(p.LossReason)</span></div> }
                             <div class="bd-row bd-row-total">
-                                <span class="bd-label">Gesamt</span>
+                                <span class="bd-label">@S.TotalLabel</span>
                                 <span class="bd-val @(p.IsLoss ? "neg" : p.FinalScore > 0 ? "pos" : "zero")">
                                     @(p.IsLoss || p.FinalScore < 0 ? "" : "+")@p.FinalScore
                                 </span>
@@ -485,14 +509,14 @@
         </div>
 
         <div class="step-nav">
-            <button class="btn-outline" style="flex:1;opacity:@(_vm.Step == 0 ? "0.3" : "1")" disabled="@(_vm.Step == 0)" @onclick="_vm.GoPrev">Zurück</button>
+            <button class="btn-outline" style="flex:1;opacity:@(_vm.Step == 0 ? "0.3" : "1")" disabled="@(_vm.Step == 0)" @onclick="_vm.GoPrev">@S.Back</button>
             @if (_vm.Step < _vm.TotalSteps - 1)
             {
-                <button class="btn-primary" style="flex:2;opacity:@(_vm.CanAdvance ? "1" : "0.4")" disabled="@(!_vm.CanAdvance)" @onclick="_vm.GoNext">Weiter</button>
+                <button class="btn-primary" style="flex:2;opacity:@(_vm.CanAdvance ? "1" : "0.4")" disabled="@(!_vm.CanAdvance)" @onclick="_vm.GoNext">@S.Continue</button>
             }
             else
             {
-                <button class="btn-primary" style="flex:2" @onclick="Save">Speichern</button>
+                <button class="btn-primary" style="flex:2" @onclick="Save">@S.Save</button>
             }
         </div>
     }
