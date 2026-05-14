@@ -55,7 +55,8 @@
                 {
                     var score = TeamT[ti];
                     var isW = Game.Finished && score >= Game.Rules.TargetScore;
-                    <div class="score-col @(isW ? "winner" : "")">
+                    var teamColor = ti == 0 ? "var(--blue)" : "var(--tuerkis)";
+                    <div class="score-col @(isW ? "winner" : "")" style="border-top:3px solid @teamColor">
                         @if (isW) { <div class="score-trophy">★</div> }
                         <div class="score-name">@Game.Players[ti] & @Game.Players[ti + 2]</div>
                         <div class="score-value @(score >= 0 ? "positive" : "negative")"

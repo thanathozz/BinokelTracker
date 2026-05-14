@@ -827,6 +827,9 @@ html, body {
     background: var(--tuerkis); flex-shrink: 0; opacity: 0;
 }
 .prow.bidder .pc-name-marker { opacity: 1; }
+.prow.team1 .pc-name-marker { opacity: 1; background: var(--blue); }
+.prow.team2 .pc-name-marker { opacity: 1; background: var(--tuerkis); }
+.prow.team1.bidder > div { background: rgba(125,169,232,0.07); }
 .pc-role {
     font-size: 9px; font-weight: 700; color: var(--tuerkis);
     background: rgba(90,214,192,0.12); padding: 1px 5px; border-radius: 4px;
