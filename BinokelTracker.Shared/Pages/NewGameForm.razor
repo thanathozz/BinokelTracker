@@ -6,9 +6,10 @@
     [Parameter] public bool                  IsGeneric      { get; set; } = false;
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
-    private List<string> _players     = new() { string.Empty, string.Empty };
-    private string       _einsatz     = "0";
-    private int          _targetScore = 1000;
+    private List<string>  _players      = new() { string.Empty, string.Empty };
+    private HashSet<string> _lockedPlayers = new(StringComparer.OrdinalIgnoreCase);
+    private string        _einsatz      = "0";
+    private int           _targetScore  = 1000;
 
     private bool CanSave => _players.All(p => !string.IsNullOrWhiteSpace(p));
 
@@ -59,7 +60,7 @@
                         var n = kp;
                         var active = _players.Contains(n);
                         <span class="pill @(active ? "active" : "")" style="user-select:none"
-                              @onclick="() => { if (active) { var i2 = _players.IndexOf(n); if (i2 >= 0) _players[i2] = string.Empty; } else { var ei = _players.IndexOf(string.Empty); if (ei >= 0) _players[ei] = n; else _players.Add(n); } }">
+                              @onclick="() => { if (active) { var i2 = _players.IndexOf(n); if (i2 >= 0) _players[i2] = string.Empty; _lockedPlayers.Remove(n); } else { var ei = _players.IndexOf(string.Empty); if (ei >= 0) _players[ei] = n; else _players.Add(n); _lockedPlayers.Add(n); } }">
                             @n
                         </span>
                     }
@@ -70,15 +71,18 @@
                 @for (int i = 0; i < _players.Count; i++)
                 {
                     var idx = i;
-                    <input class="form-input" style="margin-bottom:6px" placeholder="@($"{S.Players} {idx + 1}")"
-                           value="@_players[idx]" @oninput="e => _players[idx] = e.Value?.ToString() ?? string.Empty" />
+                    <input class="form-input" style="margin-bottom:6px;@(_lockedPlayers.Contains(_players[idx]) ? "opacity:0.5;background:var(--input-bg,var(--card));cursor:default" : "")"
+                           placeholder="@($"{S.Players} {idx + 1}")"
+                           value="@_players[idx]"
+                           disabled="@(_lockedPlayers.Contains(_players[idx]))"
+                           @oninput="e => _players[idx] = e.Value?.ToString() ?? string.Empty" />
                 }
                 <div style="display:flex;gap:8px;margin-top:6px">
                     <button class="btn-outline" style="flex:1;padding:8px" @onclick="() => _players.Add(string.Empty)">@S.AddPlayer</button>
                     @if (_players.Count > 2)
                     {
                         <button class="btn-outline" style="flex:1;padding:8px;color:var(--red);border-color:rgba(196,92,92,.3)"
-                                @onclick="() => _players.RemoveAt(_players.Count - 1)">@S.RemovePlayerBtn</button>
+                                @onclick="() => { var last = _players[_players.Count - 1]; if (!_lockedPlayers.Contains(last)) _players.RemoveAt(_players.Count - 1); }">@S.RemovePlayerBtn</button>
                     }
                 </div>
             </div>

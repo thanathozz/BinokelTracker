@@ -7,9 +7,10 @@
 
     private string       _preset      = "schwaebisch_klassisch";
     private RuleSet      _rules       = RulePresets.All["schwaebisch_klassisch"].Clone();
-    private List<string> _players     = new() { "", "", "" };
-    private string       _einsatz     = "0";
-    private bool         _showCustom;
+    private List<string>    _players       = new() { "", "", "" };
+    private HashSet<string> _lockedPlayers = new(StringComparer.OrdinalIgnoreCase);
+    private string          _einsatz       = "0";
+    private bool            _showCustom;
 
     private string?                  _deleteCandidate;
     private string?                  _exitCandidate;
@@ -29,7 +30,11 @@
     private void AdjustPlayers()
     {
         while (_players.Count < _rules.Players) _players.Add("");
-        while (_players.Count > _rules.Players) _players.RemoveAt(_players.Count - 1);
+        while (_players.Count > _rules.Players)
+        {
+            _lockedPlayers.Remove(_players[_players.Count - 1]);
+            _players.RemoveAt(_players.Count - 1);
+        }
         if (_rules.Players != 4) _rules.TeamMode = false;
     }
 
@@ -39,9 +44,9 @@
     {
         if (_deleteCandidate == name || _exitCandidate == name) return;
         var existing = _players.IndexOf(name);
-        if (existing >= 0) { _players[existing] = ""; return; }
+        if (existing >= 0) { _players[existing] = ""; _lockedPlayers.Remove(name); return; }
         var empty = _players.IndexOf("");
-        if (empty >= 0) _players[empty] = name;
+        if (empty >= 0) { _players[empty] = name; _lockedPlayers.Add(name); }
     }
 
     private async Task StartLongPress(string name)
@@ -78,6 +83,7 @@
         _confirmName = _deleteCandidate = null;
         var idx = _players.IndexOf(name);
         if (idx >= 0) _players[idx] = "";
+        _lockedPlayers.Remove(name);
         await OnRemovePlayer.InvokeAsync(name);
     }
 
@@ -248,9 +254,12 @@ else
 @for (int i = 0; i < _players.Count; i++)
 {
     var idx = i;
+    var locked = _lockedPlayers.Contains(_players[idx]);
     <div style="margin-bottom:10px">
         <input class="form-input" value="@_players[idx]"
                placeholder="@(_rules.TeamMode ? $"{(idx % 2 == 0 ? "Team 1" : "Team 2")} — {S.Players} {idx / 2 + 1}" : $"{S.Players} {idx + 1}")"
+               style="@(locked ? "opacity:0.5;background:var(--input-bg,var(--card));cursor:default" : "")"
+               disabled="@locked"
                @oninput="e => _players[idx] = e.Value?.ToString() ?? string.Empty" />
     </div>
 }
