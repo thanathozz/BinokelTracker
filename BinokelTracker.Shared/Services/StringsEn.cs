@@ -63,6 +63,7 @@ public class StringsEn : IStrings
     public string TeamHint          => "Players 1 & 3 = Team 1 · Players 2 & 4 = Team 2 (cross)";
     public string Teams             => "Teams (cross)";
     public string Goal              => "Goal:";
+    public string Missing           => "to go";
 
     public string NewSpielrundeTitle => "New session";
     public string Name              => "Name";

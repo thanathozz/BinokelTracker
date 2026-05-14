@@ -63,6 +63,7 @@ public class StringsDe : IStrings
     public string TeamHint          => "Spieler 1 & 3 = Team 1 · Spieler 2 & 4 = Team 2 (Kreuz)";
     public string Teams             => "Teams (Kreuz)";
     public string Goal              => "Ziel:";
+    public string Missing           => "fehlen";
 
     public string NewSpielrundeTitle => "Neue Spielrunde";
     public string Name              => "Name";

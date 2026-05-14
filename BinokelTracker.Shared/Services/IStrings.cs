@@ -69,6 +69,7 @@ public interface IStrings
     string TeamHint { get; }
     string Teams { get; }
     string Goal { get; }
+    string Missing { get; }
 
     // NewSpielrundeForm
     string NewSpielrundeTitle { get; }

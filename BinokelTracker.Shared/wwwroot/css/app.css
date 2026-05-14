@@ -257,13 +257,13 @@ html, body {
 .chip-accent { background: rgba(255,154,82,0.1); color: var(--accent); }
 
 /* ═══ Score display ═══ */
-.score-grid { display: flex; gap: 6px; }
+.score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
 .score-col {
-    flex: 1; background: var(--card); border-radius: 12px;
-    padding: 12px 6px; text-align: center;
+    background: var(--card); border-radius: 14px;
+    padding: 14px 10px 12px; text-align: center;
     border: 1px solid var(--border); position: relative;
 }
-.score-col.winner { background: rgba(255,154,82,0.09); border: 2px solid var(--accent); }
+.score-col.winner { background: rgba(200,149,108,0.09); border: 1.5px solid var(--accent); }
 .score-name {
     font-size: 11px; color: var(--muted); font-weight: 600;
     margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -273,7 +273,7 @@ html, body {
 }
 .score-value.positive { color: var(--text); }
 .score-value.negative { color: var(--red); }
-.score-target { font-size: 10px; color: var(--dark); }
+.score-target { font-size: 10px; color: var(--muted); margin-top: 4px; }
 .score-durch { font-size: 11px; color: var(--yellow); font-family: var(--font-mono); margin-top: 4px; }
 
 /* Progress bar */
@@ -352,10 +352,14 @@ html, body {
     font-size: 15px; font-weight: 600;
 }
 
-/* ═══ Trophy position ═══ */
-.trophy-icon {
-    position: absolute; top: -10px; left: 50%;
-    transform: translateX(-50%); color: var(--accent);
+/* ═══ Score trophy badge ═══ */
+.score-trophy {
+    position: absolute; top: -11px; left: 50%;
+    transform: translateX(-50%);
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; line-height: 1;
 }
 
 /* ═══ Action bar ═══ */
@@ -771,23 +775,21 @@ html, body {
 
 .rc-player-table { padding: 4px 0 0; }
 .rc-player-row {
-    display: grid;
-    grid-template-columns: 1fr 46px 46px 76px;
-    align-items: center; gap: 4px;
-    padding: 7px 13px;
+    padding: 8px 13px;
     border-top: 1px solid rgba(46,58,71,0.8);
 }
 .rc-player-row:first-child { border-top: none; }
-.rc-head-row {
-    background: var(--card-alt);
-    padding-top: 5px; padding-bottom: 5px;
-}
-.rc-bidder-row { background: rgba(255,154,82,0.05); }
+.rc-bidder-row { background: rgba(200,149,108,0.05); }
 
+.rc-pl-line1 {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 5px;
+}
 .rc-pl-name {
     display: flex; align-items: center; gap: 5px;
     font-size: 13px; font-weight: 600; color: var(--text);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; min-width: 0;
 }
 .rc-bidder-dot {
     width: 5px; height: 5px; border-radius: 50%;
@@ -796,23 +798,50 @@ html, body {
 .rc-bidder-dot.show { opacity: 1; }
 .rc-last-star { font-size: 11px; color: var(--accent); flex-shrink: 0; }
 
-.rc-col-label {
-    font-size: 9px; font-weight: 700; color: var(--dark);
-    text-transform: uppercase; letter-spacing: 0.06em; text-align: right;
+.rc-role-badge {
+    display: inline-flex; align-items: center;
+    padding: 1px 6px; border-radius: 5px;
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+    letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
 }
-.rc-pl-stat {
-    font-family: var(--font-mono); font-size: 13px;
-    font-weight: 500; color: var(--muted); text-align: right;
-}
+
 .rc-pl-delta {
-    font-family: var(--font-mono); font-size: 15px; font-weight: 700;
-    padding: 2px 8px; border-radius: 7px;
+    font-family: var(--font-mono); font-size: 17px; font-weight: 700;
+    padding: 3px 10px; border-radius: 8px;
     background: var(--card-alt); color: var(--text);
-    text-align: right; justify-self: end; min-width: 68px;
+    flex-shrink: 0; margin-left: 8px;
 }
-.rc-pl-delta.pos  { background: rgba(132,207,108,0.12); color: var(--green); }
-.rc-pl-delta.neg  { background: rgba(208,69,69,0.12);   color: var(--red); }
+.rc-pl-delta.pos  { background: rgba(106,172,106,0.15); color: var(--green); }
+.rc-pl-delta.neg  { background: rgba(196,92,92,0.15);   color: var(--red); }
 .rc-pl-delta.zero { background: var(--card-alt); color: var(--dark); }
+
+.rc-pl-calc {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px;
+    font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+}
+.rc-calc-val { font-weight: 700; color: var(--text); }
+.rc-calc-val.pos { color: var(--green); }
+.rc-calc-val.neg { color: var(--red); }
+.rc-calc-label {
+    font-size: 10px; color: var(--dark); text-transform: lowercase; margin-left: 2px;
+}
+.rc-calc-op { padding: 0 5px; color: var(--dark); }
+.rc-calc-op.eq { color: var(--muted); }
+.rc-calc-bonus {
+    display: inline-flex; align-items: baseline; gap: 3px;
+    padding: 1px 6px; border-radius: 5px;
+    background: rgba(106,172,106,0.12);
+}
+.rc-calc-bonus.penalty { background: rgba(196,92,92,0.12); }
+.rc-calc-bonus-label {
+    font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+.rc-pl-note {
+    margin-top: 4px; font-size: 11px; color: var(--dark);
+    font-style: italic;
+}
 
 .rc-foot {
     display: flex; align-items: center;
