@@ -97,10 +97,9 @@
             CustomFields      = _customFields.ToList(),
             StrichlisteMode   = _strichlisteMode,
             InvitedNicks      = _invitedMembers.Select(m => m.Nick).ToList(),
+            PendingInvites    = _invitedMembers.Count > 0 ? _invitedMembers.ToList() : null,
         };
         await OnSave.InvokeAsync(s);
-        if (_invitedMembers.Count > 0)
-            await Storage.AddSpielrundeMembersAsync(s.Id, _invitedMembers);
     }
 }
 

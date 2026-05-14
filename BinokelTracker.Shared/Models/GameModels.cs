@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace BinokelTracker.Models;
 
 public class RuleSet
@@ -235,6 +237,9 @@ public class Spielrunde
     public string? CreatorUserId { get; set; }
     /// <summary>Nicks der eingeladenen Nutzer.</summary>
     public List<string> InvitedNicks { get; set; } = new();
+    /// <summary>Transient: UserId+Nick der einzutragenden Mitglieder. Wird nicht serialisiert.</summary>
+    [JsonIgnore]
+    public List<(string UserId, string Nick)>? PendingInvites { get; set; }
     public int AssValue { get; set; } = 11;
     public int ZehnValue { get; set; } = 10;
     public int KoenigValue { get; set; } = 4;

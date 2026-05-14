@@ -283,6 +283,11 @@
         _state.Spielrunden.Add(s);
         _view = View.SpielrundeList;
         await Save();
+        if (s.PendingInvites?.Count > 0)
+        {
+            try { await Storage.AddSpielrundeMembersAsync(s.Id, s.PendingInvites); }
+            catch (Exception ex) { _saveError = ex.Message; StateHasChanged(); }
+        }
     }
 
     private void SelectGame(long id)
