@@ -101,19 +101,19 @@
     }
     else if (IsAbgegangen)
     {
-        <span class="rc-arrow"> @S.Bids</span> <span class="rc-bid-val">@Round.Bid</span>
+        <span class="rc-arrow"> @S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
         <span class="rc-arrow"> → </span>
         <span class="rc-result-text loss">@S.FoldedWord</span>
     }
     else if (Round.Won)
     {
-        <span class="rc-arrow"> @S.Bids</span> <span class="rc-bid-val">@Round.Bid</span>
+        <span class="rc-arrow"> @S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
         <span class="rc-arrow"> → </span>
         <span class="rc-result-text win">@(BidderMeld + BidderTricks) @S.Points</span>
     }
     else
     {
-        <span class="rc-arrow"> @S.Bids</span> <span class="rc-bid-val">@Round.Bid</span>
+        <span class="rc-arrow"> @S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
         <span class="rc-arrow"> → </span>
         <span class="rc-result-text loss">@S.NotFulfilled</span>
     }
