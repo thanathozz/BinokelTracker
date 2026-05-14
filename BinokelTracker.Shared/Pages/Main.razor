@@ -318,6 +318,7 @@
         if (_editRoundIndex >= 0 && _editRoundIndex < _selectedGame.Rounds.Count)
         {
             _selectedGame.Rounds[_editRoundIndex] = round;
+            _selectedGame.Finished = false;
         }
         else
         {
@@ -344,6 +345,7 @@
         if (_selectedGame != null && index >= 0 && index < _selectedGame.Rounds.Count)
         {
             _selectedGame.Rounds.RemoveAt(index);
+            _selectedGame.Finished = false;
             await Save();
         }
     }
