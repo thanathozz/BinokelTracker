@@ -167,9 +167,23 @@ public class SupabaseGameStorageService : IGameStorageService
 
     public async Task AddSpielrundeMembersAsync(long spielrundeId, IEnumerable<(string UserId, string Nick)> members)
     {
-        var rows = members.Select(m => new MemberRow(spielrundeId, m.UserId, m.Nick)).ToList();
-        if (rows.Count == 0) return;
-        await UpsertAsync("/rest/v1/spielrunde_members", rows);
+        foreach (var m in members)
+        {
+            var body = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                p_spielrunde_id = spielrundeId,
+                p_user_id       = m.UserId,
+                p_nick          = m.Nick
+            });
+            var req  = await AuthorizedRequest(HttpMethod.Post, "/rest/v1/rpc/add_spielrunde_member");
+            req.Content = new StringContent(body, Encoding.UTF8, "application/json");
+            var resp = await _http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var err = await resp.Content.ReadAsStringAsync();
+                throw new Exception($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {err}");
+            }
+        }
     }
 
     private record GameRow(long Id, Game Data, [property: JsonPropertyName("user_id")] string UserId);
