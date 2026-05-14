@@ -26,26 +26,30 @@ internal static class Build
 
     // ── Runden ─────────────────────────────────────────────────────────────
 
-    /// Normale Runde. Won wird automatisch aus Meld+Stiche vs. Reizwert berechnet.
+    /// Normale Runde. Won wird automatisch aus Meld+Stiche+Bonus vs. Reizwert berechnet.
     internal static Round NormalRound(
         int   bidder,
         int   bid,
         int[] meld,
         int[] tricks,
-        bool[]? abgegangen = null)
+        bool[]? abgegangen      = null,
+        int     lastTrickWinner = -1,
+        int     lastTrickBonus  = 10)
     {
         var abg        = abgegangen ?? new bool[meld.Length];
         bool bidderAbg = abg[bidder];
-        bool won       = !bidderAbg && (meld[bidder] + tricks[bidder]) >= bid;
+        int  bonus     = (!bidderAbg && lastTrickWinner == bidder) ? lastTrickBonus : 0;
+        bool won       = !bidderAbg && (meld[bidder] + tricks[bidder] + bonus) >= bid;
 
         return new Round
         {
-            Id     = 1,
-            Type   = RoundType.Normal,
-            Bidder = bidder,
-            Bid    = bid,
-            Won    = won,
-            PlayerScores = meld.Select((m, i) => new PlayerScore
+            Id              = 1,
+            Type            = RoundType.Normal,
+            Bidder          = bidder,
+            Bid             = bid,
+            Won             = won,
+            LastTrickWinner = lastTrickWinner,
+            PlayerScores    = meld.Select((m, i) => new PlayerScore
             {
                 Meld       = m,
                 Tricks     = tricks[i],

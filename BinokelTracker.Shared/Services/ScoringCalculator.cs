@@ -52,7 +52,8 @@ public static class ScoringCalculator
             }
         }
 
-        if (round.LastTrickWinner >= 0 && round.LastTrickWinner < scores.Length)
+        if (round.LastTrickWinner >= 0 && round.LastTrickWinner < scores.Length
+            && scores[round.LastTrickWinner] >= 0)
             scores[round.LastTrickWinner] += rules.LastTrickBonus;
 
         return scores;

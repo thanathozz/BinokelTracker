@@ -154,7 +154,8 @@ public class Round
             }
         }
 
-        if (LastTrickWinner >= 0 && LastTrickWinner < scores.Length)
+        if (LastTrickWinner >= 0 && LastTrickWinner < scores.Length
+            && scores[LastTrickWinner] >= 0)
             scores[LastTrickWinner] += rules.LastTrickBonus;
 
         return scores;
