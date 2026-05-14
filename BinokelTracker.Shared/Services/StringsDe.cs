@@ -208,6 +208,8 @@ public class StringsDe : IStrings
 
     public string DeleteRoundTitle   => "Runde löschen?";
     public string DeleteRoundBody    => "Diese Runde wird unwiderruflich gelöscht.";
+    public string DeleteGameTitle    => "Spiel löschen?";
+    public string DeleteGameBody     => "Dieses Spiel wird mit allen Runden unwiderruflich gelöscht.";
 
     public string ReportBug         => "Bug melden";
     public string NoScreenshot      => "Kein Screenshot verfügbar";

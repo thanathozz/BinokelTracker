@@ -208,6 +208,8 @@ public class StringsSwabian : IStrings
 
     public string DeleteRoundTitle   => "Runde wegschmeißa?";
     public string DeleteRoundBody    => "Des isch dann für immer weg.";
+    public string DeleteGameTitle    => "Spiel wegschmeißa?";
+    public string DeleteGameBody     => "Des ganze Spiel mit alle Runda isch dann für immer weg.";
 
     public string ReportBug         => "Bug melde";
     public string NoScreenshot      => "Koi Screenshot verfügbar";

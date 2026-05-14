@@ -46,6 +46,7 @@
                       SessionTitle="@_activeSession?.Name"
                       OnBack="LeaveSession"
                       OnSelect="SelectGame"
+                      OnDeleteGame="DeleteGame"
                       OnNew="() => _view = View.NewGame"
                       OnQuickGame="() => _view = View.QuickGame"
                       OnRules="() => _rulesDialog!.Open()"
@@ -348,6 +349,12 @@
             _selectedGame.Finished = false;
             await Save();
         }
+    }
+
+    private async Task DeleteGame(long id)
+    {
+        _state.Games.RemoveAll(g => g.Id == id);
+        await Save();
     }
 
     private async Task FinishGame()

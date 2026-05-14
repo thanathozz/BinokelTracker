@@ -1,6 +1,7 @@
 @code {
     [Parameter] public List<Game> Games { get; set; } = new();
     [Parameter] public EventCallback<long> OnSelect { get; set; }
+    [Parameter] public EventCallback<long> OnDeleteGame { get; set; }
     [Parameter] public EventCallback OnNew { get; set; }
     [Parameter] public EventCallback OnQuickGame { get; set; }
     [Parameter] public EventCallback OnRules { get; set; }
@@ -8,6 +9,17 @@
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public string? SessionTitle { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = default!;
+
+    private long? _confirmGameId;
+
+    private void AskDeleteGame(long id)       => _confirmGameId = id;
+    private void CancelDeleteGame()           => _confirmGameId = null;
+    private async Task ConfirmDeleteGame()
+    {
+        if (_confirmGameId is not { } id) return;
+        _confirmGameId = null;
+        await OnDeleteGame.InvokeAsync(id);
+    }
 
     private string FormatDate(Game g) =>
         new DateTime(1970, 1, 1).AddMilliseconds(g.Date).ToLocalTime().ToString("dd. MMM yyyy · HH:mm");
@@ -88,6 +100,13 @@
                                 @(g.Finished ? S.FinishedChip : $"{g.Rounds.Count} {S.RoundsAbbr}")
                             </span>
                         }
+                        <button class="btn" style="padding:2px;color:var(--dark)"
+                                @onclick="() => AskDeleteGame(g.Id)" @onclick:stopPropagation="true">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -138,3 +157,17 @@
         </svg>
     </button>
 </div>
+
+@if (_confirmGameId is not null)
+{
+    <div class="confirm-overlay" @onclick="CancelDeleteGame">
+        <div class="confirm-dialog" @onclick:stopPropagation="true">
+            <div class="confirm-title">@S.DeleteGameTitle</div>
+            <div class="confirm-body">@S.DeleteGameBody</div>
+            <div class="confirm-actions">
+                <button class="btn-secondary" @onclick="CancelDeleteGame">@S.Cancel</button>
+                <button class="btn-danger"    @onclick="ConfirmDeleteGame">@S.Delete</button>
+            </div>
+        </div>
+    </div>
+}
