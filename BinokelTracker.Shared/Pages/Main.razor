@@ -40,6 +40,8 @@
         {
             <NewSpielrundeForm
                 GameType="@_gameType"
+                KnownPlayers="@(AuthService.Session?.DisplayName is { Length: > 0 } dn ? new List<string> { dn } : new List<string>())"
+                CreatorName="@(AuthService.Session?.DisplayName ?? "")"
                 OnSave="AddSpielrunde"
                 OnCancel="() => _view = View.SpielrundeList" />
         }

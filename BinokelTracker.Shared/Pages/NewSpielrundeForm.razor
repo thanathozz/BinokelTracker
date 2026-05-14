@@ -5,6 +5,7 @@
     [Parameter] public EventCallback             OnCancel     { get; set; }
     [Parameter] public List<string>              KnownPlayers { get; set; } = new();
     [Parameter] public string                    GameType     { get; set; } = GameTypeInfo.Binokel;
+    [Parameter] public string                    CreatorName  { get; set; } = "";
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private string       _name            = "";
@@ -59,6 +60,12 @@
     private async Task HandleNickInputKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") await AddMemberByNick();
+    }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrWhiteSpace(CreatorName) && !_players.Contains(CreatorName))
+            _players.Add(CreatorName);
     }
 
     protected override void OnParametersSet()
