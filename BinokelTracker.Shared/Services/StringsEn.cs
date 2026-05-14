@@ -34,6 +34,11 @@ public class StringsEn : IStrings
     public string NoSpielrunde      => "No sessions yet";
     public string NewSpielrunde     => "New Session";
     public string PrivateChip       => "Private";
+    public string SharedChip        => "Shared";
+    public string InviteByNick      => "Invite by Nick";
+    public string AddMember         => "Add";
+    public string NickNotFound      => "Nick not found.";
+    public string MembersLabel      => "Members";
     public string ActiveLabel       => "active";
     public string GamesLabel        => "game(s)";
     public string EnterPassword     => "Enter password";

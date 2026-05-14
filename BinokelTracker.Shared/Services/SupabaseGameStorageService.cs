@@ -83,13 +83,16 @@ public class SupabaseGameStorageService : IGameStorageService
                 await UpsertAsync("/rest/v1/known_players", playerRows);
             }
 
-            // Upsert spielrunden
-            if (state.Spielrunden.Count > 0)
+            // Upsert spielrunden — nur eigene (nicht als Mitglied beigetretene)
+            var ownedSr = state.Spielrunden
+                .Where(s => string.IsNullOrEmpty(s.CreatorUserId) || s.CreatorUserId == userId)
+                .ToList();
+            if (ownedSr.Count > 0)
             {
-                var srRows = state.Spielrunden.Select(s => new SpielrundeRow(s.Id, s, userId));
+                var srRows = ownedSr.Select(s => new SpielrundeRow(s.Id, s, userId));
                 await UpsertAsync("/rest/v1/spielrunden", srRows);
 
-                var srIds = string.Join(",", state.Spielrunden.Select(s => s.Id));
+                var srIds = string.Join(",", ownedSr.Select(s => s.Id));
                 await DeleteAsync($"/rest/v1/spielrunden?id=not.in.({srIds})");
             }
             else
@@ -146,7 +149,37 @@ public class SupabaseGameStorageService : IGameStorageService
         return req;
     }
 
+    public async Task<(string UserId, string Nick)?> FindProfileByNickAsync(string nick)
+    {
+        try
+        {
+            var encoded = Uri.EscapeDataString(nick.ToLowerInvariant());
+            var req  = await AuthorizedRequest(HttpMethod.Get, $"/rest/v1/profiles?nick=eq.{encoded}&select=user_id,nick");
+            var resp = await _http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode) return null;
+            var stream = await resp.Content.ReadAsStreamAsync();
+            var rows = await JsonSerializer.DeserializeAsync<ProfileRow[]>(stream, JsonOpts);
+            if (rows?.Length > 0) return (rows[0].UserId, rows[0].Nick);
+            return null;
+        }
+        catch { return null; }
+    }
+
+    public async Task AddSpielrundeMembersAsync(long spielrundeId, IEnumerable<(string UserId, string Nick)> members)
+    {
+        var rows = members.Select(m => new MemberRow(spielrundeId, m.UserId, m.Nick)).ToList();
+        if (rows.Count == 0) return;
+        await UpsertAsync("/rest/v1/spielrunde_members", rows);
+    }
+
     private record GameRow(long Id, Game Data, [property: JsonPropertyName("user_id")] string UserId);
     private record PlayerRow(string Name, [property: JsonPropertyName("user_id")] string UserId);
     private record SpielrundeRow(long Id, Spielrunde Data, [property: JsonPropertyName("user_id")] string UserId);
+    private record ProfileRow(
+        [property: JsonPropertyName("user_id")] string UserId,
+        string Nick);
+    private record MemberRow(
+        [property: JsonPropertyName("spielrunde_id")] long SpielrundeId,
+        [property: JsonPropertyName("user_id")] string UserId,
+        string Nick);
 }

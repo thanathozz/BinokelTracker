@@ -38,11 +38,18 @@ public interface IStrings
     string NoSpielrunde { get; }
     string NewSpielrunde { get; }
     string PrivateChip { get; }
+    string SharedChip { get; }
     string ActiveLabel { get; }
     string GamesLabel { get; }
     string EnterPassword { get; }
     string PasswordProtected { get; }
     string WrongPassword { get; }
+
+    // Spielrunde invite
+    string InviteByNick   { get; }
+    string AddMember      { get; }
+    string NickNotFound   { get; }
+    string MembersLabel   { get; }
 
     // Game / player form
     string KnownPlayers { get; }

@@ -34,6 +34,11 @@ public class StringsSwabian : IStrings
     public string NoSpielrunde      => "No koi Spielrunde";
     public string NewSpielrunde     => "Neue Spielrunde";
     public string PrivateChip       => "Privat";
+    public string SharedChip        => "Geteilt";
+    public string InviteByNick      => "Per Nick eilade";
+    public string AddMember         => "Dazua";
+    public string NickNotFound      => "Nick net gfunda.";
+    public string MembersLabel      => "Mitglieder";
     public string ActiveLabel       => "laufend";
     public string GamesLabel        => "Spiel(e)";
     public string EnterPassword     => "Passwort eingeba";

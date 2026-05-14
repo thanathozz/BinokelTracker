@@ -34,7 +34,12 @@ public class StringsDe : IStrings
     public string NoSpielrunde      => "Noch keine Spielrunde";
     public string NewSpielrunde     => "Neue Spielrunde";
     public string PrivateChip       => "Privat";
+    public string SharedChip        => "Geteilt";
     public string ActiveLabel       => "laufend";
+    public string InviteByNick      => "Per Nick einladen";
+    public string AddMember         => "Hinzufügen";
+    public string NickNotFound      => "Nick nicht gefunden.";
+    public string MembersLabel      => "Mitglieder";
     public string GamesLabel        => "Spiel(e)";
     public string EnterPassword     => "Passwort eingeben";
     public string PasswordProtected => "ist passwortgeschützt";

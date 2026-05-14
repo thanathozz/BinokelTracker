@@ -1,3 +1,5 @@
+@inject IGameStorageService Storage
+
 @code {
     [Parameter] public EventCallback<Spielrunde> OnSave       { get; set; }
     [Parameter] public EventCallback             OnCancel     { get; set; }
@@ -19,6 +21,45 @@
     private int          _abgegangenBonus = 10;
     private List<CustomField> _customFields = new();
     private bool _strichlisteMode = false;
+
+    // ── Nick-Invite ──────────────────────────────────────────────────
+    private List<(string Nick, string UserId)> _invitedMembers = new();
+    private string  _nickInput      = "";
+    private bool    _nickSearching  = false;
+    private string? _nickSearchError;
+
+    private async Task AddMemberByNick()
+    {
+        var nick = _nickInput.Trim().ToLowerInvariant().TrimStart('@');
+        if (string.IsNullOrEmpty(nick)) return;
+        if (_invitedMembers.Any(m => m.Nick == nick)) { _nickInput = ""; return; }
+
+        _nickSearching  = true;
+        _nickSearchError = null;
+        StateHasChanged();
+
+        var result = await Storage.FindProfileByNickAsync(nick);
+
+        _nickSearching = false;
+        if (result is null)
+        {
+            _nickSearchError = S.NickNotFound;
+        }
+        else
+        {
+            _invitedMembers.Add((result.Value.Nick, result.Value.UserId));
+            _nickInput       = "";
+            _nickSearchError = null;
+        }
+    }
+
+    private void RemoveMember(string nick) =>
+        _invitedMembers.RemoveAll(m => m.Nick == nick);
+
+    private async Task HandleNickInputKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await AddMemberByNick();
+    }
 
     protected override void OnParametersSet()
     {
@@ -55,8 +96,11 @@
             AbgegangenBonusPerPlayer = _abgegangenBonus,
             CustomFields      = _customFields.ToList(),
             StrichlisteMode   = _strichlisteMode,
+            InvitedNicks      = _invitedMembers.Select(m => m.Nick).ToList(),
         };
         await OnSave.InvokeAsync(s);
+        if (_invitedMembers.Count > 0)
+            await Storage.AddSpielrundeMembersAsync(s.Id, _invitedMembers);
     }
 }
 
@@ -117,6 +161,43 @@
                     <div style="color:var(--red);font-size:13px;margin-top:6px">@S.PasswordMismatch</div>
                 }
             </div>
+        }
+
+        <label class="form-label" style="margin-bottom:8px">@S.InviteByNick</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input class="form-input" style="flex:1;font-family:var(--font-mono)"
+                   placeholder="@("@nick")"
+                   value="@_nickInput"
+                   @oninput="e => _nickInput = e.Value?.ToString() ?? string.Empty"
+                   @onkeydown="HandleNickInputKeyDown" />
+            <button class="btn-outline" style="padding:8px 14px;white-space:nowrap" type="button"
+                    disabled="@_nickSearching"
+                    @onclick="AddMemberByNick">
+                @(_nickSearching ? "…" : S.AddMember)
+            </button>
+        </div>
+        @if (_nickSearchError != null)
+        {
+            <div style="color:var(--red);font-size:13px;margin-bottom:8px">@_nickSearchError</div>
+        }
+        @if (_invitedMembers.Count > 0)
+        {
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+                @foreach (var m in _invitedMembers)
+                {
+                    var nick = m.Nick;
+                    <span class="chip chip-accent" style="display:flex;align-items:center;gap:5px;font-family:var(--font-mono)">
+                        @@@nick
+                        <button type="button"
+                                style="background:none;border:none;cursor:pointer;color:inherit;padding:0;line-height:1;font-size:14px;opacity:0.7"
+                                @onclick="() => RemoveMember(nick)">✕</button>
+                    </span>
+                }
+            </div>
+        }
+        else
+        {
+            <div style="margin-bottom:14px"></div>
         }
 
         @if (GameTypeInfo.IsBinokel(GameType))

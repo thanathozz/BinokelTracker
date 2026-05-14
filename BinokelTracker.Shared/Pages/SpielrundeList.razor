@@ -146,10 +146,15 @@
         {
             var gameCount  = GameCount(s);
             var activeCount = ActiveCount(s);
+            var isShared = !string.IsNullOrEmpty(s.CreatorUserId) && s.CreatorUserId != AuthService.Session?.UserId;
             <div class="game-card" @onclick="() => TryEnter(s)">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                     <span style="font-size:16px;font-weight:700">@s.Name</span>
                     <div style="display:flex;gap:6px;align-items:center">
+                        @if (isShared)
+                        {
+                            <span class="chip chip-blue">@S.SharedChip</span>
+                        }
                         @if (!string.IsNullOrEmpty(s.PasswordHash))
                         {
                             <span class="chip chip-muted">@S.PrivateChip</span>
@@ -163,6 +168,15 @@
                         @foreach (var p in s.Players)
                         {
                             <span class="chip chip-accent">@p</span>
+                        }
+                    </div>
+                }
+                @if (s.InvitedNicks.Count > 0)
+                {
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+                        @foreach (var nick in s.InvitedNicks)
+                        {
+                            <span class="chip chip-muted" style="font-family:var(--font-mono)">@@@nick</span>
                         }
                     </div>
                 }

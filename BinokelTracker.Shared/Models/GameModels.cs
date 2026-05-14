@@ -231,6 +231,10 @@ public class Spielrunde
     public List<string> Players { get; set; } = new();
     /// <summary>SHA-256 Hex des Passworts, oder null = kein Passwort.</summary>
     public string? PasswordHash { get; set; }
+    /// <summary>UserId des Erstellers — zum Erkennen ob die Spielrunde geteilt ist.</summary>
+    public string? CreatorUserId { get; set; }
+    /// <summary>Nicks der eingeladenen Nutzer.</summary>
+    public List<string> InvitedNicks { get; set; } = new();
     public int AssValue { get; set; } = 11;
     public int ZehnValue { get; set; } = 10;
     public int KoenigValue { get; set; } = 4;
