@@ -52,17 +52,19 @@ window.PullToRefresh = {
         el.textContent = '↻';
         document.body.appendChild(el);
 
-        const content = document.querySelector('.app-content');
-        if (!content) return;
+        const scrollTop = () => {
+            const c = document.querySelector('.app-content');
+            return c ? c.scrollTop : 0;
+        };
 
-        content.addEventListener('touchstart', e => {
-            if (content.scrollTop === 0 && !refreshing) {
+        document.addEventListener('touchstart', e => {
+            if (scrollTop() <= 2 && !refreshing) {
                 startY = e.touches[0].clientY;
                 pulling = true;
             }
         }, { passive: true });
 
-        content.addEventListener('touchmove', e => {
+        document.addEventListener('touchmove', e => {
             if (!pulling) return;
             const dy = e.touches[0].clientY - startY;
             if (dy > 8) {
@@ -72,7 +74,7 @@ window.PullToRefresh = {
             }
         }, { passive: true });
 
-        content.addEventListener('touchend', e => {
+        document.addEventListener('touchend', e => {
             if (!pulling) return;
             pulling = false;
             el.style.transition = 'top 0.18s ease, opacity 0.18s';
