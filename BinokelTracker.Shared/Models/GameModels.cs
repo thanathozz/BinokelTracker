@@ -142,7 +142,7 @@ public class Round
             }
             else
             {
-                bool isPartner = rules.TeamMode && PlayerScores.Count == 4 && i == (Bidder + 2) % 4;
+                bool isPartner = rules.TeamMode && PlayerScores.Count == 4 && i == (Bidder ^ 1);
                 if (ps.Abgegangen)
                     scores[i] = 0;
                 else if (bidderAbgegangen && isPartner)
@@ -210,8 +210,8 @@ public class Game
         foreach (var r in Rounds)
         {
             var sc = r.CalcScores(Rules);
-            t[0] += sc[0] + sc[2];
-            t[1] += sc[1] + sc[3];
+            t[0] += sc[0] + sc[1];
+            t[1] += sc[2] + sc[3];
         }
 
         return t;

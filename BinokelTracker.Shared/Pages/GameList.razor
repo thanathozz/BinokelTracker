@@ -118,7 +118,7 @@
                             var score = teamT[ti];
                             var tc = ti == 0 ? "var(--blue)" : "var(--tuerkis)";
                             <div style="flex:1;text-align:center;padding:6px 4px;border-radius:8px;border-top:3px solid @tc">
-                                <div style="font-size:11px;color:@tc">@g.Players[ti] & @g.Players[ti + 2]</div>
+                                <div style="font-size:11px;color:@tc">@g.Players[ti * 2] & @g.Players[ti * 2 + 1]</div>
                                 <div class="score-value @(score >= 0 ? "positive" : "negative")" style="font-size:20px">@score</div>
                             </div>
                         }

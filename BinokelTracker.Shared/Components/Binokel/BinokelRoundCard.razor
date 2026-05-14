@@ -155,7 +155,7 @@
     {
         var pIdx      = pi;
         var isBidder  = pIdx == Round.Bidder;
-        var isPartner = Rules.TeamMode && Players.Count == 4 && pIdx == (Round.Bidder + 2) % 4;
+        var isPartner = Rules.TeamMode && Players.Count == 4 && pIdx == (Round.Bidder ^ 1);
         var delta     = Scores.Length > pIdx ? Scores[pIdx] : 0;
         var bd        = (!IsSpecial && pIdx < Breakdown.Length) ? Breakdown[pIdx] : null;
         var ps        = Round.PlayerScores.Count > pIdx ? Round.PlayerScores[pIdx] : new PlayerScore();
@@ -170,8 +170,10 @@
                     || (bd != null && bd.IsLoss)
                     || (bd != null && bd.Bonus > 0)
                     || (bd != null && bd.LastTrickBonus > 0);
+        bool isTeamFirst = Rules.TeamMode && Players.Count == 4 && pIdx % 2 == 0;
+        bool isTeamLast  = Rules.TeamMode && Players.Count == 4 && pIdx % 2 == 1;
 
-        <div class="prow @((isBidder || isPartner) ? "bidder" : "") @(Rules.TeamMode && Players.Count == 4 ? (pIdx % 2 == 0 ? "team1" : "team2") : "")">
+        <div class="prow @((isBidder || isPartner) ? "bidder" : "") @(Rules.TeamMode && Players.Count == 4 ? (pIdx < 2 ? "team1" : "team2") : "") @(isTeamFirst ? "team-first" : "") @(isTeamLast ? "team-last" : "")">
             <div class="pc-name">
                 <span class="pc-name-marker"></span>
                 @Players[pIdx]

@@ -830,6 +830,15 @@ html, body {
 .prow.team1 .pc-name-marker { opacity: 1; background: var(--blue); }
 .prow.team2 .pc-name-marker { opacity: 1; background: var(--tuerkis); }
 .prow.team1.bidder > div { background: rgba(125,169,232,0.07); }
+/* Team bracket: box outline connecting same-team player rows */
+.prow.team-first.team1 > div { border-top: 1.5px solid rgba(125,169,232,0.5); }
+.prow.team-last.team1  > div { border-bottom: 1.5px solid rgba(125,169,232,0.5); }
+.prow.team-first.team2 > div { border-top: 1.5px solid rgba(90,214,192,0.5); }
+.prow.team-last.team2  > div { border-bottom: 1.5px solid rgba(90,214,192,0.5); }
+.prow.team1 .pc-name  { border-left: 2px solid var(--blue); }
+.prow.team2 .pc-name  { border-left: 2px solid var(--tuerkis); }
+.prow.team1 .pc-total { border-right: 2px solid var(--blue); }
+.prow.team2 .pc-total { border-right: 2px solid var(--tuerkis); }
 .pc-role {
     font-size: 9px; font-weight: 700; color: var(--tuerkis);
     background: rgba(90,214,192,0.12); padding: 1px 5px; border-radius: 4px;

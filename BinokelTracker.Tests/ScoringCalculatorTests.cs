@@ -106,19 +106,19 @@ public class ScoringCalculatorTests
     [Fact]
     public void Team_Reizer_abgegangen_bestraft_auch_Partner()
     {
-        // 4 Spieler, TeamMode: Bidder=0, Partner=2, Gegner=1,3
+        // 4 Spieler, TeamMode (1-1-2-2): Bidder=0, Partner=1, Gegner=2,3
         // Bonus = 4 × 10 = 40
         var round = Build.NormalRound(
             bidder: 0, bid: 300,
-            meld:   new[] { 0, 100, 50, 80 },
-            tricks: new[] { 0,   0,  0,  0 },
+            meld:   new[] { 0, 0, 100, 80 },
+            tricks: new[] { 0, 0,   0,  0 },
             abgegangen: new[] { true, false, false, false });
 
         var scores = ScoringCalculator.CalcRoundScores(round, Build.Rules.TeamMode());
 
         scores[0].Should().Be(-300);        // Reizer zahlt Reizwert
-        scores[2].Should().Be(-300);        // Partner zahlt ebenfalls Reizwert
-        scores[1].Should().Be(100 + 40);    // Gegner: Meld + Bonus
+        scores[1].Should().Be(-300);        // Partner zahlt ebenfalls Reizwert
+        scores[2].Should().Be(100 + 40);    // Gegner: Meld + Bonus
         scores[3].Should().Be( 80 + 40);    // Gegner: Meld + Bonus
     }
 
@@ -286,9 +286,9 @@ public class ScoringCalculatorTests
     // ══════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void GetTeamTotals_addiert_Spieler_0_plus_2_fuer_Team_0()
+    public void GetTeamTotals_addiert_Spieler_0_plus_1_fuer_Team_0()
     {
-        // Team 0: Spieler 0 + 2 | Team 1: Spieler 1 + 3
+        // Team 0: Spieler 0 + 1 | Team 1: Spieler 2 + 3
         var game = Build.Game(new[] { "A", "B", "C", "D" }, Build.Rules.TeamMode());
         game.Rounds.Add(new Round
         {

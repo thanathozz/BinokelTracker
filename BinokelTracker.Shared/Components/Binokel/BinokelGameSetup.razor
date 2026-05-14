@@ -255,10 +255,10 @@ else
 {
     var idx = i;
     var locked = _lockedPlayers.Contains(_players[idx]);
-    var ts = _rules.TeamMode ? $"border-left:3px solid {(idx % 2 == 0 ? "var(--blue)" : "var(--tuerkis)")};padding-left:8px;" : "";
+    var ts = _rules.TeamMode ? $"border-left:3px solid {(idx < 2 ? "var(--blue)" : "var(--tuerkis)")};padding-left:8px;" : "";
     <div style="margin-bottom:10px;@ts">
         <input class="form-input" value="@_players[idx]"
-               placeholder="@(_rules.TeamMode ? $"{(idx % 2 == 0 ? "Team 1" : "Team 2")} — {S.Players} {idx / 2 + 1}" : $"{S.Players} {idx + 1}")"
+               placeholder="@(_rules.TeamMode ? $"{(idx < 2 ? "Team 1" : "Team 2")} — {S.Players} {idx % 2 + 1}" : $"{S.Players} {idx + 1}")"
                style="@(locked ? "opacity:0.5;background:var(--input-bg,var(--card));cursor:default" : "")"
                disabled="@locked"
                @oninput="e => _players[idx] = e.Value?.ToString() ?? string.Empty" />

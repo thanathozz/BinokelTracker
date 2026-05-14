@@ -65,7 +65,7 @@ public class StringsDe : IStrings
     public string AllowBettel       => "Bettel erlaubt";
     public string AllowAbgehen      => "Abgehen erlaubt";
     public string DurchSeparate     => "Durch-Punkte separat";
-    public string TeamHint          => "Spieler 1 & 3 = Team 1 · Spieler 2 & 4 = Team 2 (Kreuz)";
+    public string TeamHint          => "Spieler 1 & 2 = Team 1 · Spieler 3 & 4 = Team 2";
     public string Teams             => "Teams (Kreuz)";
     public string Goal              => "Ziel:";
     public string Missing           => "fehlen";

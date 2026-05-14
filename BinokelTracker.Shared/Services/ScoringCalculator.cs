@@ -40,7 +40,7 @@ public static class ScoringCalculator
             else
             {
                 bool isPartner = rules.TeamMode && round.PlayerScores.Count == 4
-                                 && i == (round.Bidder + 2) % 4;
+                                 && i == (round.Bidder ^ 1);
                 if (ps.Abgegangen)
                     scores[i] = 0;
                 else if (bidderAbgegangen && isPartner)   // Team-Mitspieler → gleiche Strafe wie Reizer
@@ -92,8 +92,8 @@ public static class ScoringCalculator
         foreach (var round in game.Rounds)
         {
             var scores = CalcRoundScores(round, game.Rules);
-            t[0] += scores[0] + scores[2];
-            t[1] += scores[1] + scores[3];
+            t[0] += scores[0] + scores[1];
+            t[1] += scores[2] + scores[3];
         }
         return t;
     }
@@ -154,7 +154,7 @@ public static class ScoringCalculator
             }
             else
             {
-                bool isPartner = rules.TeamMode && playerCount == 4 && i == (bidder + 2) % 4;
+                bool isPartner = rules.TeamMode && playerCount == 4 && i == (bidder ^ 1);
                 if (bidderAbgegangen && isPartner)
                 {
                     finalScore = rules.DoubleMinus ? -(bidValue * 2) : -bidValue;
