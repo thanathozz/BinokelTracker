@@ -197,10 +197,13 @@
                 }
                 else if (bd != null && bd.IsLoss)
                 {
-                    var lossLbl = isBidder ? S.ModBidDeducted : S.BidderFolded;
+                    var lossLbl   = (!isBidder || bd.IsAbgegangen) ? S.BidderFolded : S.NotFulfilled;
+                    var lossValue = Rules.DoubleMinus
+                        ? $"-{Round.Bid} × 2"
+                        : $"-{Round.Bid}";
                     <span class="mod-pill mod-neg">
                         <span class="mod-label">@lossLbl</span>
-                        <span class="mod-value">@bd.FinalScore</span>
+                        <span class="mod-value">@lossValue</span>
                     </span>
                 }
                 @if (bd != null && bd.Bonus > 0)
