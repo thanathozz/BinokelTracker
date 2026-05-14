@@ -42,7 +42,8 @@ public class AuthService : IAuthService
                 ExpiresAt    = stored.ExpiresAt,
                 UserId       = ExtractJwtClaim(stored.AccessToken, "sub")          ?? "",
                 Email        = ExtractJwtClaim(stored.AccessToken, "email")        ?? "",
-                DisplayName  = ExtractJwtMetadataClaim(stored.AccessToken, "display_name") ?? ""
+                DisplayName  = ExtractJwtMetadataClaim(stored.AccessToken, "display_name") ?? "",
+                IsAdmin      = ExtractIsAdmin(stored.AccessToken)
             };
 
             if (!candidate.IsExpired)
@@ -197,7 +198,8 @@ public class AuthService : IAuthService
         ExpiresAt    = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + r.ExpiresIn,
         UserId       = r.User.Id,
         Email        = r.User.Email,
-        DisplayName  = r.User.UserMetadata?.DisplayName ?? ""
+        DisplayName  = r.User.UserMetadata?.DisplayName ?? "",
+        IsAdmin      = ExtractIsAdmin(r.AccessToken)
     };
 
     private async Task PersistSessionAsync(AuthSession s)
@@ -216,6 +218,23 @@ public class AuthService : IAuthService
             return doc.RootElement.TryGetProperty(claim, out var el) ? el.GetString() : null;
         }
         catch { return null; }
+    }
+
+    private static bool ExtractIsAdmin(string jwt)
+    {
+        try
+        {
+            var parts  = jwt.Split('.');
+            if (parts.Length < 2) return false;
+            var padded = parts[1].PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=');
+            var bytes  = Convert.FromBase64String(padded.Replace('-', '+').Replace('_', '/'));
+            var doc    = JsonDocument.Parse(bytes);
+            if (doc.RootElement.TryGetProperty("app_metadata", out var meta) &&
+                meta.TryGetProperty("role", out var role))
+                return role.GetString() == "admin";
+            return false;
+        }
+        catch { return false; }
     }
 
     private static string? ExtractJwtMetadataClaim(string jwt, string claim)
