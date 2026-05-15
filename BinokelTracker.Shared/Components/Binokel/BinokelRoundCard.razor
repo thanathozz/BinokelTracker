@@ -234,24 +234,3 @@
     }
 </div>
 
-<!-- Footer info chip -->
-@{
-    string footText = "";
-    bool   footLoss = false;
-    if (IsSpecial)
-    {
-        footText = S.SpecialRoundNote;
-    }
-    else if (IsAbgegangen)
-    {
-        footText = S.BidderFoldedNote;
-        footLoss = true;
-    }
-
-}
-@if (!string.IsNullOrEmpty(footText))
-{
-    <div class="rc-foot">
-        <span class="rc-foot-chip @(footLoss ? "rc-foot-loss" : "")">@footText</span>
-    </div>
-}
