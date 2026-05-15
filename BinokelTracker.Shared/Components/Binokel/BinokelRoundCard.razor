@@ -247,10 +247,7 @@
         footText = S.BidderFoldedNote;
         footLoss = true;
     }
-    else if (Round.LastTrickWinner >= 0 && Round.LastTrickWinner < Players.Count)
-    {
-        footText = string.Format(S.LastTrickNote, Rules.LastTrickBonus, Players[Round.LastTrickWinner]);
-    }
+
 }
 @if (!string.IsNullOrEmpty(footText))
 {
