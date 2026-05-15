@@ -22,6 +22,7 @@
     private int          _abgegangenBonus = 10;
     private List<CustomField> _customFields = new();
     private bool _strichlisteMode = false;
+    private bool _showAdvanced = false;
 
     // ── Nick-Invite ──────────────────────────────────────────────────
     private List<(string UserId, string Nick)> _invitedMembers = new();
@@ -208,14 +209,23 @@
 
         @if (GameTypeInfo.IsBinokel(GameType))
         {
-            <BinokelSpielrundeSettings
-                @bind-AssValue="_assValue"
-                @bind-ZehnValue="_zehnValue"
-                @bind-KoenigValue="_koenigValue"
-                @bind-OberValue="_oberValue"
-                @bind-UnterValue="_unterValue"
-                @bind-LastTrickBonus="_lastTrickBonus"
-                @bind-AbgegangenBonus="_abgegangenBonus" />
+            <button class="adv-toggle" @onclick="() => _showAdvanced = !_showAdvanced">
+                <span>Erweitert</span>
+                <svg class="adv-chevron @(_showAdvanced ? "open" : "")" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </button>
+            @if (_showAdvanced)
+            {
+                <BinokelSpielrundeSettings
+                    @bind-AssValue="_assValue"
+                    @bind-ZehnValue="_zehnValue"
+                    @bind-KoenigValue="_koenigValue"
+                    @bind-OberValue="_oberValue"
+                    @bind-UnterValue="_unterValue"
+                    @bind-LastTrickBonus="_lastTrickBonus"
+                    @bind-AbgegangenBonus="_abgegangenBonus" />
+            }
         }
 
         @if (!GameTypeInfo.IsBinokel(GameType))
@@ -259,3 +269,15 @@
         </button>
     </div>
 </div>
+
+<style>
+    .adv-toggle {
+        display: flex; align-items: center; justify-content: space-between;
+        width: 100%; padding: 10px 0; background: none; border: none;
+        border-top: 1px solid var(--border); cursor: pointer;
+        color: var(--muted); font-size: 14px; font-weight: 600;
+        margin-bottom: 4px;
+    }
+    .adv-chevron { transition: transform 0.2s; }
+    .adv-chevron.open { transform: rotate(180deg); }
+</style>
