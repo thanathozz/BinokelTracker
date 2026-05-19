@@ -87,6 +87,12 @@ public class AddRoundViewModel
     /// Summe aller eingegebenen Stichpunkte
     public int TricksSum => Tricks.Sum(t => int.TryParse(t, out var v) ? v : 0);
 
+    /// Angezeigte Stichsumme (inkl. LastTrickBonus — wird immer vergeben)
+    public int TricksSumDisplay => TricksSum + _game.Rules.LastTrickBonus;
+
+    /// Angezeigtes Maximum (inkl. LastTrickBonus)
+    public int MaxTricksTotalDisplay => MaxTricksTotal + _game.Rules.LastTrickBonus;
+
     /// Sind die Stichpunkte gültig (Summe == Maximum)?
     public bool TricksSumValid => TricksSum == MaxTricksTotal;
 
@@ -222,7 +228,48 @@ public class AddRoundViewModel
 
     public void SetLastTrickWinner(int idx) => LastTrickWinner = idx;
 
-    public void ToggleAbgegangen(int idx) => Abgegangen[idx] = !Abgegangen[idx];
+    // Tracks which slot was last auto-filled so it can be recalculated as the user keeps typing.
+    private int _autoFilledIdx = -1;
+
+    public void SetTrick(int idx, string value)
+    {
+        Tricks[idx] = value;
+        if (Tricks.Count != 3) return;
+        if (!int.TryParse(value, out int cur)) return; // empty / partial input → leave auto-filled slot as-is
+
+        // User manually editing the auto-filled slot → stop tracking it
+        if (idx == _autoFilledIdx) { _autoFilledIdx = -1; return; }
+
+        var others = Enumerable.Range(0, 3)
+            .Where(i => i != idx)
+            .Select(i => (ok: int.TryParse(Tricks[i], out var v), v, i))
+            .ToList();
+        var empty = others.Where(x => !x.ok).ToList();
+
+        if (empty.Count == 1)
+        {
+            int auto = MaxTricksTotal - cur - others.First(x => x.ok).v;
+            if (auto >= 0) { _autoFilledIdx = empty[0].i; Tricks[_autoFilledIdx] = auto.ToString(); }
+            else             Tricks[empty[0].i] = "";
+        }
+        else if (empty.Count == 0 && _autoFilledIdx >= 0)
+        {
+            // All slots filled: recalculate the previously auto-filled one
+            int auto = MaxTricksTotal - cur - others.First(x => x.i != _autoFilledIdx).v;
+            Tricks[_autoFilledIdx] = auto >= 0 ? auto.ToString() : "";
+        }
+    }
+
+    public void ToggleAbgegangen(int idx)
+    {
+        Abgegangen[idx] = !Abgegangen[idx];
+        // Bidder just folded → clear all tricks so TricksSum == 0 and trueAbgang is detected correctly
+        if (idx == Bidder && Abgegangen[idx])
+        {
+            for (int i = 0; i < Tricks.Count; i++) Tricks[i] = "";
+            _autoFilledIdx = -1;
+        }
+    }
 
     public void ToggleWon() => Won = !Won;
 
@@ -319,12 +366,13 @@ public class AddRoundViewModel
 
     private void ResetInputs()
     {
-        Step       = 0;
-        Forward    = true;
-        Trumpf     = null;
-        Abgegangen = _game.Players.Select(_ => false).ToList();
-        Meld       = _game.Players.Select(_ => "").ToList();
-        Tricks     = _game.Players.Select(_ => "").ToList();
+        Step           = 0;
+        Forward        = true;
+        Trumpf         = null;
+        _autoFilledIdx = -1;
+        Abgegangen     = _game.Players.Select(_ => false).ToList();
+        Meld           = _game.Players.Select(_ => "").ToList();
+        Tricks         = _game.Players.Select(_ => "").ToList();
         Scanning   = new bool[_game.Players.Count];
         ScanError  = new string?[_game.Players.Count];
         ScanResult = new IReadOnlyList<DetectedMeld>?[_game.Players.Count];

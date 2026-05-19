@@ -25,7 +25,7 @@
     {
         OnOpenCalculator?.Invoke(Game.Players, (idx, score) =>
         {
-            _vm.Tricks[idx] = score.ToString();
+            _vm.SetTrick(idx, score.ToString());
             InvokeAsync(StateHasChanged);
         });
     }
@@ -238,7 +238,7 @@
                                 <input class="form-input form-input-center" type="number" inputmode="numeric"
                                        value="@_vm.Tricks[idx]" placeholder="0"
                                        disabled="@(_vm.BidderAbgegangen || _vm.Abgegangen[idx])"
-                                       @oninput="e => _vm.Tricks[idx] = e.Value?.ToString() ?? string.Empty" />
+                                       @oninput="e => _vm.SetTrick(idx, e.Value?.ToString() ?? string.Empty)" />
                             </div>
                         </div>
                     </div>
@@ -250,8 +250,8 @@
                             background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
                             border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
                             color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
-                    @S.TricksSum <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
-                    @if (!_vm.TricksSumValid && _vm.TricksSum > 0) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotal)</div> }
+                    @S.TricksSum <strong>@_vm.TricksSumDisplay</strong> / @_vm.MaxTricksTotalDisplay
+                    @if (!_vm.TricksSumValid && _vm.TricksSum > 0) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotalDisplay)</div> }
                 </div>
                 <div class="form-group" style="margin-top:10px">
                     <label class="form-label">@S.LastTrickLabel</label>
@@ -388,15 +388,15 @@
                         </div>
                         <input class="form-input form-input-center" type="number" inputmode="numeric"
                                value="@_vm.Tricks[idx]" placeholder="0"
-                               @oninput="e => _vm.Tricks[idx] = e.Value?.ToString() ?? string.Empty" />
+                               @oninput="e => _vm.SetTrick(idx, e.Value?.ToString() ?? string.Empty)" />
                     </div>
                 }
                 <div style="margin-top:12px;padding:8px 12px;border-radius:8px;font-size:14px;
                             background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
                             border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
                             color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
-                    @S.TricksSum <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
-                    @if (!_vm.TricksSumValid) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotal)</div> }
+                    @S.TricksSum <strong>@_vm.TricksSumDisplay</strong> / @_vm.MaxTricksTotalDisplay
+                    @if (!_vm.TricksSumValid) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotalDisplay)</div> }
                 </div>
                 @if (OnOpenCalculator != null)
                 {
