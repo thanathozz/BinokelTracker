@@ -22,6 +22,8 @@ public static class ScoringCalculator
 
         bool bidderAbgegangen = round.PlayerScores.Count > round.Bidder
                                 && round.PlayerScores[round.Bidder].Abgegangen;
+        bool gameWasPlayed = round.PlayerScores.Any(ps => ps.Tricks > 0);
+        bool awardAbgBonus = bidderAbgegangen && !gameWasPlayed;
         int abgBonus = round.PlayerScores.Count * rules.AbgegangenBonusPerPlayer;
 
         for (int i = 0; i < round.PlayerScores.Count; i++)
@@ -45,8 +47,10 @@ public static class ScoringCalculator
                     scores[i] = 0;
                 else if (bidderAbgegangen && isPartner)   // Team-Mitspieler → gleiche Strafe wie Reizer
                     scores[i] = rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid;
+                else if (awardAbgBonus)
+                    scores[i] = effectiveMeld + abgBonus; // Abgang vor Spiel → Meld + Bonus
                 else if (bidderAbgegangen)
-                    scores[i] = effectiveMeld + abgBonus; // Gegner → Meld + Bonus
+                    scores[i] = total; // Spiel gespielt → normale Punkte, kein Bonus
                 else
                     scores[i] = total;
             }
@@ -113,6 +117,8 @@ public static class ScoringCalculator
     {
         int playerCount = meld.Length;
         bool bidderAbgegangen = abgegangen.ElementAtOrDefault(bidder);
+        int totalTricks = tricks.Sum();
+        bool awardAbgBonus = bidderAbgegangen && totalTricks == 0;
         int abgBonus = playerCount * rules.AbgegangenBonusPerPlayer;
         var result = new ScoreBreakdown[playerCount];
 
@@ -163,10 +169,16 @@ public static class ScoringCalculator
                     mVal = 0;
                     tVal = 0;
                 }
-                else if (bidderAbgegangen)
+                else if (awardAbgBonus)
                 {
                     bonus = abgBonus;
                     finalScore = effectiveMeld + bonus;
+                    isLoss = false;
+                    lossReason = null;
+                }
+                else if (bidderAbgegangen) // Spiel gespielt → kein Bonus, normale Punkte
+                {
+                    finalScore = effectiveMeld + tVal;
                     isLoss = false;
                     lossReason = null;
                 }

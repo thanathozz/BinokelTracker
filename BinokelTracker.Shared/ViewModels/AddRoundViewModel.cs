@@ -106,8 +106,8 @@ public class AddRoundViewModel
     public IReadOnlyList<FormStep> ActiveSteps => IsSpecial
         ? new[] { FormStep.Spielart, FormStep.Ergebnis }
         : BidderAbgegangen
-            ? new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Ergebnis }
-            : new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Stiche, FormStep.Ergebnis };
+            ? new[] { FormStep.Spielart, FormStep.Melden, FormStep.Ergebnis }
+            : new[] { FormStep.Spielart, FormStep.Melden, FormStep.Stiche, FormStep.Ergebnis };
 
     public int      TotalSteps   => ActiveSteps.Count;
     public FormStep CurrentStep  => ActiveSteps[Step];
@@ -116,7 +116,6 @@ public class AddRoundViewModel
     private static string StepLabel(FormStep s) => s switch
     {
         FormStep.Spielart => "Spieler",
-        FormStep.Reizwert => "Reizwert",
         FormStep.Melden   => "Gemeldet",
         FormStep.Stiche       => "Stiche",
         FormStep.LetzterStich => "Letzter Stich",
@@ -127,8 +126,8 @@ public class AddRoundViewModel
     /// Darf der Benutzer zum nächsten Schritt?
     public bool CanAdvance => CurrentStep switch
     {
-        FormStep.Reizwert when !IsSpecial => BidValue > 0,       // Reizwert muss eingegeben sein
-        FormStep.Stiche                   => TricksSumValid,     // Stiche müssen genau MaxTricksTotal ergeben
+        FormStep.Spielart when !IsSpecial => BidValue > 0,       // Reizwert muss eingegeben sein
+        FormStep.Stiche                   => TricksSumValid,
         _                                 => true
     };
 
@@ -264,30 +263,36 @@ public class AddRoundViewModel
     /// Detaillierte Punktevorschau für jeden Spieler (Schritt "Ergebnis")
     public ScoreBreakdown[] GetScorePreviews()
     {
-        var meld   = Meld.Select(m => int.TryParse(m, out var v) ? v : 0).ToArray();
-        var tricks = Tricks.Select(t => int.TryParse(t, out var v) ? v : 0).ToArray();
+        var meld      = Meld.Select(m => int.TryParse(m, out var v) ? v : 0).ToArray();
+        var tricks    = Tricks.Select(t => int.TryParse(t, out var v) ? v : 0).ToArray();
+        bool trueAbgang = BidderAbgegangen && TricksSum == 0;
+        var abgArray  = Abgegangen.Select((a, i) => a && (i != Bidder || trueAbgang)).ToArray();
         return ScoringCalculator.CalcNormalPreview(
-            Bidder, BidValue, Abgegangen.ToArray(), meld, tricks, _game.Rules,
-            BidderAbgegangen ? -1 : LastTrickWinner);
+            Bidder, BidValue, abgArray, meld, tricks, _game.Rules,
+            trueAbgang ? -1 : LastTrickWinner);
     }
 
     /// Baut das fertige Round-Objekt zum Speichern
-    public Round BuildRound() => new Round
+    public Round BuildRound()
     {
-        Id              = _editingId ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        Type            = Type,
-        Bidder          = Bidder,
-        Bid             = BidValue,
-        Won             = IsSpecial ? Won : BidderWon,
-        LastTrickWinner = (IsSpecial || BidderAbgegangen) ? -1 : LastTrickWinner,
-        Trumpf          = IsSpecial ? null : Trumpf,
-        PlayerScores    = _game.Players.Select((_, i) => new PlayerScore
+        bool trueAbgang = BidderAbgegangen && TricksSum == 0;
+        return new Round
         {
-            Meld       = (i == Bidder && BidderAbgegangen) ? 0 : (int.TryParse(Meld[i],   out var m) ? m : 0),
-            Tricks     = BidderAbgegangen                  ? 0 : (int.TryParse(Tricks[i], out var t) ? t : 0),
-            Abgegangen = i == Bidder && BidderAbgegangen,
-        }).ToList()
-    };
+            Id              = _editingId ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Type            = Type,
+            Bidder          = Bidder,
+            Bid             = BidValue,
+            Won             = IsSpecial ? Won : BidderWon,
+            LastTrickWinner = (IsSpecial || trueAbgang) ? -1 : LastTrickWinner,
+            Trumpf          = IsSpecial ? null : Trumpf,
+            PlayerScores    = _game.Players.Select((_, i) => new PlayerScore
+            {
+                Meld       = (i == Bidder && trueAbgang) ? 0 : (int.TryParse(Meld[i],   out var m) ? m : 0),
+                Tricks     = trueAbgang ? 0 : (int.TryParse(Tricks[i], out var t) ? t : 0),
+                Abgegangen = i == Bidder && trueAbgang,
+            }).ToList()
+        };
+    }
 
     // ══════════════════════════════════════════════════════════════════════
     // Init

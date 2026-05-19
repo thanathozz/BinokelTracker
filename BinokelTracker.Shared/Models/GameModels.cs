@@ -126,6 +126,8 @@ public class Round
         }
 
         bool bidderAbgegangen = PlayerScores.Count > Bidder && PlayerScores[Bidder].Abgegangen;
+        bool gameWasPlayed = PlayerScores.Any(ps => ps.Tricks > 0);
+        bool awardAbgBonus = bidderAbgegangen && !gameWasPlayed;
         for (int i = 0; i < PlayerScores.Count; i++)
         {
             var ps = PlayerScores[i];
@@ -147,8 +149,10 @@ public class Round
                     scores[i] = 0;
                 else if (bidderAbgegangen && isPartner)
                     scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
-                else if (bidderAbgegangen)
+                else if (awardAbgBonus)
                     scores[i] = total + PlayerScores.Count * rules.AbgegangenBonusPerPlayer;
+                else if (bidderAbgegangen)
+                    scores[i] = total; // Spiel gespielt → kein Bonus
                 else
                     scores[i] = total;
             }
