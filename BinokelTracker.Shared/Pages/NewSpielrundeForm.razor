@@ -6,6 +6,7 @@
     [Parameter] public List<string>              KnownPlayers { get; set; } = new();
     [Parameter] public string                    GameType     { get; set; } = GameTypeInfo.Binokel;
     [Parameter] public string                    CreatorName  { get; set; } = "";
+    [Parameter] public Spielrunde?               EditSession  { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private string       _name            = "";
@@ -65,8 +66,24 @@
 
     protected override void OnInitialized()
     {
-        if (!string.IsNullOrWhiteSpace(CreatorName) && !_players.Contains(CreatorName))
+        if (EditSession != null)
+        {
+            _name            = EditSession.Name;
+            _usePassword     = EditSession.PasswordHash != null;
+            _assValue        = EditSession.AssValue;
+            _zehnValue       = EditSession.ZehnValue;
+            _koenigValue     = EditSession.KoenigValue;
+            _oberValue       = EditSession.OberValue;
+            _unterValue      = EditSession.UnterValue;
+            _lastTrickBonus  = EditSession.LastTrickBonus;
+            _abgegangenBonus = EditSession.AbgegangenBonusPerPlayer;
+            _customFields    = EditSession.CustomFields.ToList();
+            _strichlisteMode = EditSession.StrichlisteMode;
+        }
+        else if (!string.IsNullOrWhiteSpace(CreatorName) && !_players.Contains(CreatorName))
+        {
             _players.Add(CreatorName);
+        }
     }
 
     protected override void OnParametersSet()
@@ -90,7 +107,7 @@
         if (!CanSave) return;
         var s = new Spielrunde
         {
-            Id                      = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Id                      = EditSession?.Id ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Name                    = _name.Trim(),
             GameType                = GameType,
             Players                 = _players.ToList(),
@@ -119,7 +136,7 @@
                 <polyline points="15 18 9 12 15 6"/>
             </svg>
         </button>
-        <span class="header-title">@S.NewSpielrundeTitle</span>
+        <span class="header-title">@(EditSession != null ? S.EditSpielrundeTitle : S.NewSpielrundeTitle)</span>
         <div style="width:36px"></div>
     </div>
 
@@ -265,7 +282,7 @@
 
         <button class="btn-primary" style="margin-top:8px;opacity:@(CanSave ? "1" : "0.4")" disabled="@(!CanSave)"
                 @onclick="Save">
-            @S.CreateSpielrunde
+            @(EditSession != null ? S.Save : S.CreateSpielrunde)
         </button>
     </div>
 </div>

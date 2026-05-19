@@ -70,7 +70,8 @@ public class StringsDe : IStrings
     public string Goal              => "Ziel:";
     public string Missing           => "fehlen";
 
-    public string NewSpielrundeTitle => "Neue Spielrunde";
+    public string NewSpielrundeTitle  => "Neue Spielrunde";
+    public string EditSpielrundeTitle => "Spielrunde bearbeiten";
     public string Name              => "Name";
     public string UsePassword       => "Passwort schützen";
     public string PasswordMismatch  => "Passwörter stimmen nicht überein.";

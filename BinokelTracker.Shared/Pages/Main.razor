@@ -49,6 +49,8 @@
         {
             <GameList Games="SessionGames"
                       SessionTitle="@_activeSession?.Name"
+                      IsCreator="@IsCurrentUserCreator"
+                      OnEditSession="() => _view = View.EditSpielrunde"
                       OnBack="LeaveSession"
                       OnSelect="SelectGame"
                       OnDeleteGame="DeleteGame"
@@ -56,6 +58,16 @@
                       OnQuickGame="() => _view = View.QuickGame"
                       OnRules="() => _rulesDialog!.Open()"
                       OnCalculator="() => _calculatorDialog!.Open(null, null, _activeSession?.AssValue ?? 11, _activeSession?.ZehnValue ?? 10, _activeSession?.KoenigValue ?? 4, _activeSession?.OberValue ?? 3, _activeSession?.UnterValue ?? 2, _activeSession?.LastTrickBonus ?? 10)" />
+        }
+        else if (_view == View.EditSpielrunde && _activeSession != null)
+        {
+            <NewSpielrundeForm
+                GameType="@_gameType"
+                EditSession="@_activeSession"
+                KnownPlayers="@(new List<string>())"
+                CreatorName=""
+                OnSave="UpdateSpielrunde"
+                OnCancel="() => _view = View.List" />
         }
         else if (_view == View.NewGame)
         {
@@ -100,7 +112,7 @@
     @if (_loaded && _view is not (View.Login or View.GameTypeSelect))
     {
         <div class="tab-bar">
-            <button class="tab-bar-item @(_view is View.SpielrundeList or View.NewSpielrunde or View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame ? "active" : "")"
+            <button class="tab-bar-item @(_view is View.SpielrundeList or View.NewSpielrunde or View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame or View.EditSpielrunde ? "active" : "")"
                     @onclick="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                     <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
@@ -148,7 +160,7 @@
 </div>
 
 @code {
-    enum View { Login, GameTypeSelect, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, Profile }
+    enum View { Login, GameTypeSelect, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, Profile, EditSpielrunde }
 
     private AppState _state = new();
     private View _view = View.GameTypeSelect;
@@ -184,6 +196,11 @@
             return all.ToList();
         }
     }
+
+    private bool IsCurrentUserCreator =>
+        _activeSession != null &&
+        (_activeSession.CreatorUserId == null ||
+         _activeSession.CreatorUserId == AuthService.Session?.UserId);
 
     private List<Spielrunde> GameTypeSpielrunden =>
         _state.Spielrunden
@@ -309,6 +326,24 @@
             try { await Storage.AddSpielrundeMembersAsync(s.Id, s.PendingInvites); }
             catch (Exception ex) { _saveError = ex.Message; StateHasChanged(); }
         }
+    }
+
+    private async Task UpdateSpielrunde(Spielrunde updated)
+    {
+        if (_activeSession == null) return;
+        _activeSession.Name                     = updated.Name;
+        _activeSession.PasswordHash             = updated.PasswordHash;
+        _activeSession.AssValue                 = updated.AssValue;
+        _activeSession.ZehnValue                = updated.ZehnValue;
+        _activeSession.KoenigValue              = updated.KoenigValue;
+        _activeSession.OberValue                = updated.OberValue;
+        _activeSession.UnterValue               = updated.UnterValue;
+        _activeSession.LastTrickBonus           = updated.LastTrickBonus;
+        _activeSession.AbgegangenBonusPerPlayer  = updated.AbgegangenBonusPerPlayer;
+        _activeSession.CustomFields             = updated.CustomFields;
+        _activeSession.StrichlisteMode          = updated.StrichlisteMode;
+        _view = View.List;
+        await Save();
     }
 
     private void SelectGame(long id)

@@ -70,7 +70,8 @@ public class StringsEn : IStrings
     public string Goal              => "Goal:";
     public string Missing           => "to go";
 
-    public string NewSpielrundeTitle => "New session";
+    public string NewSpielrundeTitle  => "New session";
+    public string EditSpielrundeTitle => "Edit session";
     public string Name              => "Name";
     public string UsePassword       => "Password protect";
     public string PasswordMismatch  => "Passwords do not match.";

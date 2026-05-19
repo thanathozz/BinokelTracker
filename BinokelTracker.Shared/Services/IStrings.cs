@@ -80,6 +80,7 @@ public interface IStrings
 
     // NewSpielrundeForm
     string NewSpielrundeTitle { get; }
+    string EditSpielrundeTitle { get; }
     string Name { get; }
     string UsePassword { get; }
     string PasswordMismatch { get; }

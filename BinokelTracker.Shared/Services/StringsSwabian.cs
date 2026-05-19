@@ -70,7 +70,8 @@ public class StringsSwabian : IStrings
     public string Goal              => "Ziel:";
     public string Missing           => "fehlet no";
 
-    public string NewSpielrundeTitle => "Neue Spielrunde";
+    public string NewSpielrundeTitle  => "Neue Spielrunde";
+    public string EditSpielrundeTitle => "Spielrunde bearbeita";
     public string Name              => "Name";
     public string UsePassword       => "Passwort schütze";
     public string PasswordMismatch  => "Passwörter stimma net überoi.";

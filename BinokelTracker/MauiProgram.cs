@@ -41,6 +41,15 @@ public static class MauiProgram
         builder.Logging.AddDebug();
 #endif
 
+#if IOS || MACCATALYST
+        Microsoft.AspNetCore.Components.WebView.Maui.BlazorWebViewHandler.BlazorWebViewMapper
+            .AppendToMapping("NoBounce", (handler, _) =>
+            {
+                handler.PlatformView.ScrollView.Bounces = false;
+                handler.PlatformView.ScrollView.AlwaysBounceVertical = false;
+            });
+#endif
+
         return builder.Build();
     }
 
