@@ -16,6 +16,7 @@
     --blue:        #7da9e8;
     --yellow:      #c4a85c;
     --tuerkis:     #5ad6c0;
+    --rosa:        #e890aa;
     --bg-glow:     #1a2030;
     --font: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
     --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
@@ -64,7 +65,7 @@ html, body {
 .app-container {
     max-width: 480px; margin: 0 auto; min-height: 100vh;
     position: relative; padding-top: var(--safe-top);
-    padding-bottom: var(--safe-bottom);
+    padding-bottom: calc(64px + var(--safe-bottom));
 }
 .app-bg {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -433,7 +434,7 @@ html, body {
 }
 .tab-bar-item.active { color: var(--accent); }
 .tab-bar-item svg { display: block; }
-.tab-bar-clearance { height: calc(64px + var(--safe-bottom)); }
+.tab-bar-clearance { height: 0; }
 
 /* ═══ FAB ═══ */
 .game-fab {
@@ -758,6 +759,7 @@ html, body {
 .rc-tag-durch  { background: rgba(255,154,82,0.15);  color: var(--accent); }
 .rc-tag-bettel { background: rgba(125,169,232,0.15); color: var(--blue); }
 .rc-tag-win    { background: rgba(132,207,108,0.15); color: var(--green); }
+.rc-tag-bid    { background: rgba(255,154,82,0.15);  color: var(--accent); }
 .rc-tag-loss   { background: rgba(208,69,69,0.15);   color: var(--red); }
 
 .rc-summary {
@@ -788,7 +790,7 @@ html, body {
 /* ─── Player table (ptable) ─── */
 .ptable {
     display: grid;
-    grid-template-columns: minmax(80px, 1.4fr) 44px 14px 44px minmax(120px, 1.6fr) 72px;
+    grid-template-columns: minmax(80px, 1.8fr) 40px 12px 40px minmax(100px, 1.4fr) 72px;
     background: var(--card-alt);
     border-top: 1px solid var(--border);
 }
@@ -815,6 +817,10 @@ html, body {
     display: flex; align-items: center;
 }
 .prow.bidder > div { background: rgba(90,214,192,0.06); }
+.prow.team1 > div { background: rgba(125,169,232,0.06); }
+.prow.team2 > div { background: rgba(232,144,170,0.06); }
+.prow.team1.bidder > div { background: rgba(125,169,232,0.15); }
+.prow.team2.bidder > div { background: rgba(232,144,170,0.13); }
 .prow:last-child > div { border-bottom: none; }
 
 .pc-plus {
@@ -828,27 +834,23 @@ html, body {
 }
 .prow.bidder .pc-name-marker { opacity: 1; }
 .prow.team1 .pc-name-marker { opacity: 1; background: var(--blue); }
-.prow.team2 .pc-name-marker { opacity: 1; background: var(--tuerkis); }
-.prow.team1.bidder > div { background: rgba(125,169,232,0.07); }
+.prow.team2 .pc-name-marker { opacity: 1; background: var(--rosa); }
 /* Team bracket: box outline connecting same-team player rows */
-.prow.team-first.team1 > div { border-top: 1.5px solid rgba(125,169,232,0.5); }
-.prow.team-last.team1  > div { border-bottom: 1.5px solid rgba(125,169,232,0.5); }
-.prow.team-first.team2 > div { border-top: 1.5px solid rgba(90,214,192,0.5); }
-.prow.team-last.team2  > div { border-bottom: 1.5px solid rgba(90,214,192,0.5); }
-.prow.team1 .pc-name  { border-left: 2px solid var(--blue); }
-.prow.team2 .pc-name  { border-left: 2px solid var(--tuerkis); }
-.prow.team1 .pc-total { border-right: 2px solid var(--blue); }
-.prow.team2 .pc-total { border-right: 2px solid var(--tuerkis); }
-.pc-role {
-    font-size: 9px; font-weight: 700; color: var(--tuerkis);
-    background: rgba(90,214,192,0.12); padding: 1px 5px; border-radius: 4px;
-    letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
-    font-family: var(--font-mono);
-}
-.pc-role.partner { color: var(--blue); background: rgba(125,169,232,0.12); }
+.prow.team-first.team1 > div { border-top: 1.5px solid rgba(125,169,232,0.7); }
+.prow.team-last.team1  > div { border-bottom: 1.5px solid rgba(125,169,232,0.7); }
+.prow.team-first.team2 > div { border-top: 1.5px solid rgba(232,144,170,0.7); }
+.prow.team-last.team2  > div { border-bottom: 1.5px solid rgba(232,144,170,0.7); }
+.prow.team1 .pc-name  { border-left: 3px solid var(--blue); }
+.prow.team2 .pc-name  { border-left: 3px solid var(--rosa); }
+.prow.team1 .pc-total { border-right: 3px solid var(--blue); }
+.prow.team2 .pc-total { border-right: 3px solid var(--rosa); }
+.pc-crown { color: var(--tuerkis); flex-shrink: 0; }
+.prow.team1 .pc-crown { color: var(--blue); }
+.prow.team2 .pc-crown { color: var(--rosa); }
 .pc-stat {
     justify-content: flex-end; flex-direction: column; align-items: flex-end;
     font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--text);
+    padding-left: 5px; padding-right: 5px;
 }
 .pc-stat .stat-num { line-height: 1.2; }
 .pc-stat .stat-sub { font-size: 8px; font-weight: 500; color: var(--dark); font-family: var(--font); margin-top: 1px; }

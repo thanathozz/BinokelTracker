@@ -66,6 +66,7 @@
     <div class="rc-tags">
         <span class="rc-tag @TypeTagClass">@TypeTag</span>
         <span class="rc-tag @OutcomeTagClass">@OutcomeTag</span>
+        @if (!IsSpecial) { <span class="rc-tag rc-tag-bid">@Round.Bid</span> }
         <button class="btn" style="padding:2px;color:var(--dark)" @onclick="() => OnEdit.InvokeAsync(RoundIndex)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -175,10 +176,18 @@
 
         <div class="prow @((isBidder || isPartner) ? "bidder" : "") @(Rules.TeamMode && Players.Count == 4 ? (pIdx < 2 ? "team1" : "team2") : "") @(isTeamFirst ? "team-first" : "") @(isTeamLast ? "team-last" : "")">
             <div class="pc-name">
-                <span class="pc-name-marker"></span>
+                @if (isBidder)
+                {
+                    <svg class="pc-crown" width="13" height="11" viewBox="0 0 20 17" fill="currentColor">
+                        <path d="M0 15L2.5 6l4.5 4L10 1l3 9 4.5-4L20 15H0z"/>
+                        <rect y="15" width="20" height="2" rx="1"/>
+                    </svg>
+                }
+                else
+                {
+                    <span class="pc-name-marker"></span>
+                }
                 @Players[pIdx]
-                @if (isBidder)      { <span class="pc-role">@S.Bidder</span> }
-                else if (isPartner) { <span class="pc-role partner">@S.RolePartner</span> }
             </div>
             <div class="pc-stat @(strikeMeld ? "struck" : dimMeld ? "empty" : "")">
                 <span class="stat-num">@meldVal</span>

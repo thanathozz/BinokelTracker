@@ -155,7 +155,7 @@ public class StringsDe : IStrings
     public string TagNormal         => "NORMAL";
     public string TagDurch          => "DURCH";
     public string TagBettel         => "BETTEL";
-    public string TagWon            => "GEWONNEN";
+    public string TagWon            => "GEMACHT";
     public string TagLost           => "VERLOREN";
     public string TagFolded         => "ABGEGANGEN";
     public string PlaysDurch        => "spielt einen";
