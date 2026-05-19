@@ -171,12 +171,17 @@
     {
         get
         {
-            var players = (_activeSession?.Players ?? _state.KnownPlayers).ToList();
-            if (_activeSession != null)
-                foreach (var nick in _activeSession.InvitedNicks)
-                    if (!players.Contains(nick, StringComparer.OrdinalIgnoreCase))
-                        players.Add(nick);
-            return players;
+            if (_activeSession == null) return _state.KnownPlayers.ToList();
+
+            var all = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in _activeSession.Players)
+                if (!string.IsNullOrWhiteSpace(p)) all.Add(p);
+            foreach (var nick in _activeSession.InvitedNicks)
+                all.Add(nick);
+            foreach (var game in _state.Games.Where(g => g.SpielrundeId == _activeSession.Id))
+                foreach (var p in game.Players)
+                    if (!string.IsNullOrWhiteSpace(p)) all.Add(p);
+            return all.ToList();
         }
     }
 

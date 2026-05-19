@@ -223,18 +223,19 @@ else
     <input class="form-input" value="0" @oninput="e => _einsatz = e.Value?.ToString() ?? string.Empty" />
 </div>
 
-<label class="form-label" style="margin-bottom:10px">@S.Players</label>
 @if (KnownPlayers.Count > 0)
 {
-    <div class="pill-group" style="flex-wrap:wrap;margin-bottom:10px" @onclick="DismissDelete">
+    <label class="form-label" style="margin-bottom:8px">@S.KnownPlayers</label>
+    <div class="pill-group" style="flex-wrap:wrap;margin-bottom:14px" @onclick="DismissDelete">
         @foreach (var name in KnownPlayers)
         {
-            var n = name;
-            var selected  = _players.Contains(n);
-            var delMode   = _deleteCandidate == n;
-            var exitMode  = _exitCandidate == n;
-            <span class="pill @(selected ? "active" : "") @(delMode ? "pill-delete" : exitMode ? "pill-delete-exit" : "")"
-                  style="display:inline-flex;align-items:center;gap:4px;user-select:none"
+            var n        = name;
+            var selected = _players.Contains(n);
+            var delMode  = _deleteCandidate == n;
+            var exitMode = _exitCandidate == n;
+            var opacity  = selected ? "1" : "0.45";
+            <span class="pill pill-sm @(selected ? "active" : "") @(delMode ? "pill-delete" : exitMode ? "pill-delete-exit" : "")"
+                  style="display:inline-flex;align-items:center;gap:4px;user-select:none;opacity:@opacity;transition:opacity 0.15s"
                   @onclick:stopPropagation="true"
                   @onclick="() => { if (!delMode) ToggleKnownPlayer(n); }"
                   @onpointerdown="() => StartLongPress(n)"
@@ -251,6 +252,7 @@ else
         }
     </div>
 }
+<label class="form-label" style="margin-bottom:10px">@S.Players</label>
 @for (int i = 0; i < _players.Count; i++)
 {
     var idx = i;
