@@ -9,7 +9,6 @@ public interface IAuthService
     Task<AuthResult> RegisterAsync(string email, string password);
     Task             LogoutAsync();
     Task<string>     GetValidTokenAsync();
-    Task<AuthResult> UpdateDisplayNameAsync(string displayName);
-    Task<bool>       CheckNickAvailableAsync(string nick);
-    Task<AuthResult> SetNickAsync(string nick);
+    Task<bool>       CheckDisplayNameAvailableAsync(string displayName);
+    Task<AuthResult> SetDisplayNameAsync(string displayName);
 }

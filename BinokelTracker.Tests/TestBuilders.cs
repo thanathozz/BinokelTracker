@@ -18,7 +18,7 @@ internal static class Build
     {
         Id       = 1,
         Date     = 0,
-        Players  = players.ToList(),
+        Players  = players.Select(p => (PlayerRef)p).ToList(),
         Rules    = rules ?? Rules.Default(),
         Finished = finished,
         Einsatz  = einsatz,

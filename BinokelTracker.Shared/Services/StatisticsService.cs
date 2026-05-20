@@ -36,10 +36,13 @@ public static class StatisticsService
     {
         var builders = new Dictionary<string, Builder>(StringComparer.Ordinal);
 
-        Builder Get(string name)
+        Builder Get(PlayerRef player)
         {
-            if (!builders.TryGetValue(name, out var b))
-                builders[name] = b = new Builder(name);
+            var key = player.UserId ?? player.DisplayName;
+            if (!builders.TryGetValue(key, out var b))
+                builders[key] = b = new Builder(player.DisplayName);
+            else if (b.Name != player.DisplayName)
+                b.Name = player.DisplayName;
             return b;
         }
 
@@ -135,7 +138,8 @@ public static class StatisticsService
 
         for (int i = 0; i < game.Players.Count; i++)
         {
-            if (!builders.TryGetValue(game.Players[i], out var b)) continue;
+            var key = game.Players[i].UserId ?? game.Players[i].DisplayName;
+            if (!builders.TryGetValue(key, out var b)) continue;
             b.MoneyBalance += winnerIndices.Contains(i)
                 ? einsatz * losers / winnerIndices.Count
                 : -einsatz;
@@ -168,7 +172,7 @@ public static class StatisticsService
 
     private sealed class Builder(string name)
     {
-        public string  Name           { get; } = name;
+        public string  Name           { get; set; } = name;
         public int     GamesPlayed;
         public int     GamesWon;
         public int     RoundsAsBidder;

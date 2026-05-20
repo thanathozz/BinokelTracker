@@ -1,6 +1,6 @@
 @code {
     [Parameter] public Round        Round        { get; set; } = default!;
-    [Parameter] public List<string> Players      { get; set; } = new();
+    [Parameter] public List<PlayerRef> Players    { get; set; } = new();
     [Parameter] public RuleSet      Rules        { get; set; } = default!;
     [Parameter] public int          RoundIndex   { get; set; }
     [Parameter] public bool         GameFinished { get; set; }

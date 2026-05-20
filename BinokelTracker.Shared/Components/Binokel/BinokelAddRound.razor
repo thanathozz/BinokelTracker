@@ -6,7 +6,7 @@
     [Parameter] public Round? EditRound  { get; set; }
     [Parameter] public EventCallback<Round> OnSave  { get; set; }
     [Parameter] public EventCallback        OnCancel { get; set; }
-    [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
+    [Parameter] public Action<IReadOnlyList<PlayerRef>, Action<int, int>>? OnOpenCalculator { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private AddRoundViewModel _vm = default!;

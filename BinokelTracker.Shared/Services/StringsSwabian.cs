@@ -35,9 +35,9 @@ public class StringsSwabian : IStrings
     public string NewSpielrunde     => "Neue Spielrunde";
     public string PrivateChip       => "Privat";
     public string SharedChip        => "Geteilt";
-    public string InviteByNick      => "Per Nick eilade";
-    public string AddMember         => "Dazua";
-    public string NickNotFound      => "Nick net gfunda.";
+    public string InviteByDisplayName   => "Per Anzeigename eilade";
+    public string AddMember             => "Dazua";
+    public string DisplayNameNotFound   => "Anzeigename net gfunda.";
     public string MembersLabel      => "Mitglieder";
     public string ActiveLabel       => "laufend";
     public string GamesLabel        => "Spiel(e)";
@@ -64,6 +64,7 @@ public class StringsSwabian : IStrings
     public string AllowDurch        => "Durch erlaubt";
     public string AllowBettel       => "Bettel erlaubt";
     public string AllowAbgehen      => "Abgehen erlaubt";
+    public string AusmachenMitSpiel => "Ausmache nur mit Spiel";
     public string DurchSeparate     => "Durch-Punkte separat";
     public string TeamHint          => "Spieler 1 & 2 = Team 1 · Spieler 3 & 4 = Team 2";
     public string Teams             => "Teams (Kreuz)";
@@ -220,12 +221,9 @@ public class StringsSwabian : IStrings
     public string DisplayNameHint   => "Des wird beim Spiela anzeigt.";
     public string MissingCredentials => "Bitte E-Mail ond Passwort eingeba.";
     public string MissingName       => "Bitte oin Name eingeba.";
-    public string NickLabel         => "Nick";
-    public string NickHint          => "Dein einzigartiger Nutzername";
-    public string NickChecking      => "Wird gprüft…";
-    public string NickAvailable     => "Frei";
-    public string NickTaken         => "Nick scho vergeba.";
-    public string NickInvalid       => "3–20 Zeiche, nur a–z, 0–9 ond _";
+    public string DisplayNameChecking  => "Wird gprüft…";
+    public string DisplayNameAvailable => "Frei";
+    public string DisplayNameTaken     => "Anzeigename scho vergeba.";
 
     public string ChooseGame        => "Spiel aussucha";
     public string BadgeFull         => "Vollständig";

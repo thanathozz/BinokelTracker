@@ -1,6 +1,6 @@
 @code {
     [Parameter] public List<CustomField>          Fields  { get; set; } = new();
-    [Parameter] public List<string>               Players { get; set; } = new();
+    [Parameter] public List<PlayerRef>            Players { get; set; } = new();
     [Parameter] public Dictionary<string, string> Values  { get; set; } = new();
 
     private string Get(string fieldId, int playerIdx) =>

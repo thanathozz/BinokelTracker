@@ -108,10 +108,10 @@
         }
     </div>
 
-    @if (_loaded && _view is not (View.Login or View.GameTypeSelect))
+    @if (_loaded && _view is not View.Login)
     {
         <div class="tab-bar">
-            <button class="tab-bar-item @(_view is View.SpielrundeList or View.NewSpielrunde or View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame or View.EditSpielrunde ? "active" : "")"
+            <button class="tab-bar-item @(_view is View.GameTypeSelect or View.SpielrundeList or View.NewSpielrunde or View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame or View.EditSpielrunde ? "active" : "")"
                     @onclick="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                     <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
@@ -186,11 +186,11 @@
             var all = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var p in _activeSession.Players)
                 if (!string.IsNullOrWhiteSpace(p)) all.Add(p);
-            foreach (var nick in _activeSession.InvitedNicks)
-                all.Add(nick);
+            foreach (var dn in _activeSession.InvitedDisplayNames)
+                all.Add(dn);
             foreach (var game in _state.Games.Where(g => g.SpielrundeId == _activeSession.Id))
                 foreach (var p in game.Players)
-                    if (!string.IsNullOrWhiteSpace(p)) all.Add(p);
+                    if (!string.IsNullOrWhiteSpace(p.DisplayName)) all.Add(p.DisplayName);
             return all.ToList();
         }
     }
@@ -340,11 +340,11 @@
     {
         if (_activeSession != null)
         {
-            foreach (var name in game.Players)
+            foreach (var player in game.Players)
             {
-                if (!string.IsNullOrWhiteSpace(name) &&
-                    !_activeSession.Players.Contains(name, StringComparer.OrdinalIgnoreCase))
-                    _activeSession.Players.Add(name);
+                if (!string.IsNullOrWhiteSpace(player.DisplayName) &&
+                    !_activeSession.Players.Contains(player.DisplayName, StringComparer.OrdinalIgnoreCase))
+                    _activeSession.Players.Add(player.DisplayName);
             }
         }
         game.SpielrundeId = _activeSession?.Id;
@@ -389,26 +389,32 @@
         if (_editRoundIndex >= 0 && _editRoundIndex < _selectedGame.Rounds.Count)
         {
             _selectedGame.Rounds[_editRoundIndex] = round;
-            _selectedGame.Finished = false;
         }
         else
         {
             _selectedGame.Rounds.Add(round);
-
-            if (!_selectedGame.Finished)
-            {
-                bool targetReached = _selectedGame.Rules.TeamMode
-                    ? _selectedGame.GetTeamTotals().Any(t => t >= _selectedGame.Rules.TargetScore)
-                    : _selectedGame.GetPlayerTotals().Any(t => t >= _selectedGame.Rules.TargetScore);
-
-                if (targetReached)
-                    _selectedGame.Finished = true;
-            }
         }
+
+        _selectedGame.Finished = IsTargetReached(_selectedGame, round);
 
         _editRoundIndex = -1;
         _view = View.Detail;
         await Save();
+    }
+
+    private static bool IsTargetReached(Game game, Round lastRound)
+    {
+        if (game.Rules.AusmachenMitSpiel)
+        {
+            var scores = lastRound.CalcScores(game.Rules);
+            if (scores[lastRound.Bidder] <= 0) return false;
+            if (game.Rules.TeamMode)
+                return game.GetTeamTotals()[lastRound.Bidder / 2] >= game.Rules.TargetScore;
+            return game.GetPlayerTotals()[lastRound.Bidder] >= game.Rules.TargetScore;
+        }
+        return game.Rules.TeamMode
+            ? game.GetTeamTotals().Any(t => t >= game.Rules.TargetScore)
+            : game.GetPlayerTotals().Any(t => t >= game.Rules.TargetScore);
     }
 
     private async Task DeleteRound(int index)
@@ -429,6 +435,7 @@
 
     private async Task DeleteSpielrunde(long id)
     {
+        await Storage.DeleteSpielrundeAsync(id);
         _state.Games.RemoveAll(g => g.SpielrundeId == id);
         _state.Spielrunden.RemoveAll(s => s.Id == id);
         await Save();
@@ -447,11 +454,11 @@
     {
         if (_activeSession != null)
         {
-            foreach (var name in game.Players)
+            foreach (var player in game.Players)
             {
-                if (!string.IsNullOrWhiteSpace(name) &&
-                    !_activeSession.Players.Contains(name, StringComparer.OrdinalIgnoreCase))
-                    _activeSession.Players.Add(name);
+                if (!string.IsNullOrWhiteSpace(player.DisplayName) &&
+                    !_activeSession.Players.Contains(player.DisplayName, StringComparer.OrdinalIgnoreCase))
+                    _activeSession.Players.Add(player.DisplayName);
             }
         }
         game.SpielrundeId = _activeSession?.Id;

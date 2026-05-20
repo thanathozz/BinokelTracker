@@ -13,8 +13,10 @@
     [Parameter] public EventCallback             OnLogout           { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
-    private bool   _editingName;
-    private string _nameInput = "";
+    private bool    _editingName;
+    private string  _nameInput  = "";
+    private string? _nameError;
+    private bool    _nameSaving;
 
     protected override void OnInitialized()
     {
@@ -34,20 +36,38 @@
     private void StartEditName()
     {
         _nameInput   = AuthService.Session?.DisplayName ?? "";
+        _nameError   = null;
         _editingName = true;
     }
 
     private async Task SaveName()
     {
-        if (string.IsNullOrWhiteSpace(_nameInput)) return;
-        await AuthService.UpdateDisplayNameAsync(_nameInput.Trim());
-        _editingName = false;
+        var trimmed = _nameInput.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed)) return;
+        if (trimmed == AuthService.Session?.DisplayName) { _editingName = false; return; }
+
+        _nameSaving = true;
+        _nameError  = null;
+        StateHasChanged();
+
+        try
+        {
+            var available = await AuthService.CheckDisplayNameAvailableAsync(trimmed);
+            if (!available) { _nameError = S.DisplayNameTaken; return; }
+            var result = await AuthService.SetDisplayNameAsync(trimmed);
+            if (!result.Success) { _nameError = result.ErrorMessage; return; }
+            _editingName = false;
+        }
+        finally
+        {
+            _nameSaving = false;
+        }
     }
 
     private async Task HandleNameKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") await SaveName();
-        if (e.Key == "Escape") _editingName = false;
+        if (e.Key == "Escape") { _editingName = false; _nameError = null; }
     }
 
     private long? _confirmDeleteId;
@@ -117,11 +137,17 @@
         <div style="display:flex;align-items:center;gap:2px">
             @if (_editingName)
             {
-                <input class="form-input" style="font-size:12px;padding:3px 8px;height:auto;width:130px"
-                       @bind="_nameInput" @bind:event="oninput"
-                       @onkeydown="HandleNameKeyDown"
-                       @onblur="SaveName"
-                       placeholder="Name eingeben" />
+                <div>
+                    <input class="form-input" style="font-size:12px;padding:3px 8px;height:auto;width:130px"
+                           @bind="_nameInput" @bind:event="oninput"
+                           @onkeydown="HandleNameKeyDown"
+                           placeholder="Name eingeben"
+                           disabled="@_nameSaving" />
+                    @if (_nameError != null)
+                    {
+                        <div style="font-size:11px;color:var(--red);margin-top:2px">@_nameError</div>
+                    }
+                </div>
             }
             else
             {
@@ -201,12 +227,12 @@
                         }
                     </div>
                 }
-                @if (s.InvitedNicks.Count > 0)
+                @if (s.InvitedDisplayNames.Count > 0)
                 {
                     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
-                        @foreach (var nick in s.InvitedNicks)
+                        @foreach (var dn in s.InvitedDisplayNames)
                         {
-                            <span class="chip chip-muted" style="font-family:var(--font-mono)">@@@nick</span>
+                            <span class="chip chip-muted">@dn</span>
                         }
                     </div>
                 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace BinokelTracker.Models;
@@ -25,6 +26,7 @@ public class RuleSet
     public int UnterValue { get; set; } = 2;
     public int LastTrickBonus { get; set; } = 10;
     public int AbgegangenBonusPerPlayer { get; set; } = 10;
+    public bool AusmachenMitSpiel { get; set; }
 
     public RuleSet Clone() => (RuleSet)MemberwiseClone();
 }
@@ -46,7 +48,7 @@ public static class RulePresets
             Name = "Schwäbisch Scharf",
             Description = "3 Spieler, doppelt Minus bei Überreizen",
             Players = 3, TargetScore = 1000, DoubleMinus = true,
-            AllowDurch = true, AllowAbgehen = true, BidderOnlyAbgehen = true
+            AllowDurch = true, AllowAbgehen = true, BidderOnlyAbgehen = true, AusmachenMitSpiel = true
         },
         ["vierer_kreuz"] = new RuleSet
         {
@@ -72,6 +74,49 @@ public static class RulePresets
             Players = 3, AllowDurch = true, AllowBettel = true, AllowAbgehen = true, BidderOnlyAbgehen = false
         }
     };
+}
+
+[JsonConverter(typeof(PlayerRefJsonConverter))]
+public class PlayerRef
+{
+    public string  DisplayName { get; set; } = "";
+    public string? UserId      { get; set; }
+
+    public static implicit operator string(PlayerRef p)    => p.DisplayName;
+    public static implicit operator PlayerRef(string name) => new() { DisplayName = name };
+    public override string ToString() => DisplayName;
+}
+
+public class PlayerRefJsonConverter : JsonConverter<PlayerRef>
+{
+    public override PlayerRef Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String)
+            return new PlayerRef { DisplayName = reader.GetString() ?? "" };
+
+        string displayName = "";
+        string? userId = null;
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            if (reader.TokenType != JsonTokenType.PropertyName) continue;
+            var prop = reader.GetString();
+            reader.Read();
+            if (prop == "DisplayName")   displayName = reader.GetString() ?? "";
+            else if (prop == "UserId")   userId = reader.TokenType == JsonTokenType.Null ? null : reader.GetString();
+        }
+        return new PlayerRef { DisplayName = displayName, UserId = userId };
+    }
+
+    public override void Write(Utf8JsonWriter writer, PlayerRef value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("DisplayName", value.DisplayName);
+        if (value.UserId is not null)
+            writer.WriteString("UserId", value.UserId);
+        else
+            writer.WriteNull("UserId");
+        writer.WriteEndObject();
+    }
 }
 
 public class PlayerScore
@@ -172,7 +217,7 @@ public class Game
     public long Id { get; set; }
     public long Date { get; set; }
     public long? SpielrundeId { get; set; }
-    public List<string> Players { get; set; } = new();
+    public List<PlayerRef> Players { get; set; } = new();
     public RuleSet Rules { get; set; } = new();
     public List<Round> Rounds { get; set; } = new();
     public bool Finished { get; set; }
@@ -241,11 +286,11 @@ public class Spielrunde
     public string? PasswordHash { get; set; }
     /// <summary>UserId des Erstellers — zum Erkennen ob die Spielrunde geteilt ist.</summary>
     public string? CreatorUserId { get; set; }
-    /// <summary>Nicks der eingeladenen Nutzer.</summary>
-    public List<string> InvitedNicks { get; set; } = new();
-    /// <summary>Transient: UserId+Nick der einzutragenden Mitglieder. Wird nicht serialisiert.</summary>
+    /// <summary>Anzeigenamen der eingeladenen Nutzer.</summary>
+    public List<string> InvitedDisplayNames { get; set; } = new();
+    /// <summary>Transient: UserId+DisplayName der einzutragenden Mitglieder. Wird nicht serialisiert.</summary>
     [JsonIgnore]
-    public List<(string UserId, string Nick)>? PendingInvites { get; set; }
+    public List<(string UserId, string DisplayName)>? PendingInvites { get; set; }
     public int AssValue { get; set; } = 11;
     public int ZehnValue { get; set; } = 10;
     public int KoenigValue { get; set; } = 4;

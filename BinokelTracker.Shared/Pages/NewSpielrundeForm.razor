@@ -25,43 +25,47 @@
     private bool _strichlisteMode = false;
     private bool _showAdvanced = false;
 
-    // ── Nick-Invite ──────────────────────────────────────────────────
-    private List<(string UserId, string Nick)> _invitedMembers = new();
-    private string  _nickInput      = "";
-    private bool    _nickSearching  = false;
-    private string? _nickSearchError;
+    // ── DisplayName-Invite ───────────────────────────────────────────
+    private List<(string UserId, string DisplayName)> _invitedMembers = new();
+    private string  _displayNameInput   = "";
+    private bool    _displayNameSearching  = false;
+    private string? _displayNameSearchError;
 
-    private async Task AddMemberByNick()
+    private async Task AddMemberByDisplayName()
     {
-        var nick = _nickInput.Trim().ToLowerInvariant().TrimStart('@');
-        if (string.IsNullOrEmpty(nick)) return;
-        if (_invitedMembers.Any(m => m.Nick == nick)) { _nickInput = ""; return; }
+        var name = _displayNameInput.Trim();
+        if (string.IsNullOrEmpty(name)) return;
+        if (_invitedMembers.Any(m => string.Equals(m.DisplayName, name, StringComparison.OrdinalIgnoreCase)))
+        {
+            _displayNameInput = "";
+            return;
+        }
 
-        _nickSearching  = true;
-        _nickSearchError = null;
+        _displayNameSearching  = true;
+        _displayNameSearchError = null;
         StateHasChanged();
 
-        var result = await Storage.FindProfileByNickAsync(nick);
+        var result = await Storage.FindProfileByDisplayNameAsync(name);
 
-        _nickSearching = false;
+        _displayNameSearching = false;
         if (result is null)
         {
-            _nickSearchError = S.NickNotFound;
+            _displayNameSearchError = S.DisplayNameNotFound;
         }
         else
         {
-            _invitedMembers.Add((result.Value.UserId, result.Value.Nick));
-            _nickInput       = "";
-            _nickSearchError = null;
+            _invitedMembers.Add((result.Value.UserId, result.Value.DisplayName));
+            _displayNameInput       = "";
+            _displayNameSearchError = null;
         }
     }
 
-    private void RemoveMember(string nick) =>
-        _invitedMembers.RemoveAll(m => m.Nick == nick);
+    private void RemoveMember(string displayName) =>
+        _invitedMembers.RemoveAll(m => m.DisplayName == displayName);
 
-    private async Task HandleNickInputKeyDown(KeyboardEventArgs e)
+    private async Task HandleDisplayNameInputKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") await AddMemberByNick();
+        if (e.Key == "Enter") await AddMemberByDisplayName();
     }
 
     protected override void OnInitialized()
@@ -121,8 +125,8 @@
             AbgegangenBonusPerPlayer = _abgegangenBonus,
             CustomFields      = _customFields.ToList(),
             StrichlisteMode   = _strichlisteMode,
-            InvitedNicks      = _invitedMembers.Select(m => m.Nick).ToList(),
-            PendingInvites    = _invitedMembers.Count > 0 ? _invitedMembers.ToList() : null,
+            InvitedDisplayNames = _invitedMembers.Select(m => m.DisplayName).ToList(),
+            PendingInvites      = _invitedMembers.Count > 0 ? _invitedMembers.ToList() : null,
         };
         await OnSave.InvokeAsync(s);
     }
@@ -147,11 +151,14 @@
                    @bind="_name" @bind:event="oninput" />
         </div>
 
-        @if (KnownPlayers.Count > 0)
+        @{
+            var _otherPlayers = KnownPlayers.Where(n => n != CreatorName).ToList();
+        }
+        @if (_otherPlayers.Count > 0)
         {
             <label class="form-label" style="margin-bottom:10px">@S.Players</label>
             <div class="pill-group" style="flex-wrap:wrap;margin-bottom:16px">
-                @foreach (var name in KnownPlayers)
+                @foreach (var name in _otherPlayers)
                 {
                     var n = name;
                     var selected = _players.Contains(n);
@@ -187,34 +194,40 @@
             </div>
         }
 
-        <label class="form-label" style="margin-bottom:8px">@S.InviteByNick</label>
+        <label class="form-label" style="margin-bottom:8px">@S.InviteByDisplayName</label>
         <div style="display:flex;gap:8px;margin-bottom:8px">
-            <input class="form-input" style="flex:1;font-family:var(--font-mono)"
-                   placeholder="@("@nick")"
-                   value="@_nickInput"
-                   @oninput="e => _nickInput = e.Value?.ToString() ?? string.Empty"
-                   @onkeydown="HandleNickInputKeyDown" />
+            <input class="form-input" style="flex:1"
+                   placeholder="Anzeigename"
+                   value="@_displayNameInput"
+                   @oninput="e => _displayNameInput = e.Value?.ToString() ?? string.Empty"
+                   @onkeydown="HandleDisplayNameInputKeyDown" />
             <button class="btn-outline" style="padding:8px 14px;white-space:nowrap" type="button"
-                    disabled="@_nickSearching"
-                    @onclick="AddMemberByNick">
-                @(_nickSearching ? "…" : S.AddMember)
+                    disabled="@_displayNameSearching"
+                    @onclick="AddMemberByDisplayName">
+                @(_displayNameSearching ? "…" : S.AddMember)
             </button>
         </div>
-        @if (_nickSearchError != null)
+        @if (_displayNameSearchError != null)
         {
-            <div style="color:var(--red);font-size:13px;margin-bottom:8px">@_nickSearchError</div>
+            <div style="color:var(--red);font-size:13px;margin-bottom:8px">@_displayNameSearchError</div>
         }
-        @if (_invitedMembers.Count > 0)
+        @if (!string.IsNullOrEmpty(CreatorName) || _invitedMembers.Count > 0)
         {
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+                @if (!string.IsNullOrEmpty(CreatorName))
+                {
+                    <span class="chip chip-accent" style="display:flex;align-items:center;gap:5px">
+                        @CreatorName
+                    </span>
+                }
                 @foreach (var m in _invitedMembers)
                 {
-                    var nick = m.Nick;
-                    <span class="chip chip-accent" style="display:flex;align-items:center;gap:5px;font-family:var(--font-mono)">
-                        @@@nick
+                    var displayName = m.DisplayName;
+                    <span class="chip chip-accent" style="display:flex;align-items:center;gap:5px">
+                        @displayName
                         <button type="button"
                                 style="background:none;border:none;cursor:pointer;color:inherit;padding:0;line-height:1;font-size:14px;opacity:0.7"
-                                @onclick="() => RemoveMember(nick)">✕</button>
+                                @onclick="() => RemoveMember(displayName)">✕</button>
                     </span>
                 }
             </div>

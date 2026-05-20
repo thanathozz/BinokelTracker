@@ -35,9 +35,9 @@ public class StringsEn : IStrings
     public string NewSpielrunde     => "New Session";
     public string PrivateChip       => "Private";
     public string SharedChip        => "Shared";
-    public string InviteByNick      => "Invite by Nick";
-    public string AddMember         => "Add";
-    public string NickNotFound      => "Nick not found.";
+    public string InviteByDisplayName   => "Invite by display name";
+    public string AddMember             => "Add";
+    public string DisplayNameNotFound   => "Display name not found.";
     public string MembersLabel      => "Members";
     public string ActiveLabel       => "active";
     public string GamesLabel        => "game(s)";
@@ -64,6 +64,7 @@ public class StringsEn : IStrings
     public string AllowDurch        => "Allow Durch";
     public string AllowBettel       => "Allow Bettel";
     public string AllowAbgehen      => "Allow Abgehen";
+    public string AusmachenMitSpiel => "Finish only with a played game";
     public string DurchSeparate     => "Durch points separate";
     public string TeamHint          => "Players 1 & 2 = Team 1 · Players 3 & 4 = Team 2";
     public string Teams             => "Teams (cross)";
@@ -220,12 +221,9 @@ public class StringsEn : IStrings
     public string DisplayNameHint   => "This name will be shown during play.";
     public string MissingCredentials => "Please enter e-mail and password.";
     public string MissingName       => "Please enter a name.";
-    public string NickLabel         => "Nick";
-    public string NickHint          => "Your unique username";
-    public string NickChecking      => "Checking…";
-    public string NickAvailable     => "Available";
-    public string NickTaken         => "Nick already taken.";
-    public string NickInvalid       => "3–20 chars, only a–z, 0–9 and _";
+    public string DisplayNameChecking  => "Checking…";
+    public string DisplayNameAvailable => "Available";
+    public string DisplayNameTaken     => "Display name already taken.";
 
     public string ChooseGame        => "Choose game";
     public string BadgeFull         => "Full";

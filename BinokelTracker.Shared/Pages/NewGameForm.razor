@@ -26,7 +26,7 @@
         {
             Id       = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Date     = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Players  = _players.Select(p => p.Trim()).ToList(),
+            Players  = _players.Select(p => (PlayerRef)p.Trim()).ToList(),
             Rules    = new RuleSet { Id = "generic", Name = "Andere", Players = _players.Count, TargetScore = _targetScore },
             Rounds   = new(),
             Einsatz  = _einsatz,

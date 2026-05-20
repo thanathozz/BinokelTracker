@@ -36,9 +36,9 @@ public class StringsDe : IStrings
     public string PrivateChip       => "Privat";
     public string SharedChip        => "Geteilt";
     public string ActiveLabel       => "laufend";
-    public string InviteByNick      => "Per Nick einladen";
-    public string AddMember         => "Hinzufügen";
-    public string NickNotFound      => "Nick nicht gefunden.";
+    public string InviteByDisplayName   => "Per Anzeigename einladen";
+    public string AddMember             => "Hinzufügen";
+    public string DisplayNameNotFound   => "Anzeigename nicht gefunden.";
     public string MembersLabel      => "Mitglieder";
     public string GamesLabel        => "Spiel(e)";
     public string EnterPassword     => "Passwort eingeben";
@@ -64,6 +64,7 @@ public class StringsDe : IStrings
     public string AllowDurch        => "Durch erlaubt";
     public string AllowBettel       => "Bettel erlaubt";
     public string AllowAbgehen      => "Abgehen erlaubt";
+    public string AusmachenMitSpiel => "Ausmachen nur mit Spiel";
     public string DurchSeparate     => "Durch-Punkte separat";
     public string TeamHint          => "Spieler 1 & 2 = Team 1 · Spieler 3 & 4 = Team 2";
     public string Teams             => "Teams (Kreuz)";
@@ -220,12 +221,9 @@ public class StringsDe : IStrings
     public string DisplayNameHint   => "Dieser Name wird beim Spielen angezeigt.";
     public string MissingCredentials => "Bitte E-Mail und Passwort eingeben.";
     public string MissingName       => "Bitte einen Namen eingeben.";
-    public string NickLabel         => "Nick";
-    public string NickHint          => "Dein eindeutiger Nutzername";
-    public string NickChecking      => "Wird geprüft…";
-    public string NickAvailable     => "Verfügbar";
-    public string NickTaken         => "Nick bereits vergeben.";
-    public string NickInvalid       => "3–20 Zeichen, nur a–z, 0–9 und _";
+    public string DisplayNameChecking  => "Wird geprüft…";
+    public string DisplayNameAvailable => "Verfügbar";
+    public string DisplayNameTaken     => "Anzeigename bereits vergeben.";
 
     public string ChooseGame        => "Spiel wählen";
     public string BadgeFull         => "Vollständig";

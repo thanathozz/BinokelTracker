@@ -94,7 +94,7 @@
         {
             Id      = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Date    = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Players = _players.Select(p => p.Trim()).ToList(),
+            Players = _players.Select(p => (PlayerRef)p.Trim()).ToList(),
             Rules   = _rules.Clone(),
             Rounds  = new(),
             Einsatz = _einsatz,
@@ -135,7 +135,8 @@
         @if (_rules.DoubleMinus) { <span> · <span style="color:var(--red)">Doppelt Minus</span></span> }
         @if (_rules.AllowDurch)  { <span> · Durch</span> }
         @if (_rules.AllowBettel) { <span> · Bettel</span> }
-        @if (_rules.AllowAbgehen){ <span> · Abgehen</span> }
+        @if (_rules.AllowAbgehen)      { <span> · Abgehen</span> }
+        @if (_rules.AusmachenMitSpiel) { <span> · Ausmachen mit Spiel</span> }
     </div>
 }
 else
@@ -204,6 +205,15 @@ else
                     <div class="toggle-knob @(_rules.AllowAbgehen ? "on" : "off")"></div>
                 </button>
                 <span class="toggle-label @(_rules.AllowAbgehen ? "on" : "off")">@(_rules.AllowAbgehen ? S.Yes : S.No)</span>
+            </div>
+        </div>
+        <div class="rule-row">
+            <label class="form-label">@S.AusmachenMitSpiel</label>
+            <div class="toggle-row">
+                <button class="toggle-track @(_rules.AusmachenMitSpiel ? "on" : "off")" @onclick="() => _rules.AusmachenMitSpiel = !_rules.AusmachenMitSpiel">
+                    <div class="toggle-knob @(_rules.AusmachenMitSpiel ? "on" : "off")"></div>
+                </button>
+                <span class="toggle-label @(_rules.AusmachenMitSpiel ? "on" : "off")">@(_rules.AusmachenMitSpiel ? S.Yes : S.No)</span>
             </div>
         </div>
         <div class="rule-row" style="margin-bottom:8px">

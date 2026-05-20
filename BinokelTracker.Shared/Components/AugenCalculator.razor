@@ -70,7 +70,7 @@
     private bool _open;
     private int[] _counts = new int[5];
     private bool _letzterStich;
-    private IReadOnlyList<string>? _players;
+    private IReadOnlyList<PlayerRef>? _players;
     private Action<int, int>? _onAssign;
     private int _lastTrickBonus = 10;
 
@@ -81,7 +81,7 @@
         _counts.Select((c, i) => c * _cardValues[i]).Sum()
         + (_letzterStich ? _lastTrickBonus : 0);
 
-    public void Open(IReadOnlyList<string>? players = null, Action<int, int>? onAssign = null,
+    public void Open(IReadOnlyList<PlayerRef>? players = null, Action<int, int>? onAssign = null,
                      int assValue = 11, int zehnValue = 10, int koenigValue = 4,
                      int oberValue = 3, int unterValue = 2, int lastTrickBonus = 10)
     {
