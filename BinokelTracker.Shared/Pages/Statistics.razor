@@ -1,9 +1,10 @@
 @code {
     [Parameter] public List<Game> Games { get; set; } = new();
     [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnShowDashboard { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
-    private enum Tab { Players, Charts }
+    private enum Tab { Players, Charts, Details }
     private Tab _tab = Tab.Players;
     private GlobalStats _stats = default!;
 
@@ -12,6 +13,17 @@
 
     private static string Pct(double v) => $"{v:F0}%";
     private static string Avg(double v) => $"{v:F0}";
+
+    private string BestGameWinRate => _stats.Players.Count > 0
+        ? Pct(_stats.Players.Max(p => p.GamesPlayed > 0 ? (double)p.GamesWon / p.GamesPlayed * 100 : 0))
+        : "–";
+
+    private IReadOnlyList<(string, double)> ChartAvgScore =>
+        _stats.Players
+              .Where(p => p.AvgFinalScore > 0)
+              .OrderByDescending(p => p.AvgFinalScore)
+              .Select(p => (p.Name, p.AvgFinalScore))
+              .ToList();
 
     private IReadOnlyList<(string, double)> ChartWins =>
         _stats.Players
@@ -77,26 +89,23 @@
     <div class="header header-center">
         <div></div>
         <span class="header-title">@S.StatsTitle</span>
-        <div style="width:36px"></div>
+        <button style="background:none;border:none;padding:6px;color:var(--accent);font-size:18px;cursor:pointer;width:36px"
+                @onclick="OnShowDashboard">▤</button>
     </div>
 
-    <!-- KPI-Leiste -->
-    <div class="stats-kpi-bar">
-        <div class="stats-kpi-cell">
-            <div class="stats-kpi-value">@_stats.TotalGames</div>
-            <div class="stats-kpi-label">@S.StatsGames</div>
+    <!-- 3-cell summary row -->
+    <div class="stats-summary-row">
+        <div class="stats-summary-cell">
+            <div class="stats-summary-value">@_stats.TotalGames</div>
+            <div class="stats-summary-label">@S.StatsGames</div>
         </div>
-        <div class="stats-kpi-cell">
-            <div class="stats-kpi-value">@_stats.TotalRounds</div>
-            <div class="stats-kpi-label">@S.StatsRounds</div>
+        <div class="stats-summary-cell">
+            <div class="stats-summary-value">@_stats.TotalRounds</div>
+            <div class="stats-summary-label">@S.StatsRounds</div>
         </div>
-        <div class="stats-kpi-cell">
-            <div class="stats-kpi-value">@_stats.Players.Count</div>
-            <div class="stats-kpi-label">@S.StatsPlayers</div>
-        </div>
-        <div class="stats-kpi-cell">
-            <div class="stats-kpi-value">@_stats.FinishedGames</div>
-            <div class="stats-kpi-label">@S.StatsFinished</div>
+        <div class="stats-summary-cell">
+            <div class="stats-summary-value">@BestGameWinRate</div>
+            <div class="stats-summary-label">@S.StatsBestRate</div>
         </div>
     </div>
 
@@ -106,6 +115,8 @@
                 @onclick="() => _tab = Tab.Players">@S.Rankings</button>
         <button class="pill pill-sm @(_tab == Tab.Charts ? "active" : "")"
                 @onclick="() => _tab = Tab.Charts">@S.Charts</button>
+        <button class="pill pill-sm @(_tab == Tab.Details ? "active" : "")"
+                @onclick="() => _tab = Tab.Details">Details</button>
     </div>
 
     @if (_stats.Players.Count == 0)
@@ -123,62 +134,71 @@
         <div class="section" style="padding-top:8px">
             @foreach (var (p, rank) in _stats.Players.Select((p, i) => (p, i + 1)))
             {
-                var badgeClass = rank == 1 ? "gold" : rank == 2 ? "silver" : rank == 3 ? "bronze" : "";
-                var rateColor  = p.BidderWinRate >= 60 ? "var(--green)" : p.BidderWinRate >= 40 ? "var(--accent)" : "var(--red)";
+                var gameWinPct = p.GamesPlayed > 0 ? (double)p.GamesWon / p.GamesPlayed * 100 : 0;
 
-                <div class="stat-row">
-                    <div class="stat-row-left">
-                        <div class="stat-badge @badgeClass">
-                            @if (rank == 1 && p.GamesWon > 0)
-                            {
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                </svg>
-                            }
-                            else { @rank }
+                <div class="stats-card">
+                    <!-- Card header: rank number + player name + win count (exakt wie im Design) -->
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                        <span style="font-size:13px;font-weight:700;color:var(--muted);width:24px;text-align:center">@rank</span>
+                        <span class="stats-card-name">@p.Name</span>
+                        <span class="stats-card-wins">@p.GamesWon @S.ChartWinsTitle</span>
+                    </div>
+
+                    <!-- 4-column stats grid: Gewinn% · Ø Punkte · Ø Gebot · Spiele -->
+                    <div class="stats-grid">
+                        <div class="stats-cell">
+                            <div class="stats-cell-value @(gameWinPct >= 50 ? "good" : "")">@Pct(gameWinPct)</div>
+                            <div class="stats-cell-label">@S.StatsWinPct</div>
                         </div>
-                        <div style="min-width:0">
-                            <div class="stat-name">@p.Name</div>
-                            <div class="stat-meta">
-                                @if (p.RoundsAsBidder > 0)
-                                {
-                                    <text>@Pct(p.BidderWinRate) @S.BidRate</text>
-                                    <span class="stat-meta-sep">·</span>
-                                    <text>Ø @Avg(p.AvgBidValue)</text>
-                                }
-                                @if (p.BidderAbgegangen > 0)
-                                {
-                                    <span class="stat-meta-sep">·</span>
-                                    <text>@S.FoldedAbbr @(p.BidderAbgegangen)×</text>
-                                }
-                                @if (p.DurchPlayed > 0)
-                                {
-                                    <span class="stat-meta-sep">·</span>
-                                    <text>D @(p.DurchWon)/@(p.DurchPlayed)</text>
-                                }
-                                @if (p.BettelPlayed > 0)
-                                {
-                                    <span class="stat-meta-sep">·</span>
-                                    <text>B @(p.BettelWon)/@(p.BettelPlayed)</text>
-                                }
-                            </div>
-                            @if (p.RoundsAsBidder > 0)
-                            {
-                                <div class="stat-rate-bar">
-                                    <div class="stat-rate-fill" style="width:@(Pct(p.BidderWinRate));background:@rateColor"></div>
-                                </div>
-                            }
+                        <div class="stats-cell">
+                            <div class="stats-cell-value">@(p.AvgFinalScore > 0 ? Avg(p.AvgFinalScore) : "–")</div>
+                            <div class="stats-cell-label">@S.StatsAvgScore</div>
+                        </div>
+                        <div class="stats-cell">
+                            <div class="stats-cell-value">@(p.BidCountNotAbg > 0 ? Avg(p.AvgBidValue) : "–")</div>
+                            <div class="stats-cell-label">@S.ChartAvgBidTitle</div>
+                        </div>
+                        <div class="stats-cell">
+                            <div class="stats-cell-value">@p.GamesPlayed</div>
+                            <div class="stats-cell-label">@S.StatsGames</div>
                         </div>
                     </div>
-                    <div class="stat-row-right">
-                        <div class="stat-wins-num">@p.GamesWon</div>
-                        <div class="stat-played">/ @p.GamesPlayed @S.GamesPlayedAbbr</div>
-                        @if (p.MoneyBalance != 0)
-                        {
-                            <div class="stat-money @(p.MoneyBalance >= 0 ? "pos" : "neg")">@FormatMoney(p.MoneyBalance)</div>
-                        }
-                    </div>
+
+                    <!-- Secondary meta: Abgegangen / Durch / Bettel (nur wenn vorhanden) -->
+                    @if (p.BidderAbgegangen > 0 || p.DurchPlayed > 0 || p.BettelPlayed > 0)
+                    {
+                        <div class="stat-meta" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+                            @if (p.BidderAbgegangen > 0)
+                            {
+                                <text>@S.FoldedAbbr @(p.BidderAbgegangen)×</text>
+                            }
+                            @if (p.DurchPlayed > 0)
+                            {
+                                @if (p.BidderAbgegangen > 0) { <span class="stat-meta-sep">·</span> }
+                                <text>D @(p.DurchWon)/@(p.DurchPlayed)</text>
+                            }
+                            @if (p.BettelPlayed > 0)
+                            {
+                                @if (p.BidderAbgegangen > 0 || p.DurchPlayed > 0) { <span class="stat-meta-sep">·</span> }
+                                <text>B @(p.BettelWon)/@(p.BettelPlayed)</text>
+                            }
+                        </div>
+                    }
+
+                    <!-- Geldstand (nur wenn vorhanden) -->
+                    @if (p.MoneyBalance != 0)
+                    {
+                        <div style="margin-top:6px;text-align:right">
+                            <span class="stat-money @(p.MoneyBalance >= 0 ? "pos" : "neg")">@FormatMoney(p.MoneyBalance)</span>
+                        </div>
+                    }
                 </div>
+            }
+
+            <!-- "Ø Punkte Vergleich" Balkendiagramm direkt unter den Karten (exakt wie im Design) -->
+            @if (ChartAvgScore.Count > 0)
+            {
+                <BarChart Title="@S.ChartAvgScoreTitle" Data="ChartAvgScore" Color="var(--accent-dim)" />
             }
         </div>
     }
@@ -204,6 +224,108 @@
             {
                 <BarChart Title="@S.ChartDurchTitle" Data="ChartDurch" Color="var(--yellow, #d4a017)" />
             }
+        </div>
+    }
+
+    @if (_tab == Tab.Details && _stats.Players.Count > 0)
+    {
+        <div class="section" style="padding-top:8px">
+
+            @foreach (var p in _stats.Players)
+            {
+                <div class="stat-row" style="flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px">
+                    <div class="stat-name">@p.Name</div>
+
+                    @if (p.GamesPlayed > 0)
+                    {
+                        <div class="stat-meta">
+                            <text>⬆ @p.HighestGameScore</text>
+                            <span class="stat-meta-sep">·</span>
+                            <text>⬇ @p.LowestGameScore</text>
+                            <span class="stat-meta-sep">·</span>
+                            <text>Ø @($"{p.AvgFinalScore:F0}")</text>
+                            @if (p.LongestWinStreak > 1)
+                            {
+                                <span class="stat-meta-sep">·</span>
+                                <text>Serie @(p.LongestWinStreak)×</text>
+                            }
+                        </div>
+                    }
+
+                    @if (p.RoundsAsBidder > 0)
+                    {
+                        <div class="stat-meta">
+                            <text>Max Reiz @(p.HighestBidEver)</text>
+                        </div>
+                    }
+
+                    @if (p.NormalRoundsPlayed > 0)
+                    {
+                        <div class="stat-meta">
+                            <text>Ø Meld @($"{p.AvgMeldPoints:F0}")</text>
+                            <span class="stat-meta-sep">·</span>
+                            <text>Ø Stich @($"{p.AvgTrickPoints:F0}")</text>
+                            @if (p.HighestMeldInRound > 0)
+                            {
+                                <span class="stat-meta-sep">·</span>
+                                <text>Max Meld @(p.HighestMeldInRound)</text>
+                            }
+                        </div>
+                        <div class="stat-meta">
+                            <text>Letzter Stich @($"{p.LastTrickWinRate:F0}")% (@(p.LastTrickWins)×)</text>
+                        </div>
+                    }
+
+                    @if (p.MeldTypeFrequency.Count > 0)
+                    {
+                        <div class="stat-meta" style="flex-wrap:wrap;gap:4px">
+                            @foreach (var (mt, cnt) in p.MeldTypeFrequency.OrderByDescending(x => x.Value))
+                            {
+                                <span>@(mt) ×@(cnt)</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (_stats.RoundStats.TrumpFrequency.Count > 0)
+            {
+                <div style="padding:10px 12px">
+                    <div class="stat-name" style="margin-bottom:4px">Trumpfverteilung</div>
+                    @foreach (var (suit, cnt) in _stats.RoundStats.TrumpFrequency.OrderByDescending(x => x.Value))
+                    {
+                        <div class="stat-meta">
+                            <text>@suit: @cnt</text>
+                        </div>
+                    }
+                    @if (_stats.RoundStats.AvgTotalPointsPerRound > 0)
+                    {
+                        <div class="stat-meta" style="margin-top:4px">
+                            <text>Ø Punkte/Runde: @($"{_stats.RoundStats.AvgTotalPointsPerRound:F0}")</text>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (_stats.HeadToHead.Count > 0)
+            {
+                <div style="padding:10px 12px">
+                    <div class="stat-name" style="margin-bottom:4px">Direktvergleich</div>
+                    @foreach (var h in _stats.HeadToHead)
+                    {
+                        <div class="stat-meta" style="margin-bottom:2px">
+                            <text>@h.PlayerA vs @h.PlayerB: @h.AWins–@h.BWins</text>
+                            @if (h.Ties > 0) { <text> (U:@h.Ties)</text> }
+                            @if (h.AvgPointDiff != 0)
+                            {
+                                var diffSign = h.AvgPointDiff > 0 ? "+" : "";
+                                <text> Ø @($"{diffSign}{h.AvgPointDiff:F0}")</text>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
         </div>
     }
 

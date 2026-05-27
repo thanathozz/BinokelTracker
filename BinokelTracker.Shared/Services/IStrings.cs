@@ -199,6 +199,10 @@ public interface IStrings
     string NoDataHint { get; }
     string BidRate { get; }
     string GamesPlayedAbbr { get; }
+    string StatsBestRate { get; }
+    string StatsWinPct { get; }
+    string StatsAvgScore { get; }
+    string ChartAvgScoreTitle { get; }
     string ChartMoneyTitle { get; }
     string ChartWinsTitle { get; }
     string ChartWinRateTitle { get; }

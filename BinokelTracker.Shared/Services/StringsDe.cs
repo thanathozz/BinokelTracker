@@ -183,7 +183,11 @@ public class StringsDe : IStrings
     public string NoDataHint        => "Spiele erst ein paar Runden!";
     public string BidRate           => "Reizquote";
     public string GamesPlayedAbbr   => "Sp.";
-    public string ChartMoneyTitle   => "Gewinn / Verlust (€)";
+    public string StatsBestRate      => "Beste Gewinnquote";
+    public string StatsWinPct        => "Gewinn";
+    public string StatsAvgScore      => "Ø Punkte";
+    public string ChartAvgScoreTitle => "Ø Punkte Vergleich";
+    public string ChartMoneyTitle    => "Gewinn / Verlust (€)";
     public string ChartWinsTitle    => "Siege";
     public string ChartWinRateTitle => "Reizquote";
     public string ChartAvgBidTitle  => "Ø Reizwert";

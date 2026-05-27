@@ -55,7 +55,7 @@
                       OnDeleteGame="DeleteGame"
                       OnNew="() => _view = View.NewGame"
                       OnQuickGame="() => _view = View.QuickGame"
-                      OnRules="() => _rulesDialog!.Open()"
+                      OnRules="() => _rulesDialog!.Open(ActiveSessionRules)"
                       OnCalculator="() => _calculatorDialog!.Open(null, null, _activeSession?.AssValue ?? 11, _activeSession?.ZehnValue ?? 10, _activeSession?.KoenigValue ?? 4, _activeSession?.OberValue ?? 3, _activeSession?.UnterValue ?? 2, _activeSession?.LastTrickBonus ?? 10)" />
         }
         else if (_view == View.EditSpielrunde && _activeSession != null)
@@ -100,7 +100,13 @@
         else if (_view == View.Statistics)
         {
             <Statistics Games="(_activeSession != null ? SessionGames : _state.Games)"
-                        OnBack="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)" />
+                        OnBack="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)"
+                        OnShowDashboard="() => _view = View.StatisticsDashboard" />
+        }
+        else if (_view == View.StatisticsDashboard)
+        {
+            <StatisticsDashboard Games="(_activeSession != null ? SessionGames : _state.Games)"
+                                  OnBack="() => _view = View.Statistics" />
         }
         else if (_view == View.Profile)
         {
@@ -119,7 +125,7 @@
                 </svg>
                 <span>@_s.TabGames</span>
             </button>
-            <button class="tab-bar-item @(_view == View.Statistics ? "active" : "")"
+            <button class="tab-bar-item @(_view is View.Statistics or View.StatisticsDashboard ? "active" : "")"
                     @onclick="() => _view = View.Statistics">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
@@ -159,7 +165,7 @@
 </div>
 
 @code {
-    enum View { Login, GameTypeSelect, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, Profile, EditSpielrunde }
+    enum View { Login, GameTypeSelect, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, StatisticsDashboard, Profile, EditSpielrunde }
 
     private AppState _state = new();
     private View _view = View.GameTypeSelect;
@@ -199,6 +205,19 @@
         _activeSession != null &&
         (_activeSession.CreatorUserId == null ||
          _activeSession.CreatorUserId == AuthService.Session?.UserId);
+
+    private RuleSet ActiveSessionRules => _activeSession != null
+        ? new RuleSet
+        {
+            AssValue              = _activeSession.AssValue,
+            ZehnValue             = _activeSession.ZehnValue,
+            KoenigValue           = _activeSession.KoenigValue,
+            OberValue             = _activeSession.OberValue,
+            UnterValue            = _activeSession.UnterValue,
+            LastTrickBonus        = _activeSession.LastTrickBonus,
+            AbgegangenBonusPerPlayer = _activeSession.AbgegangenBonusPerPlayer
+        }
+        : new RuleSet();
 
     private List<Spielrunde> GameTypeSpielrunden =>
         _state.Spielrunden
@@ -345,6 +364,8 @@
                 if (!string.IsNullOrWhiteSpace(player.DisplayName) &&
                     !_activeSession.Players.Contains(player.DisplayName, StringComparer.OrdinalIgnoreCase))
                     _activeSession.Players.Add(player.DisplayName);
+                if (player.UserId == null && _activeSession.MemberUserIds.TryGetValue(player.DisplayName, out var uid))
+                    player.UserId = uid;
             }
         }
         game.SpielrundeId = _activeSession?.Id;
@@ -459,6 +480,8 @@
                 if (!string.IsNullOrWhiteSpace(player.DisplayName) &&
                     !_activeSession.Players.Contains(player.DisplayName, StringComparer.OrdinalIgnoreCase))
                     _activeSession.Players.Add(player.DisplayName);
+                if (player.UserId == null && _activeSession.MemberUserIds.TryGetValue(player.DisplayName, out var uid))
+                    player.UserId = uid;
             }
         }
         game.SpielrundeId = _activeSession?.Id;

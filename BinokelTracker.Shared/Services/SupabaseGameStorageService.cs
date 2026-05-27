@@ -81,10 +81,21 @@ public class SupabaseGameStorageService : IGameStorageService
                 Rounds       = roundsByGame.TryGetValue(gm.Id, out var rl) ? rl : []
             }).ToList();
 
+            var memberRows = await GetAsync<List<SpielrundeMemberLoadRow>>(
+                "/rest/v1/spielrunde_members?select=spielrunde_id,user_id,display_name") ?? [];
+            var membersBySpielrunde = memberRows
+                .GroupBy(m => m.SpielrundeId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             var spielrunden = spielrundeRows.Select(r => r.Data).ToList();
             foreach (var s in spielrunden)
+            {
                 if (string.IsNullOrEmpty(s.GameType))
                     s.GameType = GameTypeInfo.Binokel;
+                if (membersBySpielrunde.TryGetValue(s.Id, out var members))
+                    foreach (var m in members)
+                        s.MemberUserIds[m.DisplayName] = m.UserId;
+            }
 
             return new AppState
             {
@@ -193,6 +204,9 @@ public class SupabaseGameStorageService : IGameStorageService
             var ownedSr = state.Spielrunden
                 .Where(s => string.IsNullOrEmpty(s.CreatorUserId) || s.CreatorUserId == userId)
                 .ToList();
+            // Ensure creatorUserId is always set before upserting so the RLS check on data->>'creatorUserId' passes
+            foreach (var s in ownedSr.Where(s => string.IsNullOrEmpty(s.CreatorUserId)))
+                s.CreatorUserId = userId;
             if (ownedSr.Count > 0)
             {
                 var srRows = ownedSr.Select(s => new SpielrundeRow(s.Id, s, userId));
@@ -379,4 +393,9 @@ public class SupabaseGameStorageService : IGameStorageService
         int                                                        Meld,
         int                                                        Tricks,
         bool                                                       Abgegangen);
+
+    private record SpielrundeMemberLoadRow(
+        [property: JsonPropertyName("spielrunde_id")] long   SpielrundeId,
+        [property: JsonPropertyName("user_id")]       string UserId,
+        [property: JsonPropertyName("display_name")]  string DisplayName);
 }

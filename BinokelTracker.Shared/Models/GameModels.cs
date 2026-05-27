@@ -124,6 +124,7 @@ public class PlayerScore
     public int Meld { get; set; }
     public int Tricks { get; set; }
     public bool Abgegangen { get; set; }
+    public List<MeldType>? MeldTypes { get; set; }
 }
 
 public enum RoundType
@@ -291,6 +292,9 @@ public class Spielrunde
     /// <summary>Transient: UserId+DisplayName der einzutragenden Mitglieder. Wird nicht serialisiert.</summary>
     [JsonIgnore]
     public List<(string UserId, string DisplayName)>? PendingInvites { get; set; }
+    /// <summary>Transient: DisplayName → UserId für alle eingeladenen Mitglieder. Wird aus spielrunde_members geladen.</summary>
+    [JsonIgnore]
+    public Dictionary<string, string> MemberUserIds { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public int AssValue { get; set; } = 11;
     public int ZehnValue { get; set; } = 10;
     public int KoenigValue { get; set; } = 4;

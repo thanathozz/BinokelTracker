@@ -34,7 +34,9 @@ internal static class Build
         int[] tricks,
         bool[]? abgegangen      = null,
         int     lastTrickWinner = -1,
-        int     lastTrickBonus  = 10)
+        int     lastTrickBonus  = 10,
+        TrumpSuit? trumpf       = null,
+        List<MeldType>?[]? meldTypes = null)
     {
         var abg        = abgegangen ?? new bool[meld.Length];
         bool bidderAbg = abg[bidder];
@@ -48,12 +50,14 @@ internal static class Build
             Bidder          = bidder,
             Bid             = bid,
             Won             = won,
+            Trumpf          = trumpf,
             LastTrickWinner = lastTrickWinner,
             PlayerScores    = meld.Select((m, i) => new PlayerScore
             {
                 Meld       = m,
                 Tricks     = tricks[i],
                 Abgegangen = abg[i],
+                MeldTypes  = meldTypes?[i],
             }).ToList()
         };
     }

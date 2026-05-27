@@ -183,7 +183,11 @@ public class StringsEn : IStrings
     public string NoDataHint        => "Play a few rounds first!";
     public string BidRate           => "Bid rate";
     public string GamesPlayedAbbr   => "gm.";
-    public string ChartMoneyTitle   => "Gain / Loss (€)";
+    public string StatsBestRate      => "Best Win Rate";
+    public string StatsWinPct        => "Win";
+    public string StatsAvgScore      => "Avg. Score";
+    public string ChartAvgScoreTitle => "Avg. Score Comparison";
+    public string ChartMoneyTitle    => "Gain / Loss (€)";
     public string ChartWinsTitle    => "Wins";
     public string ChartWinRateTitle => "Bid rate";
     public string ChartAvgBidTitle  => "Avg. bid";
