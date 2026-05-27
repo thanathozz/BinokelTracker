@@ -29,7 +29,19 @@ public class GameService : IGameService
 
     public void FinishGame(Game game) => game.Finished = true;
 
-    private static bool IsTargetReached(Game game) => game.Rules.TeamMode
-        ? ScoringCalculator.GetTeamTotals(game).Any(t => t >= game.Rules.TargetScore)
-        : ScoringCalculator.GetPlayerTotals(game).Any(t => t >= game.Rules.TargetScore);
+    private static bool IsTargetReached(Game game)
+    {
+        if (game.Rules.AusmachenMitSpiel && game.Rounds.Count > 0)
+        {
+            var last = game.Rounds[^1];
+            var scores = ScoringCalculator.CalcRoundScores(last, game.Rules);
+            if (scores[last.Bidder] <= 0) return false;
+            if (game.Rules.TeamMode)
+                return ScoringCalculator.GetTeamTotals(game)[last.Bidder / 2] >= game.Rules.TargetScore;
+            return ScoringCalculator.GetPlayerTotals(game)[last.Bidder] >= game.Rules.TargetScore;
+        }
+        return game.Rules.TeamMode
+            ? ScoringCalculator.GetTeamTotals(game).Any(t => t >= game.Rules.TargetScore)
+            : ScoringCalculator.GetPlayerTotals(game).Any(t => t >= game.Rules.TargetScore);
+    }
 }

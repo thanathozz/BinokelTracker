@@ -40,16 +40,15 @@ public class AuthService : IAuthService
                 AccessToken  = stored.AccessToken,
                 RefreshToken = stored.RefreshToken,
                 ExpiresAt    = stored.ExpiresAt,
-                UserId       = ExtractJwtClaim(stored.AccessToken, "sub")          ?? "",
-                Email        = ExtractJwtClaim(stored.AccessToken, "email")        ?? "",
-                DisplayName  = ExtractJwtMetadataClaim(stored.AccessToken, "display_name") ?? "",
+                UserId       = ExtractJwtClaim(stored.AccessToken, "sub")   ?? "",
+                Email        = ExtractJwtClaim(stored.AccessToken, "email") ?? "",
                 IsAdmin      = ExtractIsAdmin(stored.AccessToken)
             };
 
             if (!candidate.IsExpired)
             {
                 Session = candidate;
-                await LoadNickAsync();
+                await LoadDisplayNameAsync();
                 SessionChanged?.Invoke();
                 return true;
             }
@@ -60,7 +59,7 @@ public class AuthService : IAuthService
                 if (refreshed != null)
                 {
                     Session = refreshed;
-                    await LoadNickAsync();
+                    await LoadDisplayNameAsync();
                     await PersistSessionAsync(refreshed);
                     SessionChanged?.Invoke();
                     return true;
@@ -137,7 +136,7 @@ public class AuthService : IAuthService
 
             var session = ToSession(authResp);
             Session = session;
-            await LoadNickAsync();
+            await LoadDisplayNameAsync();
             await PersistSessionAsync(session);
             SessionChanged?.Invoke();
             return new AuthResult(true, null);
@@ -165,30 +164,44 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AuthResult> UpdateDisplayNameAsync(string displayName)
+    public async Task<bool> CheckDisplayNameAvailableAsync(string displayName)
     {
         try
         {
+            var encoded = Uri.EscapeDataString(displayName);
+            var req = new HttpRequestMessage(HttpMethod.Get,
+                $"/rest/v1/profiles?display_name=ilike.{encoded}&select=display_name");
+            if (Session is not null)
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetValidTokenAsync());
+            var resp = await _http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode) return false;
+            var rows = await resp.Content.ReadFromJsonAsync<DisplayNameRow[]>(JsonOpts);
+            return rows?.Length == 0;
+        }
+        catch { return false; }
+    }
+
+    public async Task<AuthResult> SetDisplayNameAsync(string displayName)
+    {
+        try
+        {
+            if (Session is null) return new AuthResult(false, "Nicht angemeldet");
             var token = await GetValidTokenAsync();
-            var body  = JsonSerializer.Serialize(new { data = new { display_name = displayName } });
-            var req   = new HttpRequestMessage(HttpMethod.Put, "/auth/v1/user")
+            var body  = JsonSerializer.Serialize(new { user_id = Session.UserId, display_name = displayName }, JsonOpts);
+            var req   = new HttpRequestMessage(HttpMethod.Post, "/rest/v1/profiles")
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/json")
             };
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            req.Headers.Add("Prefer", "resolution=merge-duplicates,return=minimal");
             var resp = await _http.SendAsync(req);
             if (!resp.IsSuccessStatusCode)
-                return new AuthResult(false, "Name konnte nicht gespeichert werden");
-
-            if (Session is not null)
-                Session.DisplayName = displayName;
+                return new AuthResult(false, "Anzeigename konnte nicht gespeichert werden.");
+            Session.DisplayName = displayName;
             SessionChanged?.Invoke();
             return new AuthResult(true, null);
         }
-        catch (Exception ex)
-        {
-            return new AuthResult(false, ex.Message);
-        }
+        catch (Exception ex) { return new AuthResult(false, ex.Message); }
     }
 
     private static AuthSession ToSession(SupabaseAuthResponse r) => new()
@@ -198,7 +211,6 @@ public class AuthService : IAuthService
         ExpiresAt    = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + r.ExpiresIn,
         UserId       = r.User.Id,
         Email        = r.User.Email,
-        DisplayName  = r.User.UserMetadata?.DisplayName ?? "",
         IsAdmin      = ExtractIsAdmin(r.AccessToken)
     };
 
@@ -237,23 +249,6 @@ public class AuthService : IAuthService
         catch { return false; }
     }
 
-    private static string? ExtractJwtMetadataClaim(string jwt, string claim)
-    {
-        try
-        {
-            var parts  = jwt.Split('.');
-            if (parts.Length < 2) return null;
-            var padded = parts[1].PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=');
-            var bytes  = Convert.FromBase64String(padded.Replace('-', '+').Replace('_', '/'));
-            var doc    = JsonDocument.Parse(bytes);
-            if (doc.RootElement.TryGetProperty("user_metadata", out var meta) &&
-                meta.TryGetProperty(claim, out var el))
-                return el.GetString();
-            return null;
-        }
-        catch { return null; }
-    }
-
     private static string ParseSupabaseError(string body)
     {
         try
@@ -267,57 +262,21 @@ public class AuthService : IAuthService
         return "Anmeldung fehlgeschlagen";
     }
 
-    public async Task<bool> CheckNickAvailableAsync(string nick)
-    {
-        try
-        {
-            var encoded = Uri.EscapeDataString(nick.ToLowerInvariant());
-            var resp = await _http.GetAsync($"/rest/v1/profiles?nick=eq.{encoded}&select=nick");
-            if (!resp.IsSuccessStatusCode) return false;
-            var rows = await resp.Content.ReadFromJsonAsync<NickRow[]>(JsonOpts);
-            return rows?.Length == 0;
-        }
-        catch { return false; }
-    }
-
-    public async Task<AuthResult> SetNickAsync(string nick)
-    {
-        try
-        {
-            if (Session is null) return new AuthResult(false, "Nicht angemeldet");
-            var token = await GetValidTokenAsync();
-            var body  = JsonSerializer.Serialize(new { user_id = Session.UserId, nick = nick.ToLowerInvariant() }, JsonOpts);
-            var req   = new HttpRequestMessage(HttpMethod.Post, "/rest/v1/profiles")
-            {
-                Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
-            };
-            req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            req.Headers.Add("Prefer", "resolution=merge-duplicates,return=minimal");
-            var resp = await _http.SendAsync(req);
-            if (!resp.IsSuccessStatusCode)
-                return new AuthResult(false, "Nick konnte nicht gespeichert werden.");
-            Session.Nick = nick.ToLowerInvariant();
-            SessionChanged?.Invoke();
-            return new AuthResult(true, null);
-        }
-        catch (Exception ex) { return new AuthResult(false, ex.Message); }
-    }
-
-    private async Task LoadNickAsync()
+    private async Task LoadDisplayNameAsync()
     {
         if (Session is null || string.IsNullOrEmpty(Session.UserId)) return;
         try
         {
             var encoded = Uri.EscapeDataString(Session.UserId);
-            var resp    = await _http.GetAsync($"/rest/v1/profiles?user_id=eq.{encoded}&select=nick");
+            var resp    = await _http.GetAsync($"/rest/v1/profiles?user_id=eq.{encoded}&select=display_name");
             if (!resp.IsSuccessStatusCode) return;
-            var rows = await resp.Content.ReadFromJsonAsync<NickRow[]>(JsonOpts);
+            var rows = await resp.Content.ReadFromJsonAsync<DisplayNameRow[]>(JsonOpts);
             if (rows?.Length > 0)
-                Session.Nick = rows[0].Nick ?? "";
+                Session.DisplayName = rows[0].DisplayName ?? "";
         }
         catch { }
     }
 
     private record StoredSession(string AccessToken, string RefreshToken, long ExpiresAt);
-    private record NickRow(string? Nick);
+    private record DisplayNameRow([property: System.Text.Json.Serialization.JsonPropertyName("display_name")] string? DisplayName);
 }

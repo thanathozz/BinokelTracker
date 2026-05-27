@@ -13,7 +13,7 @@ public class SupabaseGameStorageService : IGameStorageService
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly HttpClient  _http;
+    private readonly HttpClient   _http;
     private readonly IAuthService _auth;
 
     public SupabaseGameStorageService(HttpClient http, IAuthService auth, SupabaseConfig config)
@@ -28,8 +28,8 @@ public class SupabaseGameStorageService : IGameStorageService
     {
         try
         {
-            var gameRows = await GetAsync<List<GameRow>>(
-                "/rest/v1/games?select=id,data&order=id") ?? [];
+            var gameRows = await GetAsync<List<GameLoadRow>>(
+                "/rest/v1/games?select=id,game_date,spielrunde_id,einsatz,finished,quick_winner,rules&order=id") ?? [];
 
             var playerRows = await GetAsync<List<PlayerRow>>(
                 "/rest/v1/known_players?select=name") ?? [];
@@ -37,14 +37,69 @@ public class SupabaseGameStorageService : IGameStorageService
             var spielrundeRows = await GetAsync<List<SpielrundeRow>>(
                 "/rest/v1/spielrunden?select=id,data&order=id") ?? [];
 
+            List<GamePlayerLoadRow> gamePlayers = [];
+            List<RoundLoadRow>      roundRows   = [];
+            List<RoundScoreLoadRow> scoreRows   = [];
+
+            if (gameRows.Count > 0)
+            {
+                gamePlayers = await GetAsync<List<GamePlayerLoadRow>>(
+                    "/rest/v1/game_players?select=game_id,position,display_name,player_user_id&order=game_id,position") ?? [];
+                roundRows = await GetAsync<List<RoundLoadRow>>(
+                    "/rest/v1/rounds?select=game_id,position,type,bidder_position,bid,won,trumpf,last_trick_winner,custom_values&order=game_id,position") ?? [];
+                scoreRows = await GetAsync<List<RoundScoreLoadRow>>(
+                    "/rest/v1/round_player_scores?select=game_id,round_position,player_position,meld,tricks,abgegangen&order=game_id,round_position,player_position") ?? [];
+            }
+
+            var playersByGame = gamePlayers
+                .GroupBy(p => p.GameId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(p => p.Position).ToList());
+
+            var scoresByRound = scoreRows
+                .GroupBy(s => (s.GameId, s.RoundPosition))
+                .ToDictionary(g => g.Key, g => g.OrderBy(s => s.PlayerPosition).ToList());
+
+            var roundsByGame = roundRows
+                .GroupBy(r => r.GameId)
+                .ToDictionary(g => g.Key, g => g
+                    .OrderBy(r => r.Position)
+                    .Select(r => ToRound(r, scoresByRound))
+                    .ToList());
+
+            var games = gameRows.Select(gm => new Game
+            {
+                Id           = gm.Id,
+                Date         = gm.GameDate,
+                SpielrundeId = gm.SpielrundeId,
+                Einsatz      = gm.Einsatz,
+                Finished     = gm.Finished,
+                QuickWinner  = gm.QuickWinner,
+                Rules        = gm.Rules ?? new RuleSet(),
+                Players      = playersByGame.TryGetValue(gm.Id, out var pl)
+                    ? pl.Select(p => new PlayerRef { DisplayName = p.DisplayName, UserId = p.PlayerUserId }).ToList()
+                    : [],
+                Rounds       = roundsByGame.TryGetValue(gm.Id, out var rl) ? rl : []
+            }).ToList();
+
+            var memberRows = await GetAsync<List<SpielrundeMemberLoadRow>>(
+                "/rest/v1/spielrunde_members?select=spielrunde_id,user_id,display_name") ?? [];
+            var membersBySpielrunde = memberRows
+                .GroupBy(m => m.SpielrundeId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             var spielrunden = spielrundeRows.Select(r => r.Data).ToList();
             foreach (var s in spielrunden)
+            {
                 if (string.IsNullOrEmpty(s.GameType))
                     s.GameType = GameTypeInfo.Binokel;
+                if (membersBySpielrunde.TryGetValue(s.Id, out var members))
+                    foreach (var m in members)
+                        s.MemberUserIds[m.DisplayName] = m.UserId;
+            }
 
             return new AppState
             {
-                Games        = gameRows.Select(r => r.Data).ToList(),
+                Games        = games,
                 KnownPlayers = playerRows.Select(r => r.Name).ToList(),
                 Spielrunden  = spielrunden
             };
@@ -56,17 +111,40 @@ public class SupabaseGameStorageService : IGameStorageService
         }
     }
 
+    private static Round ToRound(RoundLoadRow r, Dictionary<(long, int), List<RoundScoreLoadRow>> scoresByRound)
+    {
+        var scores = scoresByRound.TryGetValue((r.GameId, r.Position), out var sl) ? sl : [];
+        return new Round
+        {
+            Id              = r.Position,
+            Type            = Enum.TryParse<RoundType>(r.Type, out var rt) ? rt : RoundType.Normal,
+            Bidder          = r.BidderPosition,
+            Bid             = r.Bid,
+            Won             = r.Won,
+            Trumpf          = r.Trumpf != null && Enum.TryParse<TrumpSuit>(r.Trumpf, out var ts) ? ts : (TrumpSuit?)null,
+            LastTrickWinner = r.LastTrickWinner,
+            CustomValues    = r.CustomValues ?? new(),
+            PlayerScores    = scores.Select(s => new PlayerScore
+            {
+                Meld       = s.Meld,
+                Tricks     = s.Tricks,
+                Abgegangen = s.Abgegangen
+            }).ToList()
+        };
+    }
+
     public async Task<string?> SaveAsync(AppState state)
     {
         try
         {
             var userId = _auth.Session!.UserId;
 
-            // Upsert games
+            // Upsert game metadata (individual columns)
             if (state.Games.Count > 0)
             {
-                var gameRows = state.Games.Select(g => new GameRow(g.Id, g, userId));
-                await UpsertAsync("/rest/v1/games", gameRows);
+                var metaRows = state.Games.Select(g => new GameMetaRow(
+                    g.Id, userId, g.Date, g.SpielrundeId, g.Einsatz, g.Finished, g.QuickWinner, g.Rules));
+                await UpsertAsync("/rest/v1/games", metaRows);
 
                 var ids = string.Join(",", state.Games.Select(g => g.Id));
                 await DeleteAsync($"/rest/v1/games?id=not.in.({ids})");
@@ -76,17 +154,59 @@ public class SupabaseGameStorageService : IGameStorageService
                 await DeleteAsync("/rest/v1/games?id=gte.0");
             }
 
+            // Upsert game_players
+            var currentDisplayName = _auth.Session?.DisplayName;
+            var gamePlayerRows = state.Games.SelectMany(g =>
+                g.Players.Select((p, i) =>
+                {
+                    var effectivePlayerUserId = p.UserId
+                        ?? (!string.IsNullOrEmpty(currentDisplayName) &&
+                            string.Equals(p.DisplayName, currentDisplayName, StringComparison.OrdinalIgnoreCase)
+                            ? userId : null);
+                    return new GamePlayerRow(g.Id, i, p.DisplayName, effectivePlayerUserId, userId);
+                }));
+            await UpsertAsync("/rest/v1/game_players", gamePlayerRows);
+
+            // Upsert rounds + round_player_scores (delete-then-insert for consistency)
+            if (state.Games.Count > 0)
+            {
+                var gameIds = string.Join(",", state.Games.Select(g => g.Id));
+                await DeleteAsync($"/rest/v1/rounds?game_id=in.({gameIds})");
+
+                var roundRows = state.Games.SelectMany(g =>
+                    g.Rounds.Select((r, pos) => new RoundRow(
+                        g.Id, pos, userId,
+                        r.Type.ToString(),
+                        r.Bidder, r.Bid, r.Won,
+                        r.Trumpf?.ToString(),
+                        r.LastTrickWinner,
+                        r.CustomValues)));
+                if (roundRows.Any())
+                    await UpsertAsync("/rest/v1/rounds", roundRows);
+
+                var scoreRows = state.Games
+                    .SelectMany(g => g.Rounds.Select((r, rpos) => (g, r, rpos)))
+                    .SelectMany(t => t.r.PlayerScores.Select((ps, ppos) =>
+                        new RoundPlayerScoreRow(t.g.Id, t.rpos, ppos, userId,
+                            ps.Meld, ps.Tricks, ps.Abgegangen)));
+                if (scoreRows.Any())
+                    await UpsertAsync("/rest/v1/round_player_scores", scoreRows);
+            }
+
             // Upsert known players
             if (state.KnownPlayers.Count > 0)
             {
-                var playerRows = state.KnownPlayers.Select(p => new PlayerRow(p, userId));
-                await UpsertAsync("/rest/v1/known_players", playerRows);
+                var kpRows = state.KnownPlayers.Select(p => new PlayerRow(p, userId));
+                await UpsertAsync("/rest/v1/known_players", kpRows);
             }
 
-            // Upsert spielrunden — nur eigene (nicht als Mitglied beigetretene)
+            // Upsert spielrunden (still JSON blob)
             var ownedSr = state.Spielrunden
                 .Where(s => string.IsNullOrEmpty(s.CreatorUserId) || s.CreatorUserId == userId)
                 .ToList();
+            // Ensure creatorUserId is always set before upserting so the RLS check on data->>'creatorUserId' passes
+            foreach (var s in ownedSr.Where(s => string.IsNullOrEmpty(s.CreatorUserId)))
+                s.CreatorUserId = userId;
             if (ownedSr.Count > 0)
             {
                 var srRows = ownedSr.Select(s => new SpielrundeRow(s.Id, s, userId));
@@ -109,7 +229,7 @@ public class SupabaseGameStorageService : IGameStorageService
         }
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
     private async Task<T?> GetAsync<T>(string url)
     {
@@ -149,25 +269,31 @@ public class SupabaseGameStorageService : IGameStorageService
         return req;
     }
 
-    public async Task<(string UserId, string Nick)?> FindProfileByNickAsync(string nick)
+    public async Task<(string UserId, string DisplayName)?> FindProfileByDisplayNameAsync(string displayName)
     {
         try
         {
-            var encoded = Uri.EscapeDataString(nick.ToLowerInvariant());
-            var req  = await AuthorizedRequest(HttpMethod.Get, $"/rest/v1/profiles?nick=eq.{encoded}&select=user_id,nick");
+            var encoded = Uri.EscapeDataString(displayName);
+            var req  = await AuthorizedRequest(HttpMethod.Get, $"/rest/v1/profiles?display_name=ilike.{encoded}&select=user_id,display_name");
             var resp = await _http.SendAsync(req);
             if (!resp.IsSuccessStatusCode) return null;
             var stream = await resp.Content.ReadAsStreamAsync();
             var rows = await JsonSerializer.DeserializeAsync<ProfileRow[]>(stream, JsonOpts);
-            if (rows?.Length > 0) return (rows[0].UserId, rows[0].Nick);
+            if (rows?.Length > 0) return (rows[0].UserId, rows[0].DisplayName);
             return null;
         }
         catch { return null; }
     }
 
-    public async Task AddSpielrundeMembersAsync(long spielrundeId, IEnumerable<(string UserId, string Nick)> members)
+    public async Task DeleteSpielrundeAsync(long spielrundeId)
     {
-        var rows = members.Select(m => new MemberRow(spielrundeId, m.UserId, m.Nick)).ToList();
+        await DeleteAsync($"/rest/v1/games?spielrunde_id=eq.{spielrundeId}");
+        await DeleteAsync($"/rest/v1/spielrunden?id=eq.{spielrundeId}");
+    }
+
+    public async Task AddSpielrundeMembersAsync(long spielrundeId, IEnumerable<(string UserId, string DisplayName)> members)
+    {
+        var rows = members.Select(m => new MemberRow(spielrundeId, m.UserId, m.DisplayName)).ToList();
         if (rows.Count == 0) return;
         var json    = JsonSerializer.Serialize(rows, JsonOpts);
         var req     = await AuthorizedRequest(HttpMethod.Post, "/rest/v1/spielrunde_members");
@@ -181,14 +307,95 @@ public class SupabaseGameStorageService : IGameStorageService
         }
     }
 
-    private record GameRow(long Id, Game Data, [property: JsonPropertyName("user_id")] string UserId);
+    // ── Data Transfer Records ─────────────────────────────────────────────────
+
+    private record GameMetaRow(
+        long                                                       Id,
+        [property: JsonPropertyName("user_id")]        string     UserId,
+        [property: JsonPropertyName("game_date")]      long       GameDate,
+        [property: JsonPropertyName("spielrunde_id")]  long?      SpielrundeId,
+        string                                                     Einsatz,
+        bool                                                       Finished,
+        [property: JsonPropertyName("quick_winner")]   int?       QuickWinner,
+        RuleSet                                                    Rules);
+
+    private record GameLoadRow(
+        long                                                       Id,
+        [property: JsonPropertyName("game_date")]      long       GameDate,
+        [property: JsonPropertyName("spielrunde_id")]  long?      SpielrundeId,
+        string                                                     Einsatz,
+        bool                                                       Finished,
+        [property: JsonPropertyName("quick_winner")]   int?       QuickWinner,
+        RuleSet?                                                   Rules);
+
+    private record GamePlayerLoadRow(
+        [property: JsonPropertyName("game_id")]         long     GameId,
+        int                                                       Position,
+        [property: JsonPropertyName("display_name")]    string   DisplayName,
+        [property: JsonPropertyName("player_user_id")]  string?  PlayerUserId);
+
+    private record RoundLoadRow(
+        [property: JsonPropertyName("game_id")]            long                        GameId,
+        int                                                                             Position,
+        string                                                                          Type,
+        [property: JsonPropertyName("bidder_position")]    int                         BidderPosition,
+        int                                                                             Bid,
+        bool                                                                            Won,
+        string?                                                                         Trumpf,
+        [property: JsonPropertyName("last_trick_winner")]  int                         LastTrickWinner,
+        [property: JsonPropertyName("custom_values")]      Dictionary<string, string>  CustomValues);
+
+    private record RoundScoreLoadRow(
+        [property: JsonPropertyName("game_id")]          long   GameId,
+        [property: JsonPropertyName("round_position")]   int    RoundPosition,
+        [property: JsonPropertyName("player_position")]  int    PlayerPosition,
+        int                                                      Meld,
+        int                                                      Tricks,
+        bool                                                     Abgegangen);
+
     private record PlayerRow(string Name, [property: JsonPropertyName("user_id")] string UserId);
+
     private record SpielrundeRow(long Id, Spielrunde Data, [property: JsonPropertyName("user_id")] string UserId);
+
     private record ProfileRow(
-        [property: JsonPropertyName("user_id")] string UserId,
-        string Nick);
+        [property: JsonPropertyName("user_id")]      string UserId,
+        [property: JsonPropertyName("display_name")] string DisplayName);
+
     private record MemberRow(
-        [property: JsonPropertyName("spielrunde_id")] long SpielrundeId,
-        [property: JsonPropertyName("user_id")] string UserId,
-        string Nick);
+        [property: JsonPropertyName("spielrunde_id")] long   SpielrundeId,
+        [property: JsonPropertyName("user_id")]       string UserId,
+        [property: JsonPropertyName("display_name")]  string DisplayName);
+
+    private record GamePlayerRow(
+        [property: JsonPropertyName("game_id")]         long     GameId,
+        int                                                       Position,
+        [property: JsonPropertyName("display_name")]    string   DisplayName,
+        [property: JsonPropertyName("player_user_id")]  string?  PlayerUserId,
+        [property: JsonPropertyName("user_id")]         string   UserId);
+
+    private record RoundRow(
+        [property: JsonPropertyName("game_id")]            long                        GameId,
+        int                                                                             Position,
+        [property: JsonPropertyName("user_id")]            string                      UserId,
+        string                                                                          Type,
+        [property: JsonPropertyName("bidder_position")]    int                         BidderPosition,
+        int                                                                             Bid,
+        bool                                                                            Won,
+        string?                                                                         Trumpf,
+        [property: JsonPropertyName("last_trick_winner")]  int                         LastTrickWinner,
+        [property: JsonPropertyName("custom_values")]      Dictionary<string, string>  CustomValues);
+
+    private record RoundPlayerScoreRow(
+        [property: JsonPropertyName("game_id")]          long     GameId,
+        [property: JsonPropertyName("round_position")]   int      RoundPosition,
+        [property: JsonPropertyName("player_position")]  int      PlayerPosition,
+        [property: JsonPropertyName("user_id")]          string   UserId,
+        int                                                        Meld,
+        int                                                        Tricks,
+        bool                                                       Abgegangen);
+
+    private record SpielrundeMemberLoadRow(
+        [property: JsonPropertyName("spielrunde_id")] long   SpielrundeId,
+        [property: JsonPropertyName("user_id")]       string UserId,
+        [property: JsonPropertyName("display_name")]  string DisplayName);
 }

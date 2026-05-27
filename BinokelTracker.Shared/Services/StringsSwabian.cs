@@ -35,9 +35,9 @@ public class StringsSwabian : IStrings
     public string NewSpielrunde     => "Neue Spielrunde";
     public string PrivateChip       => "Privat";
     public string SharedChip        => "Geteilt";
-    public string InviteByNick      => "Per Nick eilade";
-    public string AddMember         => "Dazua";
-    public string NickNotFound      => "Nick net gfunda.";
+    public string InviteByDisplayName   => "Per Anzeigename eilade";
+    public string AddMember             => "Dazua";
+    public string DisplayNameNotFound   => "Anzeigename net gfunda.";
     public string MembersLabel      => "Mitglieder";
     public string ActiveLabel       => "laufend";
     public string GamesLabel        => "Spiel(e)";
@@ -64,13 +64,15 @@ public class StringsSwabian : IStrings
     public string AllowDurch        => "Durch erlaubt";
     public string AllowBettel       => "Bettel erlaubt";
     public string AllowAbgehen      => "Abgehen erlaubt";
+    public string AusmachenMitSpiel => "Ausmache nur mit Spiel";
     public string DurchSeparate     => "Durch-Punkte separat";
-    public string TeamHint          => "Spieler 1 & 3 = Team 1 · Spieler 2 & 4 = Team 2 (Kreuz)";
+    public string TeamHint          => "Spieler 1 & 2 = Team 1 · Spieler 3 & 4 = Team 2";
     public string Teams             => "Teams (Kreuz)";
     public string Goal              => "Ziel:";
     public string Missing           => "fehlet no";
 
-    public string NewSpielrundeTitle => "Neue Spielrunde";
+    public string NewSpielrundeTitle  => "Neue Spielrunde";
+    public string EditSpielrundeTitle => "Spielrunde bearbeita";
     public string Name              => "Name";
     public string UsePassword       => "Passwort schütze";
     public string PasswordMismatch  => "Passwörter stimma net überoi.";
@@ -139,6 +141,18 @@ public class StringsSwabian : IStrings
     public string OpenCalculator    => "Augen Rechner";
     public string LastTrickPoints   => "+{0} Punkte für {1}";
 
+    public string ColPlayer          => "Spieler";
+    public string ColBoni            => "Boni / Strafen";
+    public string ColTotal           => "Σ Punkte";
+    public string RolePartner        => "PARTNER";
+    public string ModAbgangBonus     => "Abgangs-Bonus";
+    public string ModDurchBonus      => "Durch-Bonus";
+    public string ModBettelBonus     => "Bettel-Bonus";
+    public string ModBidDeducted     => "Gebot abzoga";
+    public string MeldDiscarded      => "hi";
+    public string SummaryBidSaldoLabel      => "Reizer-Saldo";
+    public string SummarySpecialBonusLabel  => "Sonderbonus";
+
     public string RoundPrefix       => "RUNDE";
     public string TagNormal         => "NORMAL";
     public string TagDurch          => "DURCH";
@@ -169,7 +183,11 @@ public class StringsSwabian : IStrings
     public string NoDataHint        => "Spiel erscht a paar Runda!";
     public string BidRate           => "Reizquote";
     public string GamesPlayedAbbr   => "Sp.";
-    public string ChartMoneyTitle   => "Gwinn / Verlust (€)";
+    public string StatsBestRate      => "Beste Gwinnquote";
+    public string StatsWinPct        => "Gwinna";
+    public string StatsAvgScore      => "Ø Punkte";
+    public string ChartAvgScoreTitle => "Ø Punkte Vergliich";
+    public string ChartMoneyTitle    => "Gwinn / Verlust (€)";
     public string ChartWinsTitle    => "Siege";
     public string ChartWinRateTitle => "Reizquote";
     public string ChartAvgBidTitle  => "Ø Reizwert";
@@ -207,12 +225,9 @@ public class StringsSwabian : IStrings
     public string DisplayNameHint   => "Des wird beim Spiela anzeigt.";
     public string MissingCredentials => "Bitte E-Mail ond Passwort eingeba.";
     public string MissingName       => "Bitte oin Name eingeba.";
-    public string NickLabel         => "Nick";
-    public string NickHint          => "Dein einzigartiger Nutzername";
-    public string NickChecking      => "Wird gprüft…";
-    public string NickAvailable     => "Frei";
-    public string NickTaken         => "Nick scho vergeba.";
-    public string NickInvalid       => "3–20 Zeiche, nur a–z, 0–9 ond _";
+    public string DisplayNameChecking  => "Wird gprüft…";
+    public string DisplayNameAvailable => "Frei";
+    public string DisplayNameTaken     => "Anzeigename scho vergeba.";
 
     public string ChooseGame        => "Spiel aussucha";
     public string BadgeFull         => "Vollständig";
@@ -222,6 +237,8 @@ public class StringsSwabian : IStrings
     public string DeleteRoundBody    => "Des isch dann für immer weg.";
     public string DeleteGameTitle    => "Spiel wegschmeißa?";
     public string DeleteGameBody     => "Des ganze Spiel mit alle Runda isch dann für immer weg.";
+    public string DeleteSpielrundeTitle => "Spielrunde wegschmeißa?";
+    public string DeleteSpielrundeBody  => "Die Spielrunde und alle Spiel dazu kommet für immer weg.";
 
     public string ReportBug         => "Bug melde";
     public string NoScreenshot      => "Koi Screenshot verfügbar";

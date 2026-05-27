@@ -4,7 +4,7 @@
     [Parameter] public List<CustomField> CustomFields { get; set; } = new();
     [Parameter] public EventCallback<Round> OnSave  { get; set; }
     [Parameter] public EventCallback        OnCancel { get; set; }
-    [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
+    [Parameter] public Action<IReadOnlyList<PlayerRef>, Action<int, int>>? OnOpenCalculator { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private int[] _genericScores = Array.Empty<int>();

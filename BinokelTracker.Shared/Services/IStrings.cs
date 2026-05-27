@@ -46,10 +46,10 @@ public interface IStrings
     string WrongPassword { get; }
 
     // Spielrunde invite
-    string InviteByNick   { get; }
-    string AddMember      { get; }
-    string NickNotFound   { get; }
-    string MembersLabel   { get; }
+    string InviteByDisplayName   { get; }
+    string AddMember             { get; }
+    string DisplayNameNotFound   { get; }
+    string MembersLabel          { get; }
 
     // Game / player form
     string KnownPlayers { get; }
@@ -72,6 +72,7 @@ public interface IStrings
     string AllowDurch { get; }
     string AllowBettel { get; }
     string AllowAbgehen { get; }
+    string AusmachenMitSpiel { get; }
     string DurchSeparate { get; }
     string TeamHint { get; }
     string Teams { get; }
@@ -80,6 +81,7 @@ public interface IStrings
 
     // NewSpielrundeForm
     string NewSpielrundeTitle { get; }
+    string EditSpielrundeTitle { get; }
     string Name { get; }
     string UsePassword { get; }
     string PasswordMismatch { get; }
@@ -152,6 +154,19 @@ public interface IStrings
     string OpenCalculator { get; }
     string LastTrickPoints { get; }   // "+{0} Punkte für {1}"
 
+    // BinokelRoundCard – table & modifier pills
+    string ColPlayer { get; }
+    string ColBoni { get; }
+    string ColTotal { get; }
+    string RolePartner { get; }
+    string ModAbgangBonus { get; }
+    string ModDurchBonus { get; }
+    string ModBettelBonus { get; }
+    string ModBidDeducted { get; }
+    string MeldDiscarded { get; }
+    string SummaryBidSaldoLabel { get; }
+    string SummarySpecialBonusLabel { get; }
+
     // BinokelRoundCard
     string RoundPrefix { get; }
     string TagNormal { get; }
@@ -184,6 +199,10 @@ public interface IStrings
     string NoDataHint { get; }
     string BidRate { get; }
     string GamesPlayedAbbr { get; }
+    string StatsBestRate { get; }
+    string StatsWinPct { get; }
+    string StatsAvgScore { get; }
+    string ChartAvgScoreTitle { get; }
     string ChartMoneyTitle { get; }
     string ChartWinsTitle { get; }
     string ChartWinRateTitle { get; }
@@ -226,12 +245,9 @@ public interface IStrings
     string DisplayNameHint { get; }
     string MissingCredentials { get; }
     string MissingName { get; }
-    string NickLabel     { get; }
-    string NickHint      { get; }
-    string NickChecking  { get; }
-    string NickAvailable { get; }
-    string NickTaken     { get; }
-    string NickInvalid   { get; }
+    string DisplayNameChecking  { get; }
+    string DisplayNameAvailable { get; }
+    string DisplayNameTaken     { get; }
 
     // GameTypeSelect
     string ChooseGame { get; }
@@ -243,6 +259,8 @@ public interface IStrings
     string DeleteRoundBody { get; }
     string DeleteGameTitle { get; }
     string DeleteGameBody { get; }
+    string DeleteSpielrundeTitle { get; }
+    string DeleteSpielrundeBody { get; }
 
     // FeedbackDialog
     string ReportBug { get; }

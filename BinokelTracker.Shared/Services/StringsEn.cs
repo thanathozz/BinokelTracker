@@ -35,9 +35,9 @@ public class StringsEn : IStrings
     public string NewSpielrunde     => "New Session";
     public string PrivateChip       => "Private";
     public string SharedChip        => "Shared";
-    public string InviteByNick      => "Invite by Nick";
-    public string AddMember         => "Add";
-    public string NickNotFound      => "Nick not found.";
+    public string InviteByDisplayName   => "Invite by display name";
+    public string AddMember             => "Add";
+    public string DisplayNameNotFound   => "Display name not found.";
     public string MembersLabel      => "Members";
     public string ActiveLabel       => "active";
     public string GamesLabel        => "game(s)";
@@ -64,13 +64,15 @@ public class StringsEn : IStrings
     public string AllowDurch        => "Allow Durch";
     public string AllowBettel       => "Allow Bettel";
     public string AllowAbgehen      => "Allow Abgehen";
+    public string AusmachenMitSpiel => "Finish only with a played game";
     public string DurchSeparate     => "Durch points separate";
-    public string TeamHint          => "Players 1 & 3 = Team 1 · Players 2 & 4 = Team 2 (cross)";
+    public string TeamHint          => "Players 1 & 2 = Team 1 · Players 3 & 4 = Team 2";
     public string Teams             => "Teams (cross)";
     public string Goal              => "Goal:";
     public string Missing           => "to go";
 
-    public string NewSpielrundeTitle => "New session";
+    public string NewSpielrundeTitle  => "New session";
+    public string EditSpielrundeTitle => "Edit session";
     public string Name              => "Name";
     public string UsePassword       => "Password protect";
     public string PasswordMismatch  => "Passwords do not match.";
@@ -139,11 +141,23 @@ public class StringsEn : IStrings
     public string OpenCalculator    => "Eye calculator";
     public string LastTrickPoints   => "+{0} pts for {1}";
 
+    public string ColPlayer          => "Player";
+    public string ColBoni            => "Bonuses";
+    public string ColTotal           => "Σ Points";
+    public string RolePartner        => "PARTNER";
+    public string ModAbgangBonus     => "Fold Bonus";
+    public string ModDurchBonus      => "Durch Bonus";
+    public string ModBettelBonus     => "Bettel Bonus";
+    public string ModBidDeducted     => "Bid deducted";
+    public string MeldDiscarded      => "discarded";
+    public string SummaryBidSaldoLabel      => "Bidder Saldo";
+    public string SummarySpecialBonusLabel  => "Special Bonus";
+
     public string RoundPrefix       => "ROUND";
     public string TagNormal         => "NORMAL";
     public string TagDurch          => "DURCH";
     public string TagBettel         => "BETTEL";
-    public string TagWon            => "WON";
+    public string TagWon            => "MADE";
     public string TagLost           => "LOST";
     public string TagFolded         => "FOLDED";
     public string PlaysDurch        => "plays a";
@@ -169,7 +183,11 @@ public class StringsEn : IStrings
     public string NoDataHint        => "Play a few rounds first!";
     public string BidRate           => "Bid rate";
     public string GamesPlayedAbbr   => "gm.";
-    public string ChartMoneyTitle   => "Gain / Loss (€)";
+    public string StatsBestRate      => "Best Win Rate";
+    public string StatsWinPct        => "Win";
+    public string StatsAvgScore      => "Avg. Score";
+    public string ChartAvgScoreTitle => "Avg. Score Comparison";
+    public string ChartMoneyTitle    => "Gain / Loss (€)";
     public string ChartWinsTitle    => "Wins";
     public string ChartWinRateTitle => "Bid rate";
     public string ChartAvgBidTitle  => "Avg. bid";
@@ -207,12 +225,9 @@ public class StringsEn : IStrings
     public string DisplayNameHint   => "This name will be shown during play.";
     public string MissingCredentials => "Please enter e-mail and password.";
     public string MissingName       => "Please enter a name.";
-    public string NickLabel         => "Nick";
-    public string NickHint          => "Your unique username";
-    public string NickChecking      => "Checking…";
-    public string NickAvailable     => "Available";
-    public string NickTaken         => "Nick already taken.";
-    public string NickInvalid       => "3–20 chars, only a–z, 0–9 and _";
+    public string DisplayNameChecking  => "Checking…";
+    public string DisplayNameAvailable => "Available";
+    public string DisplayNameTaken     => "Display name already taken.";
 
     public string ChooseGame        => "Choose game";
     public string BadgeFull         => "Full";
@@ -222,6 +237,8 @@ public class StringsEn : IStrings
     public string DeleteRoundBody    => "This round will be permanently deleted.";
     public string DeleteGameTitle    => "Delete game?";
     public string DeleteGameBody     => "This game and all its rounds will be permanently deleted.";
+    public string DeleteSpielrundeTitle => "Delete session?";
+    public string DeleteSpielrundeBody  => "This session and all its games will be permanently deleted.";
 
     public string ReportBug         => "Report bug";
     public string NoScreenshot      => "No screenshot available";

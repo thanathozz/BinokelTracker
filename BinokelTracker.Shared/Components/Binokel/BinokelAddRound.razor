@@ -6,7 +6,7 @@
     [Parameter] public Round? EditRound  { get; set; }
     [Parameter] public EventCallback<Round> OnSave  { get; set; }
     [Parameter] public EventCallback        OnCancel { get; set; }
-    [Parameter] public Action<IReadOnlyList<string>, Action<int, int>>? OnOpenCalculator { get; set; }
+    [Parameter] public Action<IReadOnlyList<PlayerRef>, Action<int, int>>? OnOpenCalculator { get; set; }
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
     private AddRoundViewModel _vm = default!;
@@ -25,7 +25,7 @@
     {
         OnOpenCalculator?.Invoke(Game.Players, (idx, score) =>
         {
-            _vm.Tricks[idx] = score.ToString();
+            _vm.SetTrick(idx, score.ToString());
             InvokeAsync(StateHasChanged);
         });
     }
@@ -184,19 +184,6 @@
                         }
                     </div>
                 }
-                @if (!_vm.IsSpecial)
-                {
-                    <div class="form-group">
-                        <label class="form-label">@S.TrumpLabel</label>
-                        <div class="pill-group">
-                            @foreach (var suit in Enum.GetValues<TrumpSuit>())
-                            {
-                                var s = suit;
-                                <button class="pill @(_vm.Trumpf == s ? "active" : "")" @onclick="() => _vm.SetTrump(_vm.Trumpf == s ? null : s)">@s</button>
-                            }
-                        </div>
-                    </div>
-                }
                 <label class="form-label">@S.PointsPerPlayer</label>
                 @for (int i = 0; i < Game.Players.Count; i++)
                 {
@@ -251,17 +238,8 @@
                                 <input class="form-input form-input-center" type="number" inputmode="numeric"
                                        value="@_vm.Tricks[idx]" placeholder="0"
                                        disabled="@(_vm.BidderAbgegangen || _vm.Abgegangen[idx])"
-                                       @oninput="e => _vm.Tricks[idx] = e.Value?.ToString() ?? string.Empty" />
+                                       @oninput="e => _vm.SetTrick(idx, e.Value?.ToString() ?? string.Empty)" />
                             </div>
-                            @if (_vm.ShowAbgehenFor(idx))
-                            {
-                                <div class="abgehen-col">
-                                    <label class="form-label form-label-sm">@S.FoldedAbbr</label>
-                                    <button class="toggle-track @_vm.AbgehenClass(idx)" style="margin-top:4px" @onclick="() => _vm.ToggleAbgegangen(idx)">
-                                        <div class="toggle-knob @_vm.AbgehenClass(idx)"></div>
-                                    </button>
-                                </div>
-                            }
                         </div>
                     </div>
                 }
@@ -272,8 +250,8 @@
                             background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
                             border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
                             color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
-                    @S.TricksSum <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
-                    @if (!_vm.TricksSumValid && _vm.TricksSum > 0) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotal)</div> }
+                    @S.TricksSum <strong>@_vm.TricksSumDisplay</strong> / @_vm.MaxTricksTotalDisplay
+                    @if (!_vm.TricksSumValid && _vm.TricksSum > 0) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotalDisplay)</div> }
                 </div>
                 <div class="form-group" style="margin-top:10px">
                     <label class="form-label">@S.LastTrickLabel</label>
@@ -327,35 +305,28 @@
                         <button class="pill @(_vm.IsBidder(idx) ? "active" : "")" @onclick="() => _vm.SetBidder(idx)">@Game.Players[idx]</button>
                     }
                 </div>
-            }
-            else if (_vm.CurrentStep == FormStep.Reizwert)
-            {
-                <input class="form-input bid-input" type="number" inputmode="numeric" value="@_vm.Bid" placeholder="z.B. 150"
-                       @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty" />
-                @if (_vm.ShowBidderAbgehenInReizwert)
+                @if (!_vm.IsSpecial)
                 {
-                    <label class="form-label" style="margin-top:18px">@Game.Players[_vm.Bidder] @S.FoldedWord?</label>
-                    <div class="toggle-row">
-                        <button class="toggle-track @_vm.AbgehenClass(_vm.Bidder)" @onclick="() => _vm.ToggleAbgegangen(_vm.Bidder)">
-                            <div class="toggle-knob @_vm.AbgehenClass(_vm.Bidder)"></div>
-                        </button>
-                        <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">@(_vm.BidderAbgegangen ? S.YesFolded : S.NoStillPlaying)</span>
+                    <div class="form-group" style="margin-top:18px">
+                        <label class="form-label">@S.BidValueLabel</label>
+                        <input class="form-input bid-input" type="number" inputmode="numeric" value="@_vm.Bid" placeholder="z.B. 150"
+                               @oninput="e => _vm.Bid = e.Value?.ToString() ?? string.Empty" />
                     </div>
-                    @if (_vm.BidderAbgegangen && _vm.BidValue > 0) { <div class="score-preview lost" style="margin-top:10px"><span class="score-preview-value red">@LocalizeMinusPreview()</span></div> }
+                    @if (_vm.ShowBidderAbgehenInReizwert)
+                    {
+                        <label class="form-label" style="margin-top:6px">@Game.Players[_vm.Bidder] @S.FoldedWord?</label>
+                        <div class="toggle-row">
+                            <button class="toggle-track @_vm.AbgehenClass(_vm.Bidder)" @onclick="() => _vm.ToggleAbgegangen(_vm.Bidder)">
+                                <div class="toggle-knob @_vm.AbgehenClass(_vm.Bidder)"></div>
+                            </button>
+                            <span class="toggle-label @_vm.AbgehenClass(_vm.Bidder)">@(_vm.BidderAbgegangen ? S.YesFolded : S.NoStillPlaying)</span>
+                        </div>
+                        @if (_vm.BidderAbgegangen && _vm.BidValue > 0) { <div class="score-preview lost" style="margin-top:10px"><span class="score-preview-value red">@LocalizeMinusPreview()</span></div> }
+                    }
                 }
             }
             else if (_vm.CurrentStep == FormStep.Melden)
             {
-                <div class="form-group">
-                    <label class="form-label">@S.TrumpLabel</label>
-                    <div class="pill-group">
-                        @foreach (var suit in Enum.GetValues<TrumpSuit>())
-                        {
-                            var s = suit;
-                            <button class="pill @(_vm.Trumpf == s ? "active" : "")" @onclick="() => _vm.SetTrump(_vm.Trumpf == s ? null : s)">@s</button>
-                        }
-                    </div>
-                </div>
                 @for (int i = 0; i < Game.Players.Count; i++)
                 {
                     var idx = i;
@@ -417,15 +388,15 @@
                         </div>
                         <input class="form-input form-input-center" type="number" inputmode="numeric"
                                value="@_vm.Tricks[idx]" placeholder="0"
-                               @oninput="e => _vm.Tricks[idx] = e.Value?.ToString() ?? string.Empty" />
+                               @oninput="e => _vm.SetTrick(idx, e.Value?.ToString() ?? string.Empty)" />
                     </div>
                 }
                 <div style="margin-top:12px;padding:8px 12px;border-radius:8px;font-size:14px;
                             background:@(_vm.TricksSumValid ? "rgba(106,172,106,0.15)" : "rgba(196,92,92,0.15)");
                             border:1px solid @(_vm.TricksSumValid ? "rgba(106,172,106,0.40)" : "rgba(196,92,92,0.40)");
                             color:@(_vm.TricksSumValid ? "#6aac6a" : "#c45c5c")">
-                    @S.TricksSum <strong>@_vm.TricksSum</strong> / @_vm.MaxTricksTotal
-                    @if (!_vm.TricksSumValid) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotal)</div> }
+                    @S.TricksSum <strong>@_vm.TricksSumDisplay</strong> / @_vm.MaxTricksTotalDisplay
+                    @if (!_vm.TricksSumValid) { <div style="font-size:12px;margin-top:3px;opacity:0.85">@string.Format(S.TricksMustSum, _vm.MaxTricksTotalDisplay)</div> }
                 </div>
                 @if (OnOpenCalculator != null)
                 {

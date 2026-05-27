@@ -87,6 +87,12 @@ public class AddRoundViewModel
     /// Summe aller eingegebenen Stichpunkte
     public int TricksSum => Tricks.Sum(t => int.TryParse(t, out var v) ? v : 0);
 
+    /// Angezeigte Stichsumme (inkl. LastTrickBonus — wird immer vergeben)
+    public int TricksSumDisplay => TricksSum + _game.Rules.LastTrickBonus;
+
+    /// Angezeigtes Maximum (inkl. LastTrickBonus)
+    public int MaxTricksTotalDisplay => MaxTricksTotal + _game.Rules.LastTrickBonus;
+
     /// Sind die Stichpunkte gültig (Summe == Maximum)?
     public bool TricksSumValid => TricksSum == MaxTricksTotal;
 
@@ -94,7 +100,8 @@ public class AddRoundViewModel
     public bool CanSave => IsSpecial || BidderAbgegangen || TricksSumValid;
 
     /// Hat der Reizer gewonnen? (Normal-Runde)
-    public bool BidderWon => !BidderAbgegangen && BidValue > 0 && BidderTotal >= BidValue;
+    public bool BidderWon => !BidderAbgegangen && BidValue > 0 &&
+        BidderTotal + (LastTrickWinner == Bidder ? _game.Rules.LastTrickBonus : 0) >= BidValue;
 
     // ══════════════════════════════════════════════════════════════════════
     // Schritt-Navigation
@@ -105,8 +112,8 @@ public class AddRoundViewModel
     public IReadOnlyList<FormStep> ActiveSteps => IsSpecial
         ? new[] { FormStep.Spielart, FormStep.Ergebnis }
         : BidderAbgegangen
-            ? new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Ergebnis }
-            : new[] { FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Stiche, FormStep.Ergebnis };
+            ? new[] { FormStep.Spielart, FormStep.Melden, FormStep.Ergebnis }
+            : new[] { FormStep.Spielart, FormStep.Melden, FormStep.Stiche, FormStep.Ergebnis };
 
     public int      TotalSteps   => ActiveSteps.Count;
     public FormStep CurrentStep  => ActiveSteps[Step];
@@ -115,7 +122,6 @@ public class AddRoundViewModel
     private static string StepLabel(FormStep s) => s switch
     {
         FormStep.Spielart => "Spieler",
-        FormStep.Reizwert => "Reizwert",
         FormStep.Melden   => "Gemeldet",
         FormStep.Stiche       => "Stiche",
         FormStep.LetzterStich => "Letzter Stich",
@@ -126,8 +132,8 @@ public class AddRoundViewModel
     /// Darf der Benutzer zum nächsten Schritt?
     public bool CanAdvance => CurrentStep switch
     {
-        FormStep.Reizwert when !IsSpecial => BidValue > 0,       // Reizwert muss eingegeben sein
-        FormStep.Stiche                   => TricksSumValid,     // Stiche müssen genau MaxTricksTotal ergeben
+        FormStep.Spielart when !IsSpecial => BidValue > 0,       // Reizwert muss eingegeben sein
+        FormStep.Stiche                   => TricksSumValid,
         _                                 => true
     };
 
@@ -222,7 +228,48 @@ public class AddRoundViewModel
 
     public void SetLastTrickWinner(int idx) => LastTrickWinner = idx;
 
-    public void ToggleAbgegangen(int idx) => Abgegangen[idx] = !Abgegangen[idx];
+    // Tracks which slot was last auto-filled so it can be recalculated as the user keeps typing.
+    private int _autoFilledIdx = -1;
+
+    public void SetTrick(int idx, string value)
+    {
+        Tricks[idx] = value;
+        if (Tricks.Count != 3) return;
+        if (!int.TryParse(value, out int cur)) return; // empty / partial input → leave auto-filled slot as-is
+
+        // User manually editing the auto-filled slot → stop tracking it
+        if (idx == _autoFilledIdx) { _autoFilledIdx = -1; return; }
+
+        var others = Enumerable.Range(0, 3)
+            .Where(i => i != idx)
+            .Select(i => (ok: int.TryParse(Tricks[i], out var v), v, i))
+            .ToList();
+        var empty = others.Where(x => !x.ok).ToList();
+
+        if (empty.Count == 1)
+        {
+            int auto = MaxTricksTotal - cur - others.First(x => x.ok).v;
+            if (auto >= 0) { _autoFilledIdx = empty[0].i; Tricks[_autoFilledIdx] = auto.ToString(); }
+            else             Tricks[empty[0].i] = "";
+        }
+        else if (empty.Count == 0 && _autoFilledIdx >= 0)
+        {
+            // All slots filled: recalculate the previously auto-filled one
+            int auto = MaxTricksTotal - cur - others.First(x => x.i != _autoFilledIdx).v;
+            Tricks[_autoFilledIdx] = auto >= 0 ? auto.ToString() : "";
+        }
+    }
+
+    public void ToggleAbgegangen(int idx)
+    {
+        Abgegangen[idx] = !Abgegangen[idx];
+        // Bidder just folded → clear all tricks so TricksSum == 0 and trueAbgang is detected correctly
+        if (idx == Bidder && Abgegangen[idx])
+        {
+            for (int i = 0; i < Tricks.Count; i++) Tricks[i] = "";
+            _autoFilledIdx = -1;
+        }
+    }
 
     public void ToggleWon() => Won = !Won;
 
@@ -263,30 +310,36 @@ public class AddRoundViewModel
     /// Detaillierte Punktevorschau für jeden Spieler (Schritt "Ergebnis")
     public ScoreBreakdown[] GetScorePreviews()
     {
-        var meld   = Meld.Select(m => int.TryParse(m, out var v) ? v : 0).ToArray();
-        var tricks = Tricks.Select(t => int.TryParse(t, out var v) ? v : 0).ToArray();
+        var meld      = Meld.Select(m => int.TryParse(m, out var v) ? v : 0).ToArray();
+        var tricks    = Tricks.Select(t => int.TryParse(t, out var v) ? v : 0).ToArray();
+        bool trueAbgang = BidderAbgegangen && TricksSum == 0;
+        var abgArray  = Abgegangen.Select((a, i) => a && (i != Bidder || trueAbgang)).ToArray();
         return ScoringCalculator.CalcNormalPreview(
-            Bidder, BidValue, Abgegangen.ToArray(), meld, tricks, _game.Rules,
-            BidderAbgegangen ? -1 : LastTrickWinner);
+            Bidder, BidValue, abgArray, meld, tricks, _game.Rules,
+            trueAbgang ? -1 : LastTrickWinner);
     }
 
     /// Baut das fertige Round-Objekt zum Speichern
-    public Round BuildRound() => new Round
+    public Round BuildRound()
     {
-        Id              = _editingId ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        Type            = Type,
-        Bidder          = Bidder,
-        Bid             = BidValue,
-        Won             = IsSpecial ? Won : BidderWon,
-        LastTrickWinner = (IsSpecial || BidderAbgegangen) ? -1 : LastTrickWinner,
-        Trumpf          = IsSpecial ? null : Trumpf,
-        PlayerScores    = _game.Players.Select((_, i) => new PlayerScore
+        bool trueAbgang = BidderAbgegangen && TricksSum == 0;
+        return new Round
         {
-            Meld       = (i == Bidder && BidderAbgegangen) ? 0 : (int.TryParse(Meld[i],   out var m) ? m : 0),
-            Tricks     = BidderAbgegangen                  ? 0 : (int.TryParse(Tricks[i], out var t) ? t : 0),
-            Abgegangen = i == Bidder && BidderAbgegangen,
-        }).ToList()
-    };
+            Id              = _editingId ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Type            = Type,
+            Bidder          = Bidder,
+            Bid             = BidValue,
+            Won             = IsSpecial ? Won : BidderWon,
+            LastTrickWinner = (IsSpecial || trueAbgang) ? -1 : LastTrickWinner,
+            Trumpf          = IsSpecial ? null : Trumpf,
+            PlayerScores    = _game.Players.Select((_, i) => new PlayerScore
+            {
+                Meld       = (i == Bidder && trueAbgang) ? 0 : (int.TryParse(Meld[i],   out var m) ? m : 0),
+                Tricks     = trueAbgang ? 0 : (int.TryParse(Tricks[i], out var t) ? t : 0),
+                Abgegangen = i == Bidder && trueAbgang,
+            }).ToList()
+        };
+    }
 
     // ══════════════════════════════════════════════════════════════════════
     // Init
@@ -313,12 +366,13 @@ public class AddRoundViewModel
 
     private void ResetInputs()
     {
-        Step       = 0;
-        Forward    = true;
-        Trumpf     = null;
-        Abgegangen = _game.Players.Select(_ => false).ToList();
-        Meld       = _game.Players.Select(_ => "").ToList();
-        Tricks     = _game.Players.Select(_ => "").ToList();
+        Step           = 0;
+        Forward        = true;
+        Trumpf         = null;
+        _autoFilledIdx = -1;
+        Abgegangen     = _game.Players.Select(_ => false).ToList();
+        Meld           = _game.Players.Select(_ => "").ToList();
+        Tricks         = _game.Players.Select(_ => "").ToList();
         Scanning   = new bool[_game.Players.Count];
         ScanError  = new string?[_game.Players.Count];
         ScanResult = new IReadOnlyList<DetectedMeld>?[_game.Players.Count];

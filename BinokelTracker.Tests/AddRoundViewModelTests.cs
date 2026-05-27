@@ -19,13 +19,12 @@ public class AddRoundViewModelTests
     // ══════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void Normale_Runde_hat_fuenf_Schritte()
+    public void Normale_Runde_hat_vier_Schritte()
     {
         var vm = ForGame();
 
         vm.ActiveSteps.Should().Equal(
-            FormStep.Spielart, FormStep.Reizwert, FormStep.Melden,
-            FormStep.Stiche,   FormStep.Ergebnis);
+            FormStep.Spielart, FormStep.Melden, FormStep.Stiche, FormStep.Ergebnis);
     }
 
     [Fact]
@@ -52,25 +51,22 @@ public class AddRoundViewModelTests
     public void Reizer_abgegangen_entfernt_Stiche_Schritt()
     {
         var vm = ForGame();
-        vm.GoNext();           // → Reizwert
         vm.Bid = "300";
         vm.ToggleAbgegangen(0); // Reizer abgegangen
 
-        vm.ActiveSteps.Should().Equal(
-            FormStep.Spielart, FormStep.Reizwert, FormStep.Melden, FormStep.Ergebnis);
-        vm.TotalSteps.Should().Be(4);
+        vm.ActiveSteps.Should().Equal(FormStep.Spielart, FormStep.Melden, FormStep.Ergebnis);
+        vm.TotalSteps.Should().Be(3);
     }
 
     [Fact]
     public void Reizer_abgegangen_zurueckgenommen_stellt_Stiche_wieder_her()
     {
         var vm = ForGame();
-        vm.GoNext();
         vm.Bid = "300";
         vm.ToggleAbgegangen(0);  // abgegangen
         vm.ToggleAbgegangen(0);  // wieder zurück
 
-        vm.TotalSteps.Should().Be(5);
+        vm.TotalSteps.Should().Be(4);
         vm.ActiveSteps.Should().Contain(FormStep.Stiche);
     }
 
@@ -82,10 +78,11 @@ public class AddRoundViewModelTests
     public void GoNext_wechselt_zum_naechsten_Schritt()
     {
         var vm = ForGame();
+        vm.Bid = "200";
         vm.GoNext();
 
         vm.Step.Should().Be(1);
-        vm.CurrentStep.Should().Be(FormStep.Reizwert);
+        vm.CurrentStep.Should().Be(FormStep.Melden);
     }
 
     [Fact]
@@ -104,14 +101,14 @@ public class AddRoundViewModelTests
     public void GoPrev_wechselt_zurueck()
     {
         var vm = ForGame();
-        vm.GoNext();
         vm.Bid = "200";
-        vm.GoNext();
+        vm.GoNext(); // → Melden (step 1)
+        vm.GoNext(); // → Stiche (step 2)
 
         vm.GoPrev();
 
         vm.Step.Should().Be(1);
-        vm.CurrentStep.Should().Be(FormStep.Reizwert);
+        vm.CurrentStep.Should().Be(FormStep.Melden);
     }
 
     [Fact]
@@ -127,10 +124,11 @@ public class AddRoundViewModelTests
     public void Forward_ist_true_nach_GoNext_und_false_nach_GoPrev()
     {
         var vm = ForGame();
-        vm.GoNext();
+        vm.Bid = "200";
+        vm.GoNext(); // → Melden
         vm.Forward.Should().BeTrue();
 
-        vm.GoPrev();
+        vm.GoPrev(); // → Spielart
         vm.Forward.Should().BeFalse();
     }
 
@@ -139,20 +137,18 @@ public class AddRoundViewModelTests
     // ══════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void CanAdvance_ist_false_am_Reizwert_Schritt_ohne_Eingabe()
+    public void CanAdvance_ist_false_am_Spielart_Schritt_ohne_Reizwert()
     {
         var vm = ForGame();
-        vm.GoNext(); // → Reizwert
 
-        vm.CurrentStep.Should().Be(FormStep.Reizwert);
-        vm.CanAdvance.Should().BeFalse();
+        vm.CurrentStep.Should().Be(FormStep.Spielart);
+        vm.CanAdvance.Should().BeFalse(); // Bid noch nicht eingegeben
     }
 
     [Fact]
-    public void CanAdvance_ist_true_am_Reizwert_Schritt_mit_Eingabe()
+    public void CanAdvance_ist_true_am_Spielart_Schritt_mit_Reizwert()
     {
         var vm = ForGame();
-        vm.GoNext();
         vm.Bid = "200";
 
         vm.CanAdvance.Should().BeTrue();
@@ -162,18 +158,19 @@ public class AddRoundViewModelTests
     public void CanAdvance_blockiert_GoNext_wenn_false()
     {
         var vm = ForGame();
-        vm.GoNext(); // → Reizwert (kein Bid → CanAdvance=false)
-        vm.GoNext(); // soll nichts tun
+        vm.GoNext(); // kein Bid → CanAdvance=false → bleibt bei Spielart
 
-        vm.CurrentStep.Should().Be(FormStep.Reizwert);
+        vm.CurrentStep.Should().Be(FormStep.Spielart);
     }
 
     [Fact]
-    public void CanAdvance_ist_immer_true_ausserhalb_des_Reizwert_Schritts()
+    public void CanAdvance_ist_true_am_Melden_Schritt()
     {
         var vm = ForGame();
+        vm.Bid = "200";
+        vm.GoNext(); // → Melden
 
-        // Schritt 0 (Spielart): kein Block
+        vm.CurrentStep.Should().Be(FormStep.Melden);
         vm.CanAdvance.Should().BeTrue();
     }
 
@@ -214,6 +211,182 @@ public class AddRoundViewModelTests
         vm.TricksSum.Should().Be(240);
         vm.MaxTricksTotal.Should().Be(240);
         vm.TricksSumValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void TricksSumDisplay_und_MaxTricksTotalDisplay_enthalten_LastTrickBonus()
+    {
+        var vm = ForGame(); // Standard: LastTrickBonus = 10
+        vm.Tricks[0] = "100"; vm.Tricks[1] = "80"; vm.Tricks[2] = "60"; // Summe = 240
+
+        vm.TricksSumDisplay.Should().Be(250);    // 240 + 10
+        vm.MaxTricksTotalDisplay.Should().Be(250);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ToggleAbgegangen — Stiche werden beim Abgang geleert
+    // ══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ToggleAbgegangen_leert_alle_Stiche_wenn_Reizer_abgeht()
+    {
+        var vm = ForGame();
+        vm.SetTrick(0, "100");
+        vm.SetTrick(1, "80"); // auto-fills field 2 = 60
+
+        vm.ToggleAbgegangen(0); // Bidder = 0 folds
+
+        vm.Tricks[0].Should().Be("");
+        vm.Tricks[1].Should().Be("");
+        vm.Tricks[2].Should().Be("");
+        vm.TricksSum.Should().Be(0);
+    }
+
+    [Fact]
+    public void ToggleAbgegangen_BuildRound_setzt_Abgegangen_korrekt_wenn_Stiche_vorher_eingegeben()
+    {
+        // Regression: tricks were auto-filled, then bidder folds → should still be recorded as trueAbgang
+        var vm = ForGame();
+        vm.Bid = "200";
+        vm.SetTrick(0, "100");
+        vm.SetTrick(1, "80"); // auto-fills field 2 = 60
+
+        vm.ToggleAbgegangen(0); // Bidder folds — tricks must be cleared
+
+        var round = vm.BuildRound();
+
+        round.PlayerScores[0].Abgegangen.Should().BeTrue();
+        round.PlayerScores[0].Tricks.Should().Be(0);
+        round.PlayerScores[1].Tricks.Should().Be(0);
+        round.PlayerScores[2].Tricks.Should().Be(0);
+    }
+
+    [Fact]
+    public void ToggleAbgegangen_leert_Stiche_nicht_wenn_Mitspieler_abgeht()
+    {
+        var vm = ForGame(Build.Rules.AllCanAbgehen());
+        vm.SetBidder(0);
+        vm.SetTrick(0, "100");
+        vm.SetTrick(1, "80"); // auto-fills field 2 = 60
+
+        vm.ToggleAbgegangen(1); // Mitspieler folds, NOT bidder → tricks must stay
+
+        vm.Tricks[0].Should().Be("100");
+        vm.Tricks[1].Should().Be("80");
+        vm.Tricks[2].Should().Be("60");
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SetTrick — Auto-Berechnung des dritten Stich-Werts
+    // ══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void SetTrick_berechnet_dritten_Wert_wenn_zwei_eingegeben()
+    {
+        var vm = ForGame(); // MaxTricksTotal = 240
+
+        vm.SetTrick(0, "100");
+        vm.SetTrick(1, "80");
+
+        vm.Tricks[2].Should().Be("60"); // 240 - 100 - 80 = 60
+    }
+
+    [Fact]
+    public void SetTrick_berechnet_ersten_Wert_wenn_zwei_und_drei_eingegeben()
+    {
+        var vm = ForGame();
+
+        vm.SetTrick(1, "90");
+        vm.SetTrick(2, "70");
+
+        vm.Tricks[0].Should().Be("80"); // 240 - 90 - 70 = 80
+    }
+
+    [Fact]
+    public void SetTrick_berechnet_zweiten_Wert_wenn_eins_und_drei_eingegeben()
+    {
+        var vm = ForGame();
+
+        vm.SetTrick(0, "120");
+        vm.SetTrick(2, "60");
+
+        vm.Tricks[1].Should().Be("60"); // 240 - 120 - 60 = 60
+    }
+
+    [Fact]
+    public void SetTrick_macht_kein_AutoFill_wenn_nur_ein_Wert_eingegeben()
+    {
+        var vm = ForGame();
+
+        vm.SetTrick(0, "100");
+
+        vm.Tricks[1].Should().Be("");
+        vm.Tricks[2].Should().Be("");
+    }
+
+    [Fact]
+    public void SetTrick_laesst_Feld_leer_wenn_Ergebnis_negativ_waere()
+    {
+        var vm = ForGame();
+
+        vm.SetTrick(0, "180");
+        vm.SetTrick(1, "100"); // 240 - 180 - 100 = -40
+
+        vm.Tricks[2].Should().Be(""); // negativer Wert → leer lassen
+    }
+
+    [Fact]
+    public void SetTrick_kein_AutoFill_bei_vier_Spielern()
+    {
+        var game = Build.Game(new[] { "A", "B", "C", "D" }, Build.Rules.TeamMode());
+        var vm   = new AddRoundViewModel(game);
+
+        vm.SetTrick(0, "100");
+        vm.SetTrick(1, "80");
+        vm.SetTrick(2, "30");
+
+        vm.Tricks[3].Should().Be(""); // 4 Spieler → kein Auto-Fill
+    }
+
+    [Fact]
+    public void AutoFill_Summe_ergibt_MaxTricksTotal()
+    {
+        var vm = ForGame();
+
+        vm.SetTrick(0, "130");
+        vm.SetTrick(2, "50");
+
+        int.TryParse(vm.Tricks[1], out var auto).Should().BeTrue();
+        (130 + auto + 50).Should().Be(vm.MaxTricksTotal); // Wert1 + AutoWert + Wert2 = 240
+    }
+
+    [Fact]
+    public void SetTrick_aktualisiert_AutoFill_wenn_Eingabe_zeichenweise_erfolgt()
+    {
+        // Regression: typing "1" triggers auto-fill with wrong value;
+        // completing "15" must recalculate — not leave the stale 224.
+        var vm = ForGame();
+
+        vm.SetTrick(0, "15");
+        vm.SetTrick(1, "1");   // intermediate keystroke → auto-fills field 2 with 224
+        vm.SetTrick(1, "15");  // final value → field 2 must update to 210
+
+        vm.Tricks[2].Should().Be("210"); // 240 - 15 - 15 = 210
+    }
+
+    [Fact]
+    public void SetTrick_stoppt_AutoFill_wenn_Nutzer_AutoFill_Feld_manuell_editiert()
+    {
+        var vm = ForGame();
+
+        vm.SetTrick(0, "100");
+        vm.SetTrick(1, "80");   // field 2 auto-filled to 60
+
+        vm.SetTrick(2, "70");   // user overrides auto-fill → tracking stops
+
+        // Now changing field 0 must NOT recalculate field 2
+        vm.SetTrick(0, "90");
+        vm.Tricks[2].Should().Be("70");
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -317,24 +490,24 @@ public class AddRoundViewModelTests
     }
 
     [Fact]
-    public void BuildRound_setzt_Reizer_Meld_und_alle_Stiche_auf_null_wenn_abgegangen()
+    public void BuildRound_setzt_Reizer_Meld_und_alle_Stiche_auf_null_wenn_vor_Spiel_abgegangen()
     {
+        // trueAbgang: Reizer abgegangen BEVOR das Spiel gespielt wurde (TricksSum == 0)
         var vm = ForGame();
-        vm.Bid       = "300";
-        vm.Meld[0]   = "100";
-        vm.Tricks[0] = "50";
+        vm.Bid     = "300";
+        vm.Meld[0] = "100"; // Meld wurde eingegeben, aber keine Stiche
         vm.ToggleAbgegangen(0);
 
         var round = vm.BuildRound();
 
-        round.PlayerScores[0].Meld.Should().Be(0);       // Reizer Meld gelöscht
+        round.PlayerScores[0].Meld.Should().Be(0);       // Reizer Meld gelöscht (trueAbgang)
         round.PlayerScores[0].Tricks.Should().Be(0);
-        round.PlayerScores[1].Tricks.Should().Be(0);     // alle Stiche = 0
+        round.PlayerScores[1].Tricks.Should().Be(0);
         round.PlayerScores[2].Tricks.Should().Be(0);
         round.PlayerScores[0].Abgegangen.Should().BeTrue();
     }
 
-    [Fact]
+[Fact]
     public void BuildRound_Won_ist_true_fuer_Durch_wenn_Won_gesetzt()
     {
         var vm = new AddRoundViewModel(Build.Game(new[] { "A", "B", "C" }, Build.Rules.WithDurch()));

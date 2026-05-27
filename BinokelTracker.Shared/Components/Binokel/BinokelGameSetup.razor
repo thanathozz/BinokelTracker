@@ -7,9 +7,10 @@
 
     private string       _preset      = "schwaebisch_klassisch";
     private RuleSet      _rules       = RulePresets.All["schwaebisch_klassisch"].Clone();
-    private List<string> _players     = new() { "", "", "" };
-    private string       _einsatz     = "0";
-    private bool         _showCustom;
+    private List<string>    _players       = new() { "", "", "" };
+    private HashSet<string> _lockedPlayers = new(StringComparer.OrdinalIgnoreCase);
+    private string          _einsatz       = "0";
+    private bool            _showCustom;
 
     private string?                  _deleteCandidate;
     private string?                  _exitCandidate;
@@ -29,7 +30,11 @@
     private void AdjustPlayers()
     {
         while (_players.Count < _rules.Players) _players.Add("");
-        while (_players.Count > _rules.Players) _players.RemoveAt(_players.Count - 1);
+        while (_players.Count > _rules.Players)
+        {
+            _lockedPlayers.Remove(_players[_players.Count - 1]);
+            _players.RemoveAt(_players.Count - 1);
+        }
         if (_rules.Players != 4) _rules.TeamMode = false;
     }
 
@@ -39,9 +44,9 @@
     {
         if (_deleteCandidate == name || _exitCandidate == name) return;
         var existing = _players.IndexOf(name);
-        if (existing >= 0) { _players[existing] = ""; return; }
+        if (existing >= 0) { _players[existing] = ""; _lockedPlayers.Remove(name); return; }
         var empty = _players.IndexOf("");
-        if (empty >= 0) _players[empty] = name;
+        if (empty >= 0) { _players[empty] = name; _lockedPlayers.Add(name); }
     }
 
     private async Task StartLongPress(string name)
@@ -78,6 +83,7 @@
         _confirmName = _deleteCandidate = null;
         var idx = _players.IndexOf(name);
         if (idx >= 0) _players[idx] = "";
+        _lockedPlayers.Remove(name);
         await OnRemovePlayer.InvokeAsync(name);
     }
 
@@ -88,7 +94,7 @@
         {
             Id      = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Date    = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            Players = _players.Select(p => p.Trim()).ToList(),
+            Players = _players.Select(p => (PlayerRef)p.Trim()).ToList(),
             Rules   = _rules.Clone(),
             Rounds  = new(),
             Einsatz = _einsatz,
@@ -129,7 +135,8 @@
         @if (_rules.DoubleMinus) { <span> · <span style="color:var(--red)">Doppelt Minus</span></span> }
         @if (_rules.AllowDurch)  { <span> · Durch</span> }
         @if (_rules.AllowBettel) { <span> · Bettel</span> }
-        @if (_rules.AllowAbgehen){ <span> · Abgehen</span> }
+        @if (_rules.AllowAbgehen)      { <span> · Abgehen</span> }
+        @if (_rules.AusmachenMitSpiel) { <span> · Ausmachen mit Spiel</span> }
     </div>
 }
 else
@@ -200,6 +207,15 @@ else
                 <span class="toggle-label @(_rules.AllowAbgehen ? "on" : "off")">@(_rules.AllowAbgehen ? S.Yes : S.No)</span>
             </div>
         </div>
+        <div class="rule-row">
+            <label class="form-label">@S.AusmachenMitSpiel</label>
+            <div class="toggle-row">
+                <button class="toggle-track @(_rules.AusmachenMitSpiel ? "on" : "off")" @onclick="() => _rules.AusmachenMitSpiel = !_rules.AusmachenMitSpiel">
+                    <div class="toggle-knob @(_rules.AusmachenMitSpiel ? "on" : "off")"></div>
+                </button>
+                <span class="toggle-label @(_rules.AusmachenMitSpiel ? "on" : "off")">@(_rules.AusmachenMitSpiel ? S.Yes : S.No)</span>
+            </div>
+        </div>
         <div class="rule-row" style="margin-bottom:8px">
             <label class="form-label">@S.DurchSeparate</label>
             <div class="toggle-row">
@@ -217,18 +233,19 @@ else
     <input class="form-input" value="0" @oninput="e => _einsatz = e.Value?.ToString() ?? string.Empty" />
 </div>
 
-<label class="form-label" style="margin-bottom:10px">@S.Players</label>
 @if (KnownPlayers.Count > 0)
 {
-    <div class="pill-group" style="flex-wrap:wrap;margin-bottom:10px" @onclick="DismissDelete">
+    <label class="form-label" style="margin-bottom:8px">@S.KnownPlayers</label>
+    <div class="pill-group" style="flex-wrap:wrap;margin-bottom:14px" @onclick="DismissDelete">
         @foreach (var name in KnownPlayers)
         {
-            var n = name;
-            var selected  = _players.Contains(n);
-            var delMode   = _deleteCandidate == n;
-            var exitMode  = _exitCandidate == n;
-            <span class="pill @(selected ? "active" : "") @(delMode ? "pill-delete" : exitMode ? "pill-delete-exit" : "")"
-                  style="display:inline-flex;align-items:center;gap:4px;user-select:none"
+            var n        = name;
+            var selected = _players.Contains(n);
+            var delMode  = _deleteCandidate == n;
+            var exitMode = _exitCandidate == n;
+            var opacity  = selected ? "1" : "0.45";
+            <span class="pill pill-sm @(selected ? "active" : "") @(delMode ? "pill-delete" : exitMode ? "pill-delete-exit" : "")"
+                  style="display:inline-flex;align-items:center;gap:4px;user-select:none;opacity:@opacity;transition:opacity 0.15s"
                   @onclick:stopPropagation="true"
                   @onclick="() => { if (!delMode) ToggleKnownPlayer(n); }"
                   @onpointerdown="() => StartLongPress(n)"
@@ -245,12 +262,17 @@ else
         }
     </div>
 }
+<label class="form-label" style="margin-bottom:10px">@S.Players</label>
 @for (int i = 0; i < _players.Count; i++)
 {
     var idx = i;
-    <div style="margin-bottom:10px">
+    var locked = _lockedPlayers.Contains(_players[idx]);
+    var ts = _rules.TeamMode ? $"border-left:3px solid {(idx < 2 ? "var(--blue)" : "var(--tuerkis)")};padding-left:8px;" : "";
+    <div style="margin-bottom:10px;@ts">
         <input class="form-input" value="@_players[idx]"
-               placeholder="@(_rules.TeamMode ? $"{(idx % 2 == 0 ? "Team 1" : "Team 2")} — {S.Players} {idx / 2 + 1}" : $"{S.Players} {idx + 1}")"
+               placeholder="@(_rules.TeamMode ? $"{(idx < 2 ? "Team 1" : "Team 2")} — {S.Players} {idx % 2 + 1}" : $"{S.Players} {idx + 1}")"
+               style="@(locked ? "opacity:0.5;background:var(--input-bg,var(--card));cursor:default" : "")"
+               disabled="@locked"
                @oninput="e => _players[idx] = e.Value?.ToString() ?? string.Empty" />
     </div>
 }

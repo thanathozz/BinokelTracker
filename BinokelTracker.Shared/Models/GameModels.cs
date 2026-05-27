@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace BinokelTracker.Models;
@@ -25,6 +26,7 @@ public class RuleSet
     public int UnterValue { get; set; } = 2;
     public int LastTrickBonus { get; set; } = 10;
     public int AbgegangenBonusPerPlayer { get; set; } = 10;
+    public bool AusmachenMitSpiel { get; set; }
 
     public RuleSet Clone() => (RuleSet)MemberwiseClone();
 }
@@ -46,7 +48,7 @@ public static class RulePresets
             Name = "Schwäbisch Scharf",
             Description = "3 Spieler, doppelt Minus bei Überreizen",
             Players = 3, TargetScore = 1000, DoubleMinus = true,
-            AllowDurch = true, AllowAbgehen = true, BidderOnlyAbgehen = true
+            AllowDurch = true, AllowAbgehen = true, BidderOnlyAbgehen = true, AusmachenMitSpiel = true
         },
         ["vierer_kreuz"] = new RuleSet
         {
@@ -74,11 +76,55 @@ public static class RulePresets
     };
 }
 
+[JsonConverter(typeof(PlayerRefJsonConverter))]
+public class PlayerRef
+{
+    public string  DisplayName { get; set; } = "";
+    public string? UserId      { get; set; }
+
+    public static implicit operator string(PlayerRef p)    => p.DisplayName;
+    public static implicit operator PlayerRef(string name) => new() { DisplayName = name };
+    public override string ToString() => DisplayName;
+}
+
+public class PlayerRefJsonConverter : JsonConverter<PlayerRef>
+{
+    public override PlayerRef Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String)
+            return new PlayerRef { DisplayName = reader.GetString() ?? "" };
+
+        string displayName = "";
+        string? userId = null;
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            if (reader.TokenType != JsonTokenType.PropertyName) continue;
+            var prop = reader.GetString();
+            reader.Read();
+            if (prop == "DisplayName")   displayName = reader.GetString() ?? "";
+            else if (prop == "UserId")   userId = reader.TokenType == JsonTokenType.Null ? null : reader.GetString();
+        }
+        return new PlayerRef { DisplayName = displayName, UserId = userId };
+    }
+
+    public override void Write(Utf8JsonWriter writer, PlayerRef value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("DisplayName", value.DisplayName);
+        if (value.UserId is not null)
+            writer.WriteString("UserId", value.UserId);
+        else
+            writer.WriteNull("UserId");
+        writer.WriteEndObject();
+    }
+}
+
 public class PlayerScore
 {
     public int Meld { get; set; }
     public int Tricks { get; set; }
     public bool Abgegangen { get; set; }
+    public List<MeldType>? MeldTypes { get; set; }
 }
 
 public enum RoundType
@@ -126,6 +172,8 @@ public class Round
         }
 
         bool bidderAbgegangen = PlayerScores.Count > Bidder && PlayerScores[Bidder].Abgegangen;
+        bool gameWasPlayed = PlayerScores.Any(ps => ps.Tricks > 0);
+        bool awardAbgBonus = bidderAbgegangen && !gameWasPlayed;
         for (int i = 0; i < PlayerScores.Count; i++)
         {
             var ps = PlayerScores[i];
@@ -134,26 +182,30 @@ public class Round
 
             if (i == Bidder)
             {
-                if (ps.Abgegangen || total < Bid)
+                int totalWithBonus = total + (LastTrickWinner == i ? rules.LastTrickBonus : 0);
+                if (ps.Abgegangen || totalWithBonus < Bid)
                     scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
                 else
                     scores[i] = total;
             }
             else
             {
-                bool isPartner = rules.TeamMode && PlayerScores.Count == 4 && i == (Bidder + 2) % 4;
+                bool isPartner = rules.TeamMode && PlayerScores.Count == 4 && i == (Bidder ^ 1);
                 if (ps.Abgegangen)
                     scores[i] = 0;
                 else if (bidderAbgegangen && isPartner)
                     scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
-                else if (bidderAbgegangen)
+                else if (awardAbgBonus)
                     scores[i] = total + PlayerScores.Count * rules.AbgegangenBonusPerPlayer;
+                else if (bidderAbgegangen)
+                    scores[i] = total; // Spiel gespielt → kein Bonus
                 else
                     scores[i] = total;
             }
         }
 
-        if (LastTrickWinner >= 0 && LastTrickWinner < scores.Length)
+        if (LastTrickWinner >= 0 && LastTrickWinner < scores.Length
+            && scores[LastTrickWinner] >= 0)
             scores[LastTrickWinner] += rules.LastTrickBonus;
 
         return scores;
@@ -166,7 +218,7 @@ public class Game
     public long Id { get; set; }
     public long Date { get; set; }
     public long? SpielrundeId { get; set; }
-    public List<string> Players { get; set; } = new();
+    public List<PlayerRef> Players { get; set; } = new();
     public RuleSet Rules { get; set; } = new();
     public List<Round> Rounds { get; set; } = new();
     public bool Finished { get; set; }
@@ -208,8 +260,8 @@ public class Game
         foreach (var r in Rounds)
         {
             var sc = r.CalcScores(Rules);
-            t[0] += sc[0] + sc[2];
-            t[1] += sc[1] + sc[3];
+            t[0] += sc[0] + sc[1];
+            t[1] += sc[2] + sc[3];
         }
 
         return t;
@@ -235,11 +287,14 @@ public class Spielrunde
     public string? PasswordHash { get; set; }
     /// <summary>UserId des Erstellers — zum Erkennen ob die Spielrunde geteilt ist.</summary>
     public string? CreatorUserId { get; set; }
-    /// <summary>Nicks der eingeladenen Nutzer.</summary>
-    public List<string> InvitedNicks { get; set; } = new();
-    /// <summary>Transient: UserId+Nick der einzutragenden Mitglieder. Wird nicht serialisiert.</summary>
+    /// <summary>Anzeigenamen der eingeladenen Nutzer.</summary>
+    public List<string> InvitedDisplayNames { get; set; } = new();
+    /// <summary>Transient: UserId+DisplayName der einzutragenden Mitglieder. Wird nicht serialisiert.</summary>
     [JsonIgnore]
-    public List<(string UserId, string Nick)>? PendingInvites { get; set; }
+    public List<(string UserId, string DisplayName)>? PendingInvites { get; set; }
+    /// <summary>Transient: DisplayName → UserId für alle eingeladenen Mitglieder. Wird aus spielrunde_members geladen.</summary>
+    [JsonIgnore]
+    public Dictionary<string, string> MemberUserIds { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public int AssValue { get; set; } = 11;
     public int ZehnValue { get; set; } = 10;
     public int KoenigValue { get; set; } = 4;

@@ -2,7 +2,6 @@
 @inject BinokelTracker.Shared.Services.ThemeService ThemeService
 @inject BinokelTracker.Shared.Services.LanguageService LangSvc
 @inject IAuthService AuthService
-@inject IJSRuntime JS
 @implements IDisposable
 
 <div class="app-container">
@@ -31,6 +30,7 @@
                 AllGames="_state.Games"
                 GameType="@_gameType"
                 OnEnter="EnterSpielrunde"
+                OnDeleteSpielrunde="DeleteSpielrunde"
                 OnNew="() => _view = View.NewSpielrunde"
                 OnBack="() => _view = View.GameTypeSelect"
                 OnLogout="Logout" />
@@ -39,6 +39,8 @@
         {
             <NewSpielrundeForm
                 GameType="@_gameType"
+                KnownPlayers="@(AuthService.Session?.DisplayName is { Length: > 0 } dn ? new List<string> { dn } : new List<string>())"
+                CreatorName="@(AuthService.Session?.DisplayName ?? "")"
                 OnSave="AddSpielrunde"
                 OnCancel="() => _view = View.SpielrundeList" />
         }
@@ -46,13 +48,25 @@
         {
             <GameList Games="SessionGames"
                       SessionTitle="@_activeSession?.Name"
+                      IsCreator="@IsCurrentUserCreator"
+                      OnEditSession="() => _view = View.EditSpielrunde"
                       OnBack="LeaveSession"
                       OnSelect="SelectGame"
                       OnDeleteGame="DeleteGame"
                       OnNew="() => _view = View.NewGame"
                       OnQuickGame="() => _view = View.QuickGame"
-                      OnRules="() => _rulesDialog!.Open()"
+                      OnRules="() => _rulesDialog!.Open(ActiveSessionRules)"
                       OnCalculator="() => _calculatorDialog!.Open(null, null, _activeSession?.AssValue ?? 11, _activeSession?.ZehnValue ?? 10, _activeSession?.KoenigValue ?? 4, _activeSession?.OberValue ?? 3, _activeSession?.UnterValue ?? 2, _activeSession?.LastTrickBonus ?? 10)" />
+        }
+        else if (_view == View.EditSpielrunde && _activeSession != null)
+        {
+            <NewSpielrundeForm
+                GameType="@_gameType"
+                EditSession="@_activeSession"
+                KnownPlayers="@(new List<string>())"
+                CreatorName=""
+                OnSave="UpdateSpielrunde"
+                OnCancel="() => _view = View.List" />
         }
         else if (_view == View.NewGame)
         {
@@ -86,7 +100,13 @@
         else if (_view == View.Statistics)
         {
             <Statistics Games="(_activeSession != null ? SessionGames : _state.Games)"
-                        OnBack="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)" />
+                        OnBack="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)"
+                        OnShowDashboard="() => _view = View.StatisticsDashboard" />
+        }
+        else if (_view == View.StatisticsDashboard)
+        {
+            <StatisticsDashboard Games="(_activeSession != null ? SessionGames : _state.Games)"
+                                  OnBack="() => _view = View.Statistics" />
         }
         else if (_view == View.Profile)
         {
@@ -94,10 +114,10 @@
         }
     </div>
 
-    @if (_loaded && _view is not (View.Login or View.GameTypeSelect))
+    @if (_loaded && _view is not View.Login)
     {
         <div class="tab-bar">
-            <button class="tab-bar-item @(_view is View.SpielrundeList or View.NewSpielrunde or View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame ? "active" : "")"
+            <button class="tab-bar-item @(_view is View.GameTypeSelect or View.SpielrundeList or View.NewSpielrunde or View.List or View.NewGame or View.Detail or View.AddRound or View.QuickGame or View.EditSpielrunde ? "active" : "")"
                     @onclick="() => _view = (_activeSession != null ? View.List : View.SpielrundeList)">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                     <rect x="2" y="4" width="14" height="18" rx="2" transform="rotate(-6 2 4)"/>
@@ -105,7 +125,7 @@
                 </svg>
                 <span>@_s.TabGames</span>
             </button>
-            <button class="tab-bar-item @(_view == View.Statistics ? "active" : "")"
+            <button class="tab-bar-item @(_view is View.Statistics or View.StatisticsDashboard ? "active" : "")"
                     @onclick="() => _view = View.Statistics">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
@@ -145,7 +165,7 @@
 </div>
 
 @code {
-    enum View { Login, GameTypeSelect, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, Profile }
+    enum View { Login, GameTypeSelect, SpielrundeList, NewSpielrunde, List, NewGame, Detail, AddRound, QuickGame, Statistics, StatisticsDashboard, Profile, EditSpielrunde }
 
     private AppState _state = new();
     private View _view = View.GameTypeSelect;
@@ -158,8 +178,7 @@
     private AugenCalculator? _calculatorDialog;
     private string? _saveError;
     private IStrings _s = new StringsDe();
-    private bool _ptrInitialized;
-    private DotNetObjectReference<Main>? _dotNetRef;
+
 
     private List<Game> SessionGames =>
         _state.Games.Where(g => g.SpielrundeId == _activeSession?.Id).ToList();
@@ -168,14 +187,37 @@
     {
         get
         {
-            var players = (_activeSession?.Players ?? _state.KnownPlayers).ToList();
-            if (_activeSession != null)
-                foreach (var nick in _activeSession.InvitedNicks)
-                    if (!players.Contains(nick, StringComparer.OrdinalIgnoreCase))
-                        players.Add(nick);
-            return players;
+            if (_activeSession == null) return _state.KnownPlayers.ToList();
+
+            var all = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in _activeSession.Players)
+                if (!string.IsNullOrWhiteSpace(p)) all.Add(p);
+            foreach (var dn in _activeSession.InvitedDisplayNames)
+                all.Add(dn);
+            foreach (var game in _state.Games.Where(g => g.SpielrundeId == _activeSession.Id))
+                foreach (var p in game.Players)
+                    if (!string.IsNullOrWhiteSpace(p.DisplayName)) all.Add(p.DisplayName);
+            return all.ToList();
         }
     }
+
+    private bool IsCurrentUserCreator =>
+        _activeSession != null &&
+        (_activeSession.CreatorUserId == null ||
+         _activeSession.CreatorUserId == AuthService.Session?.UserId);
+
+    private RuleSet ActiveSessionRules => _activeSession != null
+        ? new RuleSet
+        {
+            AssValue              = _activeSession.AssValue,
+            ZehnValue             = _activeSession.ZehnValue,
+            KoenigValue           = _activeSession.KoenigValue,
+            OberValue             = _activeSession.OberValue,
+            UnterValue            = _activeSession.UnterValue,
+            LastTrickBonus        = _activeSession.LastTrickBonus,
+            AbgegangenBonusPerPlayer = _activeSession.AbgegangenBonusPerPlayer
+        }
+        : new RuleSet();
 
     private List<Spielrunde> GameTypeSpielrunden =>
         _state.Spielrunden
@@ -207,24 +249,10 @@
             StateHasChanged();
         }
 
-        if (_loaded && !_ptrInitialized)
-        {
-            _ptrInitialized = true;
-            _dotNetRef = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("PullToRefresh.init", _dotNetRef);
-        }
-    }
-
-    [JSInvokable]
-    public async Task Reload()
-    {
-        _state = await Storage.LoadAsync();
-        await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
-        _dotNetRef?.Dispose();
         LangSvc.LanguageChanged -= OnLanguageChanged;
     }
 
@@ -303,6 +331,24 @@
         }
     }
 
+    private async Task UpdateSpielrunde(Spielrunde updated)
+    {
+        if (_activeSession == null) return;
+        _activeSession.Name                     = updated.Name;
+        _activeSession.PasswordHash             = updated.PasswordHash;
+        _activeSession.AssValue                 = updated.AssValue;
+        _activeSession.ZehnValue                = updated.ZehnValue;
+        _activeSession.KoenigValue              = updated.KoenigValue;
+        _activeSession.OberValue                = updated.OberValue;
+        _activeSession.UnterValue               = updated.UnterValue;
+        _activeSession.LastTrickBonus           = updated.LastTrickBonus;
+        _activeSession.AbgegangenBonusPerPlayer  = updated.AbgegangenBonusPerPlayer;
+        _activeSession.CustomFields             = updated.CustomFields;
+        _activeSession.StrichlisteMode          = updated.StrichlisteMode;
+        _view = View.List;
+        await Save();
+    }
+
     private void SelectGame(long id)
     {
         _selectedGame = _state.Games.FirstOrDefault(g => g.Id == id);
@@ -313,11 +359,13 @@
     {
         if (_activeSession != null)
         {
-            foreach (var name in game.Players)
+            foreach (var player in game.Players)
             {
-                if (!string.IsNullOrWhiteSpace(name) &&
-                    !_activeSession.Players.Contains(name, StringComparer.OrdinalIgnoreCase))
-                    _activeSession.Players.Add(name);
+                if (!string.IsNullOrWhiteSpace(player.DisplayName) &&
+                    !_activeSession.Players.Contains(player.DisplayName, StringComparer.OrdinalIgnoreCase))
+                    _activeSession.Players.Add(player.DisplayName);
+                if (player.UserId == null && _activeSession.MemberUserIds.TryGetValue(player.DisplayName, out var uid))
+                    player.UserId = uid;
             }
         }
         game.SpielrundeId = _activeSession?.Id;
@@ -362,26 +410,32 @@
         if (_editRoundIndex >= 0 && _editRoundIndex < _selectedGame.Rounds.Count)
         {
             _selectedGame.Rounds[_editRoundIndex] = round;
-            _selectedGame.Finished = false;
         }
         else
         {
             _selectedGame.Rounds.Add(round);
-
-            if (!_selectedGame.Finished)
-            {
-                bool targetReached = _selectedGame.Rules.TeamMode
-                    ? _selectedGame.GetTeamTotals().Any(t => t >= _selectedGame.Rules.TargetScore)
-                    : _selectedGame.GetPlayerTotals().Any(t => t >= _selectedGame.Rules.TargetScore);
-
-                if (targetReached)
-                    _selectedGame.Finished = true;
-            }
         }
+
+        _selectedGame.Finished = IsTargetReached(_selectedGame, round);
 
         _editRoundIndex = -1;
         _view = View.Detail;
         await Save();
+    }
+
+    private static bool IsTargetReached(Game game, Round lastRound)
+    {
+        if (game.Rules.AusmachenMitSpiel)
+        {
+            var scores = lastRound.CalcScores(game.Rules);
+            if (scores[lastRound.Bidder] <= 0) return false;
+            if (game.Rules.TeamMode)
+                return game.GetTeamTotals()[lastRound.Bidder / 2] >= game.Rules.TargetScore;
+            return game.GetPlayerTotals()[lastRound.Bidder] >= game.Rules.TargetScore;
+        }
+        return game.Rules.TeamMode
+            ? game.GetTeamTotals().Any(t => t >= game.Rules.TargetScore)
+            : game.GetPlayerTotals().Any(t => t >= game.Rules.TargetScore);
     }
 
     private async Task DeleteRound(int index)
@@ -400,6 +454,14 @@
         await Save();
     }
 
+    private async Task DeleteSpielrunde(long id)
+    {
+        await Storage.DeleteSpielrundeAsync(id);
+        _state.Games.RemoveAll(g => g.SpielrundeId == id);
+        _state.Spielrunden.RemoveAll(s => s.Id == id);
+        await Save();
+    }
+
     private async Task FinishGame()
     {
         if (_selectedGame != null)
@@ -413,11 +475,13 @@
     {
         if (_activeSession != null)
         {
-            foreach (var name in game.Players)
+            foreach (var player in game.Players)
             {
-                if (!string.IsNullOrWhiteSpace(name) &&
-                    !_activeSession.Players.Contains(name, StringComparer.OrdinalIgnoreCase))
-                    _activeSession.Players.Add(name);
+                if (!string.IsNullOrWhiteSpace(player.DisplayName) &&
+                    !_activeSession.Players.Contains(player.DisplayName, StringComparer.OrdinalIgnoreCase))
+                    _activeSession.Players.Add(player.DisplayName);
+                if (player.UserId == null && _activeSession.MemberUserIds.TryGetValue(player.DisplayName, out var uid))
+                    player.UserId = uid;
             }
         }
         game.SpielrundeId = _activeSession?.Id;

@@ -18,7 +18,6 @@ public class AuthSession
     public string UserId       { get; init; } = "";
     public string Email        { get; init; } = "";
     public string DisplayName  { get; set;  } = "";
-    public string Nick         { get; set;  } = "";
     public bool   IsAdmin      { get; set;  }
     public bool   IsExpired    => DateTimeOffset.UtcNow.ToUnixTimeSeconds() >= ExpiresAt - 60;
 }

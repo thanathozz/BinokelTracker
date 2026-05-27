@@ -62,7 +62,7 @@
         {
             Id          = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Date        = ts,
-            Players     = _players.ToList(),
+            Players     = _players.Select(p => (PlayerRef)p).ToList(),
             Rules       = new RuleSet { Name = "Schnelleintrag", Players = _players.Count },
             Einsatz     = _einsatz,
             Rounds      = new(),
