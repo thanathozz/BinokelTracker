@@ -183,7 +183,11 @@ public class StringsSwabian : IStrings
     public string NoDataHint        => "Spiel erscht a paar Runda!";
     public string BidRate           => "Reizquote";
     public string GamesPlayedAbbr   => "Sp.";
-    public string ChartMoneyTitle   => "Gwinn / Verlust (€)";
+    public string StatsBestRate      => "Beste Gwinnquote";
+    public string StatsWinPct        => "Gwinna";
+    public string StatsAvgScore      => "Ø Punkte";
+    public string ChartAvgScoreTitle => "Ø Punkte Vergliich";
+    public string ChartMoneyTitle    => "Gwinn / Verlust (€)";
     public string ChartWinsTitle    => "Siege";
     public string ChartWinRateTitle => "Reizquote";
     public string ChartAvgBidTitle  => "Ø Reizwert";

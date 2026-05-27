@@ -1,0 +1,653 @@
+@code {
+    [Parameter] public List<Game> Games { get; set; } = new();
+    [Parameter] public EventCallback OnBack { get; set; }
+    [CascadingParameter] public IStrings S { get; set; } = default!;
+
+    private GlobalStats _stats = default!;
+    private int[] _bidBuckets = new int[11];
+    private int[] _roundTypeCounts = new int[5];
+    private Dictionary<string, List<int>> _trendData = new();
+    private int[,] _heatmap = new int[7, 8];
+    private PlayerStats? _topPlayer;
+    private List<char> _topPlayerPips = new();
+
+    private static readonly string[] TrendColors = { "#5ad6c0", "#7da9e8", "#84cf6c", "#ff9a52" };
+    private static readonly string[] DayLabels = { "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So" };
+
+    protected override void OnParametersSet()
+    {
+        _stats = StatisticsService.Compute(Games);
+        _bidBuckets = ComputeBidHistogram();
+        _roundTypeCounts = ComputeRoundTypes();
+        _trendData = ComputeTrend();
+        _heatmap = ComputeHeatmap();
+        _topPlayer = _stats.Players.OrderByDescending(p => p.GamesWon).FirstOrDefault();
+        _topPlayerPips = ComputePips(_topPlayer?.Name);
+    }
+
+    // ── KPI helpers ──────────────────────────────────────────────────────────
+
+    private string AvgBidderSuccess
+    {
+        get
+        {
+            var with = _stats.Players.Where(p => p.RoundsAsBidder > 0).ToList();
+            if (with.Count == 0) return "–";
+            return $"{with.Average(p => p.BidderWinRate):F0}%";
+        }
+    }
+
+    // ── Record helpers ───────────────────────────────────────────────────────
+
+    private (string Name, int Value) Best(Func<PlayerStats, int> selector) =>
+        _stats.Players.Count == 0 ? ("–", 0) :
+        _stats.Players.Select(p => (p.Name, selector(p))).OrderByDescending(x => x.Item2).First();
+
+    // ── Leaderboard helpers ──────────────────────────────────────────────────
+
+    private int MaxWins => _stats.Players.Count > 0 ? _stats.Players.Max(p => p.GamesWon) : 1;
+
+    private string SaldoClass(decimal v) => v > 0 ? "" : v < 0 ? "neg" : "neu";
+    private string FormatSaldo(decimal v) =>
+        v == 0 ? "–" : $"{(v > 0 ? "+" : "")}{v:F0}";
+
+    private bool HasMoney => _stats.Players.Any(p => p.MoneyBalance != 0);
+
+    // ── Histogram ────────────────────────────────────────────────────────────
+
+    private int[] ComputeBidHistogram()
+    {
+        var buckets = new int[11];
+        foreach (var g in Games)
+        foreach (var r in g.Rounds)
+        {
+            if (r.Type != RoundType.Normal || r.Abgegangen || r.Bid <= 0) continue;
+            if (r.Bid < 100) continue;
+            var idx = r.Bid >= 200 ? 10 : (r.Bid - 100) / 10;
+            if (idx < 11) buckets[idx]++;
+        }
+        return buckets;
+    }
+
+    private int HistPeak => _bidBuckets.Length > 0 ? _bidBuckets.Max() : 1;
+    private double AvgBid
+    {
+        get
+        {
+            var bids = Games.SelectMany(g => g.Rounds)
+                .Where(r => r.Type == RoundType.Normal && !r.Abgegangen && r.Bid > 0)
+                .Select(r => (double)r.Bid).ToList();
+            return bids.Count == 0 ? 0 : bids.Average();
+        }
+    }
+
+    // ── Round types for donut ────────────────────────────────────────────────
+
+    private int[] ComputeRoundTypes()
+    {
+        // [0]=Normal won, [1]=Normal lost, [2]=Durch, [3]=Bettel, [4]=Abgegangen
+        var counts = new int[5];
+        foreach (var g in Games)
+        foreach (var r in g.Rounds)
+        {
+            if (r.Abgegangen)               { counts[4]++; continue; }
+            if (r.Type == RoundType.Durch)   { counts[2]++; continue; }
+            if (r.Type == RoundType.Bettel)  { counts[3]++; continue; }
+            if (r.Won) counts[0]++;
+            else       counts[1]++;
+        }
+        return counts;
+    }
+
+    private int TotalRounds => _roundTypeCounts.Sum();
+
+    private string DonutGradient
+    {
+        get
+        {
+            int total = TotalRounds;
+            if (total == 0) return "var(--card-alt)";
+            double e1 = (double)_roundTypeCounts[0] / total * 100;
+            double e2 = e1 + (double)_roundTypeCounts[1] / total * 100;
+            double e3 = e2 + (double)_roundTypeCounts[2] / total * 100;
+            double e4 = e3 + (double)_roundTypeCounts[3] / total * 100;
+            return $"conic-gradient(#5ad6c0 0% {e1:F1}%,#d04545 {e1:F1}% {e2:F1}%,#ff9a52 {e2:F1}% {e3:F1}%,#7da9e8 {e3:F1}% {e4:F1}%,#9a8e80 {e4:F1}% 100%)";
+        }
+    }
+
+    private static string Pct(int v, int total) =>
+        total == 0 ? "0%" : $"{(double)v / total * 100:F0}%";
+
+    // ── Trend chart ──────────────────────────────────────────────────────────
+
+    private Dictionary<string, List<int>> ComputeTrend()
+    {
+        var result = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
+        var topNames = _stats.Players.OrderByDescending(p => p.GamesPlayed).Take(4).Select(p => p.Name).ToList();
+        foreach (var n in topNames) result[n] = new List<int>();
+
+        var cumulative = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var n in topNames) cumulative[n] = 0;
+
+        var finishedGames = Games.Where(g => g.Finished).OrderBy(g => g.Date).ToList();
+        foreach (var game in finishedGames)
+        {
+            var totals = game.GetPlayerTotals();
+            for (int i = 0; i < game.Players.Count && i < totals.Length; i++)
+            {
+                var name = game.Players[i].DisplayName;
+                if (!result.ContainsKey(name)) continue;
+                cumulative[name] += totals[i];
+                result[name].Add(cumulative[name]);
+            }
+        }
+
+        foreach (var key in result.Keys.ToList())
+            if (result[key].Count < 2) result.Remove(key);
+
+        return result;
+    }
+
+    private string TrendPolyline(List<int> values, int allMin, int allMax, int width = 320, int height = 60)
+    {
+        if (values.Count < 2) return "";
+        int range = allMax == allMin ? 1 : allMax - allMin;
+        var pts = new System.Text.StringBuilder();
+        for (int i = 0; i < values.Count; i++)
+        {
+            double x = i == 0 ? 0 : (double)i / (values.Count - 1) * width;
+            double y = height - (double)(values[i] - allMin) / range * height;
+            if (i > 0) pts.Append(' ');
+            pts.Append($"{x:F1},{y:F1}");
+        }
+        return pts.ToString();
+    }
+
+    private (int Min, int Max) TrendRange
+    {
+        get
+        {
+            if (_trendData.Count == 0) return (0, 1);
+            var all = _trendData.Values.SelectMany(v => v).ToList();
+            return (all.Min(), all.Max());
+        }
+    }
+
+    // ── Heatmap ──────────────────────────────────────────────────────────────
+
+    private int[,] ComputeHeatmap()
+    {
+        var grid = new int[7, 8];
+        var now = DateTimeOffset.UtcNow;
+        var cutoff = now.AddDays(-56);
+
+        foreach (var game in Games)
+        {
+            if (game.Date <= 0) continue;
+            var date = DateTimeOffset.FromUnixTimeMilliseconds(game.Date);
+            if (date < cutoff) continue;
+
+            var daysAgo = (int)(now - date).TotalDays;
+            var weekIdx = 7 - daysAgo / 7 - 1;
+            var dow = (int)date.DayOfWeek;
+            dow = dow == 0 ? 6 : dow - 1; // Mon=0..Sun=6
+
+            if (weekIdx >= 0 && weekIdx < 8)
+                grid[dow, weekIdx]++;
+        }
+        return grid;
+    }
+
+    private static string HeatClass(int v) => v switch { 0 => "", 1 => "h1", 2 => "h2", 3 => "h3", _ => "h4" };
+
+    private string MostActiveDays
+    {
+        get
+        {
+            var counts = new int[7];
+            for (int d = 0; d < 7; d++)
+            for (int w = 0; w < 8; w++)
+                counts[d] += _heatmap[d, w];
+
+            var top = counts.Select((c, i) => (c, i)).OrderByDescending(x => x.c).Take(2).ToList();
+            if (top[0].c == 0) return "";
+            if (top.Count < 2 || top[1].c == 0) return DayLabels[top[0].i];
+            return $"{DayLabels[top[0].i]} & {DayLabels[top[1].i]}";
+        }
+    }
+
+    // ── Top-player pips ──────────────────────────────────────────────────────
+
+    private List<char> ComputePips(string? playerName, int count = 14)
+    {
+        if (playerName == null) return new();
+        var pips = new List<char>();
+        var finishedGames = Games
+            .Where(g => g.Finished && g.Players.Any(p => p.DisplayName.Equals(playerName, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(g => g.Date)
+            .Take(count)
+            .ToList();
+        finishedGames.Reverse();
+
+        foreach (var game in finishedGames)
+        {
+            int idx = game.Players.FindIndex(p => p.DisplayName.Equals(playerName, StringComparison.OrdinalIgnoreCase));
+            if (idx < 0) continue;
+            var totals = game.GetPlayerTotals();
+            if (idx >= totals.Length) continue;
+            int max = totals.Max();
+            pips.Add(totals[idx] == max ? 'W' : 'L');
+        }
+        return pips;
+    }
+
+    private static string Fmt(double v) => $"{v:F0}";
+}
+
+<div>
+    <div class="header header-center">
+        <button class="back-btn" @onclick="OnBack">←</button>
+        <span class="header-title">@S.StatsTitle</span>
+        <div style="width:36px"></div>
+    </div>
+
+    @if (_stats.Players.Count == 0)
+    {
+        <div class="section" style="padding-top:40px">
+            <div class="empty-state">
+                <div class="empty-suits">♠ ♥ ♣ ♦</div>
+                <div class="empty-title">@S.NoData</div>
+                <div class="empty-sub">@S.NoDataHint</div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="section" style="padding-top:14px">
+
+            <!-- ─── KPI Band ─── -->
+            <div class="ds-kpi-band">
+                <div class="ds-kpi">
+                    <span class="ds-kpi-delta">@_stats.TotalGames</span>
+                    <div class="ds-kpi-value">@_stats.TotalGames</div>
+                    <div class="ds-kpi-label">Spiele</div>
+                    <div class="ds-kpi-spark">
+                        <div class="b" style="height:30%"></div>
+                        <div class="b" style="height:50%"></div>
+                        <div class="b" style="height:40%"></div>
+                        <div class="b hi" style="height:80%"></div>
+                        <div class="b" style="height:60%"></div>
+                        <div class="b hi" style="height:100%"></div>
+                    </div>
+                </div>
+                <div class="ds-kpi">
+                    <span class="ds-kpi-delta">@_stats.TotalRounds</span>
+                    <div class="ds-kpi-value">@_stats.TotalRounds</div>
+                    <div class="ds-kpi-label">Runden</div>
+                    <div class="ds-kpi-spark">
+                        @for (int i = 0; i < 6; i++)
+                        {
+                            var idx = i;
+                            var h = _bidBuckets.Length > 0 && _bidBuckets.Max() > 0
+                                ? (int)((double)_bidBuckets[Math.Min(idx, _bidBuckets.Length - 1)] / _bidBuckets.Max() * 100)
+                                : 20 + idx * 10;
+                            var isPeak = _bidBuckets.Length > 0 && _bidBuckets[Math.Min(idx, _bidBuckets.Length - 1)] == _bidBuckets.Max();
+                            <div class="b @(isPeak ? "hi" : "")" style="height:@(Math.Max(h, 5))%"></div>
+                        }
+                    </div>
+                </div>
+                <div class="ds-kpi">
+                    <span class="ds-kpi-delta neu">@_stats.Players.Count</span>
+                    <div class="ds-kpi-value">@_stats.Players.Count</div>
+                    <div class="ds-kpi-label">Spieler</div>
+                    <div class="ds-kpi-spark">
+                        @foreach (var p in _stats.Players.Take(6))
+                        {
+                            var h = MaxWins > 0 ? (int)((double)p.GamesWon / MaxWins * 100) : 20;
+                            <div class="b @(p == _stats.Players.OrderByDescending(x => x.GamesWon).First() ? "hi" : "")" style="height:@(Math.Max(h, 5))%"></div>
+                        }
+                    </div>
+                </div>
+                <div class="ds-kpi">
+                    <span class="ds-kpi-delta">@AvgBidderSuccess</span>
+                    <div class="ds-kpi-value" style="font-size:18px">@AvgBidderSuccess</div>
+                    <div class="ds-kpi-label">Reizer-Erfolg</div>
+                    <div class="ds-kpi-spark">
+                        <div class="b" style="height:45%"></div>
+                        <div class="b" style="height:55%"></div>
+                        <div class="b hi" style="height:70%"></div>
+                        <div class="b" style="height:60%"></div>
+                        <div class="b hi" style="height:80%"></div>
+                        <div class="b" style="height:65%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── Rekorde ─── -->
+            @{
+                var recBid    = Best(p => p.HighestBidEver);
+                var recStreak = Best(p => p.LongestWinStreak);
+                var recMeld   = Best(p => p.HighestMeldInRound);
+                var recScore  = Best(p => p.HighestGameScore);
+            }
+            <div class="ds-sec"><span class="ds-sec-title">Rekorde</span></div>
+            <div class="ds-records">
+                @if (recBid.Value > 0)
+                {
+                    <div class="ds-rec">
+                        <div class="ds-rec-icon ic-gld">★</div>
+                        <div class="ds-rec-body">
+                            <div class="ds-rec-label">Höchstes Gebot</div>
+                            <div class="ds-rec-value">@recBid.Value</div>
+                            <div class="ds-rec-holder"><b>@recBid.Name</b></div>
+                        </div>
+                    </div>
+                }
+                @if (recStreak.Value > 0)
+                {
+                    <div class="ds-rec">
+                        <div class="ds-rec-icon ic-tur">⚡</div>
+                        <div class="ds-rec-body">
+                            <div class="ds-rec-label">Längste Siegesserie</div>
+                            <div class="ds-rec-value">@recStreak.Value<span class="ds-rec-value-unit">×</span></div>
+                            <div class="ds-rec-holder"><b>@recStreak.Name</b></div>
+                        </div>
+                    </div>
+                }
+                @if (recMeld.Value > 0)
+                {
+                    <div class="ds-rec">
+                        <div class="ds-rec-icon ic-org">♣</div>
+                        <div class="ds-rec-body">
+                            <div class="ds-rec-label">Höchste Meldung</div>
+                            <div class="ds-rec-value">@recMeld.Value<span class="ds-rec-value-unit">Pkt.</span></div>
+                            <div class="ds-rec-holder"><b>@recMeld.Name</b></div>
+                        </div>
+                    </div>
+                }
+                @if (recScore.Value > 0)
+                {
+                    <div class="ds-rec">
+                        <div class="ds-rec-icon ic-grn">↑</div>
+                        <div class="ds-rec-body">
+                            <div class="ds-rec-label">Bestes Spielergebnis</div>
+                            <div class="ds-rec-value">@recScore.Value<span class="ds-rec-value-unit">Pkt.</span></div>
+                            <div class="ds-rec-holder"><b>@recScore.Name</b></div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- ─── Rangliste ─── -->
+            <div class="ds-sec">
+                <span class="ds-sec-title">Rangliste</span>
+                <span class="ds-sec-meta">@_stats.FinishedGames Spiele</span>
+            </div>
+            <div class="ds-lb-head">
+                <span class="h-rank">#</span>
+                <span class="h-name">Spieler</span>
+                <span>Siege</span>
+                <span>Quote</span>
+                <span>Saldo</span>
+            </div>
+            <div class="ds-lb">
+                @foreach (var (p, rank) in _stats.Players.Select((p, i) => (p, i + 1)))
+                {
+                    var pct = MaxWins > 0 ? (double)p.GamesWon / MaxWins * 100 : 0;
+                    var isGold = rank == 1;
+                    var saldoClass = SaldoClass(p.MoneyBalance);
+                    <div class="ds-lb-row @(isGold ? "gold" : "")" style="--pct:@($"{pct:F0}%")">
+                        <span class="ds-lb-rank">@rank</span>
+                        <span class="ds-lb-name">@p.Name</span>
+                        <span class="ds-lb-stat">@p.GamesWon</span>
+                        <span class="ds-lb-bar">
+                            <div class="ds-lb-track">
+                                <div class="ds-lb-fill" style="width:@($"{p.BidderWinRate:F0}%")"></div>
+                            </div>
+                        </span>
+                        @if (HasMoney)
+                        {
+                            <span class="ds-lb-pill @saldoClass">@FormatSaldo(p.MoneyBalance)</span>
+                        }
+                        else
+                        {
+                            <span class="ds-lb-pill neu">@($"{p.GamesPlayed}")</span>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- ─── Verteilungen ─── -->
+            <div class="ds-sec">
+                <span class="ds-sec-title">Verteilungen</span>
+                <span class="ds-sec-meta">@TotalRounds Runden</span>
+            </div>
+
+            @if (_bidBuckets.Any(b => b > 0))
+            {
+                <div class="ds-dist">
+                    <div class="ds-dist-head">
+                        <span class="ds-dist-title">Gebot-Häufigkeit</span>
+                        @if (AvgBid > 0)
+                        {
+                            <span class="ds-dist-sub">Ø @($"{AvgBid:F0}")</span>
+                        }
+                    </div>
+                    <div class="ds-hist">
+                        @for (int i = 0; i < 11; i++)
+                        {
+                            var cnt = _bidBuckets[i];
+                            var peak = HistPeak > 0 ? (double)cnt / HistPeak * 100 : 0;
+                            var isPeak = cnt == HistPeak && cnt > 0;
+                            <div class="ds-hist-bar @(isPeak ? "peak" : "")" style="height:@($"{Math.Max(peak, 4):F0}%")"></div>
+                        }
+                    </div>
+                    <div class="ds-hist-x">
+                        <span>100</span><span>110</span><span>120</span><span>130</span>
+                        <span>140</span><span>150</span><span>160</span><span>170</span>
+                        <span>180</span><span>190</span><span>200+</span>
+                    </div>
+                </div>
+            }
+
+            @if (TotalRounds > 0)
+            {
+                <div class="ds-dist">
+                    <div class="ds-dist-head">
+                        <span class="ds-dist-title">Rundentypen</span>
+                        <span class="ds-dist-sub">@TotalRounds gesamt</span>
+                    </div>
+                    <div class="ds-donut-row">
+                        <div class="ds-donut" style="background:@DonutGradient">
+                            <div class="ds-donut-center">
+                                <span class="dc-num">@TotalRounds</span>
+                                <span class="dc-lbl">Runden</span>
+                            </div>
+                        </div>
+                        <div class="ds-legend">
+                            <div class="ds-legend-row">
+                                <span class="ds-legend-dot" style="background:#5ad6c0"></span>
+                                <span class="ds-legend-name">Normal gew.</span>
+                                <span class="ds-legend-pct">@Pct(_roundTypeCounts[0], TotalRounds)</span>
+                                <span class="ds-legend-cnt">@_roundTypeCounts[0]</span>
+                            </div>
+                            <div class="ds-legend-row">
+                                <span class="ds-legend-dot" style="background:#d04545"></span>
+                                <span class="ds-legend-name">Normal verl.</span>
+                                <span class="ds-legend-pct">@Pct(_roundTypeCounts[1], TotalRounds)</span>
+                                <span class="ds-legend-cnt">@_roundTypeCounts[1]</span>
+                            </div>
+                            @if (_roundTypeCounts[2] > 0)
+                            {
+                                <div class="ds-legend-row">
+                                    <span class="ds-legend-dot" style="background:#ff9a52"></span>
+                                    <span class="ds-legend-name">Durch</span>
+                                    <span class="ds-legend-pct">@Pct(_roundTypeCounts[2], TotalRounds)</span>
+                                    <span class="ds-legend-cnt">@_roundTypeCounts[2]</span>
+                                </div>
+                            }
+                            @if (_roundTypeCounts[3] > 0)
+                            {
+                                <div class="ds-legend-row">
+                                    <span class="ds-legend-dot" style="background:#7da9e8"></span>
+                                    <span class="ds-legend-name">Bettel</span>
+                                    <span class="ds-legend-pct">@Pct(_roundTypeCounts[3], TotalRounds)</span>
+                                    <span class="ds-legend-cnt">@_roundTypeCounts[3]</span>
+                                </div>
+                            }
+                            @if (_roundTypeCounts[4] > 0)
+                            {
+                                <div class="ds-legend-row">
+                                    <span class="ds-legend-dot" style="background:#9a8e80"></span>
+                                    <span class="ds-legend-name">Abgegangen</span>
+                                    <span class="ds-legend-pct">@Pct(_roundTypeCounts[4], TotalRounds)</span>
+                                    <span class="ds-legend-cnt">@_roundTypeCounts[4]</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- ─── Punkteverlauf ─── -->
+            @if (_trendData.Count >= 1)
+            {
+                <div class="ds-sec"><span class="ds-sec-title">Punkteverlauf</span></div>
+                <div class="ds-dist">
+                    @{
+                        var (tMin, tMax) = TrendRange;
+                        var trendEntries = _trendData.Select((kv, i) => (kv.Key, kv.Value, TrendColors[i % TrendColors.Length])).ToList();
+                    }
+                    <svg class="ds-trend-svg" viewBox="0 0 320 70" preserveAspectRatio="none">
+                        <line x1="0" y1="35" x2="320" y2="35" stroke="#3a3228" stroke-width="0.5"/>
+                        <line x1="0" y1="10" x2="320" y2="10" stroke="#3a3228" stroke-width="0.5"/>
+                        <line x1="0" y1="60" x2="320" y2="60" stroke="#3a3228" stroke-width="0.5"/>
+                        @foreach (var (name, values, color) in trendEntries)
+                        {
+                            var pts = TrendPolyline(values, tMin, tMax);
+                            if (!string.IsNullOrEmpty(pts))
+                            {
+                                <polyline points="@pts"
+                                          fill="none"
+                                          stroke="@color"
+                                          stroke-width="1.5"
+                                          stroke-linejoin="round"
+                                          stroke-linecap="round" />
+                            }
+                        }
+                    </svg>
+                    <div class="ds-trend-legend">
+                        @foreach (var (name, values, color) in trendEntries)
+                        {
+                            <span class="ds-trend-li">
+                                <span class="ds-trend-line" style="background:@color"></span>
+                                @name <b>@(values.Count > 0 ? values.Last() : 0)</b>
+                            </span>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- ─── Top-Spieler ─── -->
+            @if (_topPlayer != null)
+            {
+                <div class="ds-sec">
+                    <span class="ds-sec-title">Top-Spieler</span>
+                    <span class="ds-sec-meta">@_topPlayer.GamesWon Siege</span>
+                </div>
+                <div class="ds-pdetail">
+                    <div class="ds-pd-head">
+                        <div class="ds-pd-avatar">@(_topPlayer.Name.Length > 0 ? _topPlayer.Name[0].ToString().ToUpper() : "?")</div>
+                        <div style="flex:1">
+                            <div class="ds-pd-name">@_topPlayer.Name</div>
+                            <div class="ds-pd-meta">@_topPlayer.GamesPlayed Spiele</div>
+                        </div>
+                        @if (_topPlayer.MoneyBalance != 0)
+                        {
+                            <div style="text-align:right">
+                                <div class="ds-pd-cval @(_topPlayer.MoneyBalance >= 0 ? "pos" : "neg")">@FormatSaldo(_topPlayer.MoneyBalance)</div>
+                                <div class="ds-pd-meta">Saldo</div>
+                            </div>
+                        }
+                    </div>
+                    <div class="ds-pd-grid">
+                        <div>
+                            <div class="ds-pd-clabel">Siegquote</div>
+                            <div class="ds-pd-cval @(_topPlayer.GamesPlayed > 0 && (double)_topPlayer.GamesWon / _topPlayer.GamesPlayed >= 0.5 ? "pos" : "")">
+                                @($"{(_topPlayer.GamesPlayed > 0 ? (double)_topPlayer.GamesWon / _topPlayer.GamesPlayed * 100 : 0):F0}%")
+                            </div>
+                        </div>
+                        <div>
+                            <div class="ds-pd-clabel">Ø Punkte</div>
+                            <div class="ds-pd-cval">@Fmt(_topPlayer.AvgFinalScore)</div>
+                        </div>
+                        <div>
+                            <div class="ds-pd-clabel">Ø Reizwert</div>
+                            <div class="ds-pd-cval">@(_topPlayer.BidCountNotAbg > 0 ? Fmt(_topPlayer.AvgBidValue) : "–")</div>
+                        </div>
+                        <div>
+                            <div class="ds-pd-clabel">Reizer-Erfolg</div>
+                            <div class="ds-pd-cval">@(_topPlayer.RoundsAsBidder > 0 ? $"{_topPlayer.BidderWinRate:F0}%" : "–")</div>
+                        </div>
+                        <div>
+                            <div class="ds-pd-clabel">Höchste Meld</div>
+                            <div class="ds-pd-cval">@(_topPlayer.HighestMeldInRound > 0 ? _topPlayer.HighestMeldInRound.ToString() : "–")</div>
+                        </div>
+                        <div>
+                            <div class="ds-pd-clabel">Längste Serie</div>
+                            <div class="ds-pd-cval">@(_topPlayer.LongestWinStreak > 0 ? $"{_topPlayer.LongestWinStreak}×" : "–")</div>
+                        </div>
+                    </div>
+                    @if (_topPlayerPips.Count > 0)
+                    {
+                        <div style="border-top:1px solid var(--border);padding-top:9px">
+                            <div class="ds-pd-clabel" style="margin-bottom:5px">Letzte @_topPlayerPips.Count Spiele</div>
+                            <div class="ds-pd-recent">
+                                @foreach (var pip in _topPlayerPips)
+                                {
+                                    <span class="pip @(pip == 'W' ? "w" : pip == 'L' ? "l" : "d")">@pip</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- ─── Spielaktivität ─── -->
+            <div class="ds-sec"><span class="ds-sec-title">Spielaktivität</span></div>
+            <div class="ds-dist">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    @for (int day = 0; day < 7; day++)
+                    {
+                        var d = day;
+                        <div class="ds-heat-row">
+                            <span class="heat-l">@DayLabels[d]</span>
+                            @for (int week = 0; week < 8; week++)
+                            {
+                                var w = week;
+                                var cls = HeatClass(_heatmap[d, w]);
+                                <div class="ds-heat-cell @cls"></div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="heat-foot">
+                    <span>weniger</span>
+                    <div class="ds-heat-cell"></div>
+                    <div class="ds-heat-cell h1"></div>
+                    <div class="ds-heat-cell h2"></div>
+                    <div class="ds-heat-cell h3"></div>
+                    <div class="ds-heat-cell h4"></div>
+                    <span>mehr</span>
+                    @if (!string.IsNullOrEmpty(MostActiveDays))
+                    {
+                        <span style="margin-left:auto;color:var(--text)"><b>@MostActiveDays</b> aktivste Tage</span>
+                    }
+                </div>
+            </div>
+
+        </div>
+    }
+
+    <div class="tab-bar-clearance"></div>
+</div>

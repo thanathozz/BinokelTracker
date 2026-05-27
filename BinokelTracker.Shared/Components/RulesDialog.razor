@@ -80,23 +80,23 @@
             <div class="rules-table">
                 <div class="rules-row">
                     <span class="rules-name">@S.CardAss</span>
-                    <span class="rules-pts rules-pts-high">11</span>
+                    <span class="rules-pts rules-pts-high">@_rules.AssValue</span>
                 </div>
                 <div class="rules-row">
                     <span class="rules-name">@S.CardZehn</span>
-                    <span class="rules-pts rules-pts-high">10</span>
+                    <span class="rules-pts rules-pts-high">@_rules.ZehnValue</span>
                 </div>
                 <div class="rules-row">
                     <span class="rules-name">@S.CardKoenig</span>
-                    <span class="rules-pts">4</span>
+                    <span class="rules-pts">@_rules.KoenigValue</span>
                 </div>
                 <div class="rules-row">
                     <span class="rules-name">@S.CardOber</span>
-                    <span class="rules-pts">3</span>
+                    <span class="rules-pts">@_rules.OberValue</span>
                 </div>
                 <div class="rules-row">
                     <span class="rules-name">@S.CardUnter</span>
-                    <span class="rules-pts">2</span>
+                    <span class="rules-pts">@_rules.UnterValue</span>
                 </div>
                 <div class="rules-row">
                     <span class="rules-name">@S.CardSieben</span>
@@ -104,7 +104,7 @@
                 </div>
                 <div class="rules-row rules-row-special">
                     <span class="rules-name">@S.LastTrick</span>
-                    <span class="rules-pts">10</span>
+                    <span class="rules-pts">@_rules.LastTrickBonus</span>
                 </div>
             </div>
 
@@ -115,11 +115,13 @@
 @code {
     [CascadingParameter] public IStrings S { get; set; } = default!;
 
-    private bool _open;
+    private bool    _open;
+    private RuleSet _rules = new();
 
-    public void Open()
+    public void Open(RuleSet? rules = null)
     {
-        _open = true;
+        _rules = rules ?? new RuleSet();
+        _open  = true;
         StateHasChanged();
     }
 
