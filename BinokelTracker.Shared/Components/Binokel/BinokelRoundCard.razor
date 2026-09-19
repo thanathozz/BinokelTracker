@@ -275,7 +275,7 @@
 
             bool strikeMeld = isBidder && ps.Abgegangen && !IsSpecial;
             int  meldVal    = IsSpecial ? 0 : ps.Meld;
-            int  tricksVal  = (IsSpecial || (isBidder && ps.Abgegangen)) ? 0 : ps.Tricks the results a green result, and never characterize incomplete or broken work as done.
+            int  tricksVal  = (IsSpecial || (isBidder && ps.Abgegangen)) ? 0 : ps.Tricks;
             bool dimMeld    = IsSpecial;
             bool dimTricks  = IsSpecial || (isBidder && ps.Abgegangen);
 
