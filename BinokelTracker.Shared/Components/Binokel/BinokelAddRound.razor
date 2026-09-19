@@ -185,14 +185,15 @@
                     </div>
                 }
                 <label class="form-label">@S.PointsPerPlayer</label>
-                @for (int i = 0; i < Game.Players.Count; i++)
+                @for (int i = 0; i < (Game.Rules.TeamMode && Game.Players.Count == 4 ? 2 : Game.Players.Count); i++)
                 {
                     var idx = i;
-                    var bidderAbg = _vm.IsBidder(idx) && _vm.BidderAbgegangen;
-                    <div class="@_vm.PlayerRowClass(idx)">
-                        <div class="@_vm.PlayerNameClass(idx)">
-                            @Game.Players[idx]
-                            @if (_vm.IsBidder(idx)) { @StarIcon }
+                    var actualIdx = _vm.MapToActualIdx(idx);
+                    var bidderAbg = _vm.IsBidder(actualIdx) && _vm.BidderAbgegangen;
+                    <div class="@_vm.PlayerRowClass(actualIdx)">
+                        <div class="@_vm.PlayerNameClass(actualIdx)">
+                            @_vm.GetPlayerDisplayName(idx)
+                            @if (_vm.IsBidder(actualIdx)) { @StarIcon }
                         </div>
                         <div class="player-inputs">
                             <div style="flex:1">
@@ -202,27 +203,27 @@
                                 {
                                     <div style="display:flex;gap:6px;align-items:center">
                                         <input class="form-input form-input-center" type="number" inputmode="numeric" style="flex:1"
-                                               value="@_vm.Meld[idx]" placeholder="0"
-                                               @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty" />
+                                               value="@_vm.Meld[actualIdx]" placeholder="0"
+                                               @oninput="e => _vm.Meld[actualIdx] = e.Value?.ToString() ?? string.Empty" />
                                         @if (false)
                                         {
-                                            <button class="btn-outline" style="padding:6px 8px;font-size:14px" disabled="@_vm.Scanning[idx]"
-                                                    @onclick="async () => { await _vm.ScanMeldAsync(idx, Scanner); StateHasChanged(); }">
-                                                @(_vm.Scanning[idx] ? "…" : "📷")
+                                            <button class="btn-outline" style="padding:6px 8px;font-size:14px" disabled="@_vm.Scanning[actualIdx]"
+                                                    @onclick="async () => { await _vm.ScanMeldAsync(actualIdx, Scanner); StateHasChanged(); }">
+                                                @(_vm.Scanning[actualIdx] ? "…" : "📷")
                                             </button>
                                         }
                                     </div>
-                                    @if (_vm.ScanResult[idx] is { Count: > 0 } || _vm.ScanRaw[idx] is not null)
+                                    @if (_vm.ScanResult[actualIdx] is { Count: > 0 } || _vm.ScanRaw[actualIdx] is not null)
                                     {
                                         <div style="margin-top:5px">
-                                            @if (_vm.ScanResult[idx] is { Count: > 0 } combos)
+                                            @if (_vm.ScanResult[actualIdx] is { Count: > 0 } combos)
                                             {
                                                 <div style="display:flex;flex-wrap:wrap;gap:3px">
                                                     @foreach (var c in combos) { <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);border-radius:10px;padding:1px 6px;font-size:11px;color:#6aac6a">@c.Name (+@c.Points)</span> }
                                                 </div>
                                             }
-                                            @if (_vm.ScanTrump[idx] is { } trump) { <div style="font-size:11px;opacity:0.7;margin-top:3px">Trumpf erkannt: @trump</div> }
-                                            @if (_vm.ScanRaw[idx] is { } raw)
+                                            @if (_vm.ScanTrump[actualIdx] is { } trump) { <div style="font-size:11px;opacity:0.7;margin-top:3px">Trumpf erkannt: @trump</div> }
+                                            @if (_vm.ScanRaw[actualIdx] is { } raw)
                                             {
                                                 <details style="margin-top:4px">
                                                     <summary style="font-size:11px;opacity:0.6;cursor:pointer">Claude-Antwort</summary>
@@ -236,8 +237,8 @@
                             <div style="flex:1">
                                 <label class="form-label form-label-sm">@S.TricksLabel</label>
                                 <input class="form-input form-input-center" type="number" inputmode="numeric"
-                                       value="@_vm.Tricks[idx]" placeholder="0"
-                                       disabled="@(_vm.BidderAbgegangen || _vm.Abgegangen[idx])"
+                                       value="@_vm.Tricks[actualIdx]" placeholder="0"
+                                       disabled="@(_vm.BidderAbgegangen || _vm.Abgegangen[actualIdx])"
                                        @oninput="e => _vm.SetTrick(idx, e.Value?.ToString() ?? string.Empty)" />
                             </div>
                         </div>
@@ -327,33 +328,34 @@
             }
             else if (_vm.CurrentStep == FormStep.Melden)
             {
-                @for (int i = 0; i < Game.Players.Count; i++)
+                @for (int i = 0; i < (Game.Rules.TeamMode && Game.Players.Count == 4 ? 2 : Game.Players.Count); i++)
                 {
                     var idx = i;
-                    var bidderAbg = _vm.IsBidder(idx) && _vm.BidderAbgegangen;
-                    <div class="@_vm.PlayerRowClass(idx)">
-                        <div class="@_vm.PlayerNameClass(idx)">
-                            @Game.Players[idx]
-                            @if (_vm.IsBidder(idx)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
+                    var actualIdx = _vm.MapToActualIdx(idx);
+                    var bidderAbg = _vm.IsBidder(actualIdx) && _vm.BidderAbgegangen;
+                    <div class="@_vm.PlayerRowClass(actualIdx)">
+                        <div class="@_vm.PlayerNameClass(actualIdx)">
+                            @_vm.GetPlayerDisplayName(idx)
+                            @if (_vm.IsBidder(actualIdx)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
                         </div>
                         @if (bidderAbg) { <div class="abgegangen-note">@S.NoMeldFolded</div> }
                         else
                         {
                             <div style="display:flex;gap:8px;align-items:center">
                                 <input class="form-input form-input-center" type="number" inputmode="numeric" style="flex:1"
-                                       value="@_vm.Meld[idx]" placeholder="0"
-                                       @oninput="e => _vm.Meld[idx] = e.Value?.ToString() ?? string.Empty" />
+                                       value="@_vm.Meld[actualIdx]" placeholder="0"
+                                       @oninput="e => _vm.Meld[actualIdx] = e.Value?.ToString() ?? string.Empty" />
                                 @if (false)
                                 {
-                                    <button class="btn-outline" style="padding:8px 10px;font-size:16px" disabled="@_vm.Scanning[idx]"
-                                            @onclick="async () => { await _vm.ScanMeldAsync(idx, Scanner); StateHasChanged(); }">
-                                        @(_vm.Scanning[idx] ? "…" : "📷")
+                                    <button class="btn-outline" style="padding:8px 10px;font-size:16px" disabled="@_vm.Scanning[actualIdx]"
+                                            @onclick="async () => { await _vm.ScanMeldAsync(actualIdx, Scanner); StateHasChanged(); }">
+                                        @(_vm.Scanning[actualIdx] ? "…" : "📷")
                                     </button>
                                 }
                             </div>
-                            @if (_vm.Scanning[idx]) { <div style="font-size:12px;opacity:0.7;margin-top:4px">Erkenne Karten…</div> }
-                            @if (_vm.ScanError[idx] is { } err) { <div style="font-size:12px;color:#c45c5c;margin-top:4px">@err</div> }
-                            @if (_vm.ScanResult[idx] is { Count: > 0 } || _vm.ScanRaw[idx] is not null || _vm.ScanError[idx] is not null)
+                            @if (_vm.Scanning[actualIdx]) { <div style="font-size:12px;opacity:0.7;margin-top:4px">Erkenne Karten…</div> }
+                            @if (_vm.ScanError[actualIdx] is { } err) { <div style="font-size:12px;color:#c45c5c;margin-top:4px">@err</div> }
+                            @if (_vm.ScanResult[actualIdx] is { Count: > 0 } || _vm.ScanRaw[actualIdx] is not null || _vm.ScanError[actualIdx] is not null)
                             {
                                 <div style="margin-top:6px">
                                     @if (_vm.ScanResult[idx] is { Count: > 0 } sbsCombos)
@@ -362,8 +364,8 @@
                                             @foreach (var c in sbsCombos) { <span style="background:rgba(106,172,106,0.15);border:1px solid rgba(106,172,106,0.4);border-radius:12px;padding:2px 8px;font-size:12px;color:#6aac6a">@c.Name (+@c.Points)</span> }
                                         </div>
                                     }
-                                    @if (_vm.ScanTrump[idx] is { } sbsTrump) { <div style="font-size:12px;opacity:0.7;margin-top:4px">Trumpf erkannt: @sbsTrump</div> }
-                                    @if (_vm.ScanRaw[idx] is { } sbsRaw)
+                                    @if (_vm.ScanTrump[actualIdx] is { } sbsTrump) { <div style="font-size:12px;opacity:0.7;margin-top:4px">Trumpf erkannt: @sbsTrump</div> }
+                                    @if (_vm.ScanRaw[actualIdx] is { } sbsRaw)
                                     {
                                         <details style="margin-top:5px">
                                             <summary style="font-size:12px;opacity:0.6;cursor:pointer">Claude-Antwort anzeigen</summary>
@@ -378,16 +380,17 @@
             }
             else if (_vm.CurrentStep == FormStep.Stiche)
             {
-                @for (int i = 0; i < Game.Players.Count; i++)
+                @for (int i = 0; i < (Game.Rules.TeamMode && Game.Players.Count == 4 ? 2 : Game.Players.Count); i++)
                 {
                     var idx = i;
-                    <div class="@_vm.PlayerRowClass(idx)">
-                        <div class="@_vm.PlayerNameClass(idx)">
-                            @Game.Players[idx]
-                            @if (_vm.IsBidder(idx)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
+                    var actualIdx = _vm.MapToActualIdx(idx);
+                    <div class="@_vm.PlayerRowClass(actualIdx)">
+                        <div class="@_vm.PlayerNameClass(actualIdx)">
+                            @_vm.GetPlayerDisplayName(idx)
+                            @if (_vm.IsBidder(actualIdx)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
                         </div>
                         <input class="form-input form-input-center" type="number" inputmode="numeric"
-                               value="@_vm.Tricks[idx]" placeholder="0"
+                               value="@_vm.Tricks[actualIdx]" placeholder="0"
                                @oninput="e => _vm.SetTrick(idx, e.Value?.ToString() ?? string.Empty)" />
                     </div>
                 }

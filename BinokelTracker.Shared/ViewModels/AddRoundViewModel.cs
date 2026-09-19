@@ -190,6 +190,34 @@ public class AddRoundViewModel
     /// Ist dieser Spieler der aktuelle Reizer?
     public bool IsBidder(int idx) => idx == Bidder;
 
+    /// <summary>
+    /// Returns the display name for a player or team.
+    /// In TeamMode with 4 players, indices 0 and 1 refer to teams.
+    /// </summary>
+    public string GetPlayerDisplayName(int idx)
+    {
+        if (_game.Rules.TeamMode && _game.Players.Count == 4)
+        {
+            // idx is team index (0 or 1)
+            int p1 = idx * 2;
+            int p2 = idx * 2 + 1;
+            return $"{_game.Players[p1]} & {_game.Players[p2]}";
+        }
+        return _game.Players[idx];
+    }
+
+    /// <summary>
+    /// Map a visual index (player or team) to the actual data index in the lists.
+    /// </summary>
+    public int MapToActualIdx(int visualIdx)
+    {
+        if (_game.Rules.TeamMode && _game.Players.Count == 4)
+        {
+            return visualIdx * 2;
+        }
+        return visualIdx;
+    }
+
     /// CSS-Klasse für Abgehen-Toggle eines Spielers ("on" / "off")
     public string AbgehenClass(int idx) => Abgegangen[idx] ? "on" : "off";
 
@@ -233,30 +261,45 @@ public class AddRoundViewModel
 
     public void SetTrick(int idx, string value)
     {
-        Tricks[idx] = value;
-        if (Tricks.Count != 3) return;
-        if (!int.TryParse(value, out int cur)) return; // empty / partial input → leave auto-filled slot as-is
-
-        // User manually editing the auto-filled slot → stop tracking it
-        if (idx == _autoFilledIdx) { _autoFilledIdx = -1; return; }
-
-        var others = Enumerable.Range(0, 3)
-            .Where(i => i != idx)
-            .Select(i => (ok: int.TryParse(Tricks[i], out var v), v, i))
-            .ToList();
-        var empty = others.Where(x => !x.ok).ToList();
-
-        if (empty.Count == 1)
+        // If TeamMode is active, map team index (0,1) to player index (0,2)
+        int actualIdx = _game.Rules.TeamMode && _game.Players.Count == 4 ? idx * 2 : idx;
+        
+        Tricks[actualIdx] = value;
+        if (_game.Rules.TeamMode && _game.Players.Count == 4)
         {
-            int auto = MaxTricksTotal - cur - others.First(x => x.ok).v;
-            if (auto >= 0) { _autoFilledIdx = empty[0].i; Tricks[_autoFilledIdx] = auto.ToString(); }
-            else             Tricks[empty[0].i] = "";
+            // Team Logic: 2 teams, total must be MaxTricksTotal
+            if (!int.TryParse(value, out int cur)) return;
+
+            int otherTeamIdx = (idx == 0) ? 2 : 0;
+            int auto = MaxTricksTotal - cur;
+            
+            if (auto >= 0) { Tricks[otherTeamIdx] = auto.ToString(); }
+            else             Tricks[otherTeamIdx] = "";
         }
-        else if (empty.Count == 0 && _autoFilledIdx >= 0)
+        else if (Tricks.Count == 3)
         {
-            // All slots filled: recalculate the previously auto-filled one
-            int auto = MaxTricksTotal - cur - others.First(x => x.i != _autoFilledIdx).v;
-            Tricks[_autoFilledIdx] = auto >= 0 ? auto.ToString() : "";
+            // Original 3-player logic
+            if (!int.TryParse(value, out int curVal)) return; 
+
+            if (idx == _autoFilledIdx) { _autoFilledIdx = -1; return; }
+
+            var others = Enumerable.Range(0, 3)
+                .Where(i => i != idx)
+                .Select(i => (ok: int.TryParse(Tricks[i], out var v), v, i))
+                .ToList();
+            var empty = others.Where(x => !x.ok).ToList();
+
+            if (empty.Count == 1)
+            {
+                int auto = MaxTricksTotal - curVal - others.First(x => x.ok).v;
+                if (auto >= 0) { _autoFilledIdx = empty[0].i; Tricks[_autoFilledIdx] = auto.ToString(); }
+                else             Tricks[empty[0].i] = "";
+            }
+            else if (empty.Count == 0 && _autoFilledIdx >= 0)
+            {
+                int auto = MaxTricksTotal - curVal - others.First(x => x.i != _autoFilledIdx).v;
+                Tricks[_autoFilledIdx] = auto >= 0 ? auto.ToString() : "";
+            }
         }
     }
 
