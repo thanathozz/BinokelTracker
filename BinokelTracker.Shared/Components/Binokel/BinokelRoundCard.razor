@@ -46,6 +46,11 @@
     private int BidderMeld   => Round.PlayerScores.Count > Round.Bidder ? Round.PlayerScores[Round.Bidder].Meld   : 0;
     private int BidderTricks => Round.PlayerScores.Count > Round.Bidder ? Round.PlayerScores[Round.Bidder].Tricks : 0;
 
+    private int TeamPoints => (Rules.TeamMode && Players.Count == 4)
+        ? (BidderMeld + BidderTricks + 
+           (Round.PlayerScores.Count > (Round.Bidder ^ 1) ? Round.PlayerScores[Round.Bidder ^ 1].Meld + Round.PlayerScores[Round.Bidder ^ 1].Tricks : 0))
+        : BidderMeld + BidderTricks;
+
     private ScoreBreakdown[]? _breakdown;
     private ScoreBreakdown[] Breakdown => _breakdown ??= Round.PlayerScores.Count == Players.Count
         ? ScoringCalculator.CalcNormalPreview(
@@ -101,7 +106,7 @@
         {
             <span class="rc-arrow">@S.Bids</span>@(" ")<span class="rc-bid-val">@Round.Bid</span>
             <span class="rc-arrow"> → </span>
-            <span class="rc-result-text win">@(BidderMeld + BidderTricks) @S.Points</span>
+            <span class="rc-result-text win">@TeamPoints @S.Points</span>
         }
         else
         {
@@ -156,7 +161,6 @@
     {
         for (int ti = 0; ti < 2; ti++)
         {
-            
             int p1 = ti * 2;
             int p2 = ti * 2 + 1;
 
@@ -165,13 +169,13 @@
 
             int teamMeld = IsSpecial ? 0 : ps1.Meld + ps2.Meld;
             int teamTricks = (IsSpecial) ? 0 : ps1.Tricks + ps2.Tricks;
-            
+
             int s1 = Scores.Length > p1 ? Scores[p1] : 0;
             int s2 = Scores.Length > p2 ? Scores[p2] : 0;
             int teamTotal = s1 + s2;
 
             bool isBidderTeam = (Round.Bidder == p1 || Round.Bidder == p2);
-            
+
             var bd1 = (!IsSpecial && p1 < Breakdown.Length) ? Breakdown[p1] : null;
             var bd2 = (!IsSpecial && p2 < Breakdown.Length) ? Breakdown[p2] : null;
 
@@ -210,14 +214,7 @@
                             <span class="mod-value">@(teamTotal > 0 ? $"+{teamTotal}" : teamTotal.ToString())</span>
                         </span>
                     }
-                    @if (bd1 != null && bd1.IsLoss)
-                    {
-                        <span class="mod-pill mod-neg">
-                            <span class="mod-label">@S.BidderFolded</span>
-                            <span class="mod-value">-(@Round.Bid)</span>
-                        </span>
-                    }
-                    @if (bd2 != null && bd2.IsLoss)
+                    @if (isBidderTeam && (bd1?.IsLoss == true || bd2?.IsLoss == true))
                     {
                         <span class="mod-pill mod-neg">
                             <span class="mod-label">@S.BidderFolded</span>
@@ -264,6 +261,7 @@
         }
     }
     else
+
     {
         @for (int pi = 0; pi < Players.Count; pi++)
         {
@@ -355,4 +353,4 @@
             </div>
         }
     }
-}
+</div>

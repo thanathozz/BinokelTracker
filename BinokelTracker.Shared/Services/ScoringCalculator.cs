@@ -26,6 +26,18 @@ public static class ScoringCalculator
         bool awardAbgBonus = bidderAbgegangen && !gameWasPlayed;
         int abgBonus = round.PlayerScores.Count * rules.AbgegangenBonusPerPlayer;
 
+        int teamTotal = 0;
+        if (rules.TeamMode && round.PlayerScores.Count == 4)
+        {
+            int partnerIndex = round.Bidder ^ 1;
+            var bidderPs = round.PlayerScores[round.Bidder];
+            var partnerPs = round.PlayerScores[partnerIndex];
+            int bMeld = (!bidderPs.Abgegangen && bidderPs.Meld > 0 && bidderPs.Tricks == 0) ? 0 : bidderPs.Meld;
+            int pMeld = (!partnerPs.Abgegangen && partnerPs.Meld > 0 && partnerPs.Tricks == 0) ? 0 : partnerPs.Meld;
+            teamTotal = bMeld + bidderPs.Tricks + pMeld + partnerPs.Tricks + 
+                        (round.LastTrickWinner == round.Bidder || round.LastTrickWinner == partnerIndex ? rules.LastTrickBonus : 0);
+        }
+
         for (int i = 0; i < round.PlayerScores.Count; i++)
         {
             var ps = round.PlayerScores[i];
@@ -34,8 +46,11 @@ public static class ScoringCalculator
 
             if (i == round.Bidder)
             {
-                int totalWithBonus = total + (round.LastTrickWinner == i ? rules.LastTrickBonus : 0);
-                scores[i] = (ps.Abgegangen || totalWithBonus < round.Bid)
+                bool won = (rules.TeamMode && round.PlayerScores.Count == 4)
+                    ? teamTotal >= round.Bid
+                    : (total + (round.LastTrickWinner == i ? rules.LastTrickBonus : 0)) >= round.Bid;
+
+                scores[i] = (ps.Abgegangen || !won)
                     ? (rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid)
                     : total;
             }
@@ -120,6 +135,16 @@ public static class ScoringCalculator
         int totalTricks = tricks.Sum();
         bool awardAbgBonus = bidderAbgegangen && totalTricks == 0;
         int abgBonus = playerCount * rules.AbgegangenBonusPerPlayer;
+
+        int teamTotal = 0;
+        if (rules.TeamMode && playerCount == 4)
+        {
+            int partnerIndex = bidder ^ 1;
+            int bMeld = (!abgegangen.ElementAtOrDefault(bidder) && meld.ElementAtOrDefault(bidder) > 0 && tricks.ElementAtOrDefault(bidder) == 0) ? 0 : meld.ElementAtOrDefault(bidder);
+            int pMeld = (!abgegangen.ElementAtOrDefault(partnerIndex) && meld.ElementAtOrDefault(partnerIndex) > 0 && tricks.ElementAtOrDefault(partnerIndex) == 0) ? 0 : meld.ElementAtOrDefault(partnerIndex);
+            teamTotal = bMeld + tricks.ElementAtOrDefault(bidder) + pMeld + tricks.ElementAtOrDefault(partnerIndex) + 
+                        (lastTrickWinner == bidder || lastTrickWinner == partnerIndex ? rules.LastTrickBonus : 0);
+        }
         var result = new ScoreBreakdown[playerCount];
 
         for (int i = 0; i < playerCount; i++)
@@ -143,7 +168,7 @@ public static class ScoringCalculator
                     isLoss = true;
                     lossReason = "Abgegangen";
                 }
-                else if (effectiveMeld + tVal + (lastTrickWinner == i ? rules.LastTrickBonus : 0) < bidValue)
+                else if ((rules.TeamMode && playerCount == 4 ? teamTotal : effectiveMeld + tVal + (lastTrickWinner == i ? rules.LastTrickBonus : 0)) < bidValue)
                 {
                     finalScore = rules.DoubleMinus ? -(bidValue * 2) : -bidValue;
                     isLoss = true;
