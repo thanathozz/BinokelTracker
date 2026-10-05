@@ -44,7 +44,11 @@ public static class ScoringCalculator
             int effectiveMeld = (!ps.Abgegangen && !bidderAbgegangen && ps.Meld > 0 && ps.Tricks == 0) ? 0 : ps.Meld;
             int total = effectiveMeld + ps.Tricks;
 
-            if (i == round.Bidder)
+            bool isPartner = rules.TeamMode && round.PlayerScores.Count == 4
+                             && i == (round.Bidder ^ 1);
+            bool isBidder = (i == round.Bidder);
+
+            if (isBidder)
             {
                 bool won = (rules.TeamMode && round.PlayerScores.Count == 4)
                     ? teamTotal >= round.Bid
@@ -56,16 +60,25 @@ public static class ScoringCalculator
             }
             else
             {
-                bool isPartner = rules.TeamMode && round.PlayerScores.Count == 4
-                                 && i == (round.Bidder ^ 1);
                 if (ps.Abgegangen)
                     scores[i] = 0;
-                else if (bidderAbgegangen && isPartner)   // Team-Mitspieler → gleiche Strafe wie Reizer
-                    scores[i] = rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid;
+                else if (isPartner)
+                {
+                    // Im Team-Modus bekommt der Partner die Strafe, wenn der Reizer abgegangen ist 
+                    // ODER wenn das Team den Reizwert gemeinsam nicht erreicht hat.
+                    bool teamWon = (rules.TeamMode && round.PlayerScores.Count == 4)
+                        ? teamTotal >= round.Bid
+                        : true;
+
+                    if (bidderAbgegangen || !teamWon)
+                        scores[i] = rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid;
+                    else
+                        scores[i] = total;
+                }
                 else if (awardAbgBonus)
-                    scores[i] = effectiveMeld + abgBonus; // Abgang vor Spiel → Meld + Bonus
+                    scores[i] = effectiveMeld + abgBonus;
                 else if (bidderAbgegangen)
-                    scores[i] = total; // Spiel gespielt → normale Punkte, kein Bonus
+                    scores[i] = total;
                 else
                     scores[i] = total;
             }

@@ -81,42 +81,92 @@
             }
             else
             {
-                @foreach (var (p, i) in _vm.GetScorePreviews().Select((x, idx) => (x, idx)))
+                @if (Game.Rules.TeamMode && Game.Players.Count == 4)
                 {
-                    <div class="@_vm.PlayerRowClass(i)" style="margin-bottom:10px">
-                        <div class="@_vm.PlayerNameClass(i)" style="margin-bottom:6px">
-                            @Game.Players[i]
-                            @if (_vm.IsBidder(i)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
-                        </div>
-                        @if (p.IsAbgegangen && _vm.IsBidder(i))
-                        {
-                            <div class="bd-row"><span class="bd-label">@S.Folded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
-                        }
-                        else if (p.LossReason == "Reizer abgegangen" && !_vm.IsBidder(i))
-                        {
-                            <div class="bd-row bd-row-total"><span class="bd-label">@S.BidderFolded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
-                        }
-                        else if (p.LossReason is "Abgegangen" or "Kein Stich — Meldung verfallen")
-                        {
-                            @if (p.Meld > 0) { <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val muted">+@p.Meld (verfallen)</span></div> }
-                            @if (p.Tricks > 0) { <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@p.Tricks</span></div> }
-                            <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(p.LossReason)</span><span class="bd-val zero">= 0</span></div>
-                        }
-                        else
-                        {
-                            <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val">+@p.Meld</span></div>
-                            <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@p.Tricks</span></div>
-                            @if (p.Bonus > 0) { <div class="bd-row"><span class="bd-label">@S.BidderFoldedBonus</span><span class="bd-val pos">+@p.Bonus</span></div> }
-                            @if (p.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">@S.LastTrickLabel</span><span class="bd-val pos">+@p.LastTrickBonus</span></div> }
-                            @if (p.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@LocalizeLossReason(p.LossReason)</span></div> }
-                            <div class="bd-row bd-row-total">
-                                <span class="bd-label">@S.TotalLabel</span>
-                                <span class="bd-val @(p.IsLoss ? "neg" : p.FinalScore > 0 ? "pos" : "zero")">
-                                    @(p.IsLoss || p.FinalScore < 0 ? "" : "+")@p.FinalScore
-                                </span>
+                    var previews = _vm.GetScorePreviews();
+                    for (int ti = 0; ti < 2; ti++)
+                    {
+                        int p1 = ti * 2;
+                        int p2 = ti * 2 + 1;
+                        var bp1 = previews[p1];
+                        var bp2 = previews[p2];
+                        
+                        int teamMeld = bp1.Meld + bp2.Meld;
+                        int teamTricks = bp1.Tricks + bp2.Tricks;
+                        bool isBidderTeam = _vm.IsBidder(p1) || _vm.IsBidder(p2);
+                        bool isLoss = bp1.IsLoss;
+
+                        <div class="@(_vm.PlayerRowClass(p1))" style="margin-bottom:10px">
+                            <div class="@(_vm.PlayerNameClass(p1))" style="margin-bottom:6px">
+                                @Game.Players[p1] & @Game.Players[p2]
+                                @if (isBidderTeam) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
                             </div>
-                        }
-                    </div>
+                            @if (isBidderTeam && bp1.IsAbgegangen)
+                            {
+                                <div class="bd-row"><span class="bd-label">@S.Folded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
+                            }
+                            else if (isLoss)
+                            {
+                                @if (teamMeld > 0) { <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val muted">+@teamMeld (verfallen)</span></div> }
+                                @if (teamTricks > 0) { <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@teamTricks</span></div> }
+                                <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(bp1.LossReason)</span><span class="bd-val zero">= 0</span></div>
+                            }
+                            else
+                            {
+                                <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val">+@teamMeld</span></div>
+                                <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@teamTricks</span></div>
+                                @if (bp1.Bonus > 0 || bp2.Bonus > 0) { <div class="bd-row"><span class="bd-label">@S.BidderFoldedBonus</span><span class="bd-val pos">+@(bp1.Bonus + bp2.Bonus)</span></div> }
+                                @if (bp1.LastTrickBonus > 0 || bp2.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">@S.LastTrickLabel</span><span class="bd-val pos">+@(bp1.LastTrickBonus + bp2.LastTrickBonus)</span></div> }
+                                @if (bp1.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@LocalizeLossReason(bp1.LossReason)</span></div> }
+                                <div class="bd-row bd-row-total">
+                                    <span class="bd-label">@S.TotalLabel</span>
+                                    <span class="bd-val @(bp1.IsLoss ? "neg" : bp1.FinalScore > 0 ? "pos" : "zero")">
+                                        @(bp1.IsLoss || bp1.FinalScore < 0 ? "" : "+")@bp1.FinalScore
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    @foreach (var (p, i) in _vm.GetScorePreviews().Select((x, idx) => (x, idx)))
+                    {
+                        <div class="@_vm.PlayerRowClass(i)" style="margin-bottom:10px">
+                            <div class="@_vm.PlayerNameClass(i)" style="margin-bottom:6px">
+                                @Game.Players[i]
+                                @if (_vm.IsBidder(i)) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
+                            </div>
+                            @if (p.IsAbgegangen && _vm.IsBidder(i))
+                            {
+                                <div class="bd-row"><span class="bd-label">@S.Folded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
+                            }
+                            else if (p.LossReason == "Reizer abgegangen" && !_vm.IsBidder(i))
+                            {
+                                <div class="bd-row bd-row-total"><span class="bd-label">@S.BidderFolded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
+                            }
+                            else if (p.LossReason is "Abgegangen" or "Kein Stich — Meldung verfallen")
+                            {
+                                @if (p.Meld > 0) { <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val muted">+@p.Meld (verfallen)</span></div> }
+                                @if (p.Tricks > 0) { <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@p.Tricks</span></div> }
+                                <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(p.LossReason)</span><span class="bd-val zero">= 0</span></div>
+                            }
+                            else
+                            {
+                                <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val">+@p.Meld</span></div>
+                                <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@p.Tricks</span></div>
+                                @if (p.Bonus > 0) { <div class="bd-row"><span class="bd-label">@S.BidderFoldedBonus</span><span class="bd-val pos">+@p.Bonus</span></div> }
+                                @if (p.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">@S.LastTrickLabel</span><span class="bd-val pos">+@p.LastTrickBonus</span></div> }
+                                if (p.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@LocalizeLossReason(p.LossReason)</span></div> }
+                                <div class="bd-row bd-row-total">
+                                    <span class="bd-label">@S.TotalLabel</span>
+                                    <span class="bd-val @(p.IsLoss ? "neg" : p.FinalScore > 0 ? "pos" : "zero")">
+                                        @(p.IsLoss || p.FinalScore < 0 ? "" : "+")@p.FinalScore
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
                 }
             }
             <div class="step-nav" style="margin-top:14px">
