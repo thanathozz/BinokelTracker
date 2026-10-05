@@ -263,7 +263,9 @@ public class AddRoundViewModel
     {
         // If TeamMode is active, map team index (0,1) to player index (0,2)
         int actualIdx = _game.Rules.TeamMode && _game.Players.Count == 4 ? idx * 2 : idx;
-        
+
+        if (actualIdx < 0 || actualIdx >= Tricks.Count) return;
+
         Tricks[actualIdx] = value;
         if (_game.Rules.TeamMode && _game.Players.Count == 4)
         {
@@ -272,14 +274,14 @@ public class AddRoundViewModel
 
             int otherTeamIdx = (idx == 0) ? 2 : 0;
             int auto = MaxTricksTotal - cur;
-            
+
             if (auto >= 0) { Tricks[otherTeamIdx] = auto.ToString(); }
             else             Tricks[otherTeamIdx] = "";
         }
         else if (Tricks.Count == 3)
         {
             // Original 3-player logic
-            if (!int.TryParse(value, out int curVal)) return; 
+            if (!int.TryParse(value, out int curVal)) return;
 
             if (idx == _autoFilledIdx) { _autoFilledIdx = -1; return; }
 

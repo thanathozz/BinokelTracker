@@ -117,7 +117,7 @@ public class ScoringCalculatorTests
         var scores = ScoringCalculator.CalcRoundScores(round, Build.Rules.TeamMode());
 
         scores[0].Should().Be(-300);        // Reizer zahlt Reizwert
-        scores[1].Should().Be(-300);        // Partner zahlt ebenfalls Reizwert
+        scores[1].Should().Be(0);           // Partner bekommt 0, damit Team-Summe = -300
         scores[2].Should().Be(100 + 40);    // Gegner: Meld + Bonus
         scores[3].Should().Be( 80 + 40);    // Gegner: Meld + Bonus
     }
