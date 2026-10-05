@@ -64,14 +64,14 @@ public static class ScoringCalculator
                     scores[i] = 0;
                 else if (isPartner)
                 {
-                    // Im Team-Modus bekommt der Partner die Strafe, wenn der Reizer abgegangen ist 
-                    // ODER wenn das Team den Reizwert gemeinsam nicht erreicht hat.
+                    // Im Team-Modus: Wenn das Team verliert (oder Reizer abgegangen), 
+                    // erhält der Partner 0 Punkte. Die gesamte Team-Strafe liegt beim Reizer.
                     bool teamWon = (rules.TeamMode && round.PlayerScores.Count == 4)
                         ? teamTotal >= round.Bid
                         : true;
 
                     if (bidderAbgegangen || !teamWon)
-                        scores[i] = rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid;
+                        scores[i] = 0;
                     else
                         scores[i] = total;
                 }
