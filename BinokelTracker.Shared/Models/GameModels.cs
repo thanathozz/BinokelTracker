@@ -154,61 +154,7 @@ public class Round
 
     public int[] CalcScores(RuleSet rules)
     {
-        var scores = new int[PlayerScores.Count];
-
-        if (rules.Id == "generic")
-            return PlayerScores.Select(ps => ps.Tricks).ToArray();
-
-        if (Type == RoundType.Durch)
-        {
-            scores[Bidder] = Won ? rules.DurchPoints : -rules.DurchPoints;
-            return scores;
-        }
-
-        if (Type == RoundType.Bettel)
-        {
-            scores[Bidder] = Won ? rules.BettelPoints : -rules.BettelPoints;
-            return scores;
-        }
-
-        bool bidderAbgegangen = PlayerScores.Count > Bidder && PlayerScores[Bidder].Abgegangen;
-        bool gameWasPlayed = PlayerScores.Any(ps => ps.Tricks > 0);
-        bool awardAbgBonus = bidderAbgegangen && !gameWasPlayed;
-        for (int i = 0; i < PlayerScores.Count; i++)
-        {
-            var ps = PlayerScores[i];
-            int effectiveMeld = (!ps.Abgegangen && !bidderAbgegangen && ps.Meld > 0 && ps.Tricks == 0) ? 0 : ps.Meld;
-            int total = effectiveMeld + ps.Tricks;
-
-            if (i == Bidder)
-            {
-                int totalWithBonus = total + (LastTrickWinner == i ? rules.LastTrickBonus : 0);
-                if (ps.Abgegangen || totalWithBonus < Bid)
-                    scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
-                else
-                    scores[i] = total;
-            }
-            else
-            {
-                bool isPartner = rules.TeamMode && PlayerScores.Count == 4 && i == (Bidder ^ 1);
-                if (ps.Abgegangen)
-                    scores[i] = 0;
-                else if (bidderAbgegangen && isPartner)
-                    scores[i] = rules.DoubleMinus ? -(Bid * 2) : -Bid;
-                else if (awardAbgBonus)
-                    scores[i] = total + PlayerScores.Count * rules.AbgegangenBonusPerPlayer;
-                else if (bidderAbgegangen)
-                    scores[i] = total; // Spiel gespielt → kein Bonus
-                else
-                    scores[i] = total;
-            }
-        }
-
-        if (LastTrickWinner >= 0 && LastTrickWinner < scores.Length
-            && scores[LastTrickWinner] >= 0)
-            scores[LastTrickWinner] += rules.LastTrickBonus;
-
-        return scores;
+        return BinokelTracker.Services.ScoringCalculator.CalcRoundScores(this, rules);
     }
 }
 
