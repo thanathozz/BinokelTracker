@@ -425,17 +425,19 @@
 
     private static bool IsTargetReached(Game game, Round lastRound)
     {
+        // Wenn das Spiel durch ein Gewinn-Spiel beendet werden muss (AusmachenMitSpiel)
         if (game.Rules.AusmachenMitSpiel)
         {
             var scores = lastRound.CalcScores(game.Rules);
+            // Reizer der letzten Runde muss gewonnen haben
             if (scores[lastRound.Bidder] <= 0) return false;
-            if (game.Rules.TeamMode)
-                return game.GetTeamTotals()[lastRound.Bidder / 2] >= game.Rules.TargetScore;
-            return game.GetPlayerTotals()[lastRound.Bidder] >= game.Rules.TargetScore;
         }
-        return game.Rules.TeamMode
-            ? game.GetTeamTotals().Any(t => t >= game.Rules.TargetScore)
-            : game.GetPlayerTotals().Any(t => t >= game.Rules.TargetScore);
+
+        if (game.Rules.TeamMode)
+        {
+            return game.GetTeamTotals().Any(t => t >= game.Rules.TargetScore);
+        }
+        return game.GetPlayerTotals().Any(t => t >= game.Rules.TargetScore);
     }
 
     private async Task DeleteRound(int index)
