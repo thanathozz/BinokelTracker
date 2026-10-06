@@ -109,7 +109,7 @@
                             {
                                 @if (teamMeld > 0) { <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val muted">+@teamMeld (verfallen)</span></div> }
                                 @if (teamTricks > 0) { <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@teamTricks</span></div> }
-                                <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(bp1.LossReason)</span><span class="bd-val zero">= 0</span></div>
+                                <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(bp1.LossReason)</span><span class="bd-val neg">@bp1.FinalScore</span></div>
                             }
                             else
                             {
@@ -149,7 +149,7 @@
                             {
                                 @if (p.Meld > 0) { <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val muted">+@p.Meld (verfallen)</span></div> }
                                 @if (p.Tricks > 0) { <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@p.Tricks</span></div> }
-                                <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(p.LossReason)</span><span class="bd-val zero">= 0</span></div>
+                                <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(p.LossReason)</span><span class="bd-val neg">@p.FinalScore</span></div>
                             }
                             else
                             {
