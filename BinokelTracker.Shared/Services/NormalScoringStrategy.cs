@@ -18,7 +18,7 @@ public class NormalScoringStrategy : IScoringStrategy
         for (int i = 0; i < round.PlayerScores.Count; i++)
         {
             var ps = round.PlayerScores[i];
-            
+
             // Meldung verfällt, wenn der Spieler keinen Stich macht,
             // ABER NICHT, wenn der Reizer abgegangen ist.
             int effectiveMeld = (ps.Tricks == 0 && !bidderAbgegangen && ps.Meld > 0) ? 0 : ps.Meld;
@@ -27,11 +27,11 @@ public class NormalScoringStrategy : IScoringStrategy
             if (i == round.Bidder)
             {
                 int totalWithBonus = total + (round.LastTrickWinner == i ? rules.LastTrickBonus : 0);
-                
+
                 if (ps.Abgegangen || totalWithBonus < round.Bid)
                     scores[i] = rules.DoubleMinus ? -(round.Bid * 2) : -round.Bid;
                 else
-                    scores[i] = total;
+                    scores[i] = totalWithBonus;
             }
             else
             {
@@ -47,11 +47,16 @@ public class NormalScoringStrategy : IScoringStrategy
             }
         }
 
-        // Letzter Stich Bonus für Nicht-Reizer (oder gewinnenden Reizer)
-        if (round.LastTrickWinner >= 0 && round.LastTrickWinner < scores.Length
-            && scores[round.LastTrickWinner] >= 0)
+        // Letzter Stich Bonus für Nicht-Reizer (die nicht verloren haben)
+        if (round.LastTrickWinner >= 0 && round.LastTrickWinner < scores.Length)
         {
-            scores[round.LastTrickWinner] += rules.LastTrickBonus;
+            int winnerIdx = round.LastTrickWinner;
+            // Nur addieren, wenn der Spieler nicht der Reizer ist (den wir oben schon behandelt haben)
+            // und er keine Strafe erhalten hat.
+            if (winnerIdx != round.Bidder && scores[winnerIdx] >= 0)
+            {
+                scores[winnerIdx] += rules.LastTrickBonus;
+            }
         }
 
         return scores;
