@@ -95,13 +95,14 @@
                         int teamTricks = bp1.Tricks + bp2.Tricks;
                         bool isBidderTeam = _vm.IsBidder(p1) || _vm.IsBidder(p2);
                         bool isLoss = bp1.IsLoss || bp2.IsLoss;
+                        var reizerBP = _vm.IsBidder(p1) ? bp1 : bp2;
 
                         <div class="@(_vm.PlayerRowClass(p1))" style="margin-bottom:10px">
                             <div class="@(_vm.PlayerNameClass(p1))" style="margin-bottom:6px">
                                 @Game.Players[p1] & @Game.Players[p2]
                                 @if (isBidderTeam) { @StarIcon <span style="font-size:12px;font-weight:600;opacity:0.75;margin-left:4px">(@_vm.BidValue)</span> }
                             </div>
-                            @if (isBidderTeam && bp1.IsAbgegangen)
+                            @if (isBidderTeam && reizerBP.IsAbgegangen)
                             {
                                 <div class="bd-row"><span class="bd-label">@S.Folded</span><span class="bd-val neg">@LocalizeMinusPreview()</span></div>
                             }
@@ -109,19 +110,23 @@
                             {
                                 @if (teamMeld > 0) { <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val muted">+@teamMeld (verfallen)</span></div> }
                                 @if (teamTricks > 0) { <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@teamTricks</span></div> }
-                                <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(bp1.LossReason)</span><span class="bd-val neg">@bp1.FinalScore</span></div>
+                                <div class="bd-row bd-row-total"><span class="bd-label">@LocalizeLossReason(reizerBP.LossReason)</span><span class="bd-val neg">@reizerBP.FinalScore</span></div>
                             }
                             else
                             {
                                 <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val">+@teamMeld</span></div>
                                 <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@teamTricks</span></div>
                                 @if (bp1.Bonus > 0 || bp2.Bonus > 0) { <div class="bd-row"><span class="bd-label">@S.BidderFoldedBonus</span><span class="bd-val pos">+@(bp1.Bonus + bp2.Bonus)</span></div> }
-                                @if (bp1.LastTrickBonus > 0 || bp2.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">@S.LastTrickLabel</span><span class="bd-val pos">+@(bp1.LastTrickBonus + bp2.LastTrickBonus)</span></div> }
-                                @if (bp1.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@LocalizeLossReason(bp1.LossReason)</span></div> }
+                                @if (bp1.LastTrickBonus > 0 || bp2.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">@S.LastTrickLabel</span, la_bonus: @(bp1.LastTrickBonus + bp2.LastTrickBonus)</span><span class="bd-val pos">+@(bp1.LastTrickBonus + bp2.LastTrickBonus)</span></div> }
+                                @if (reizerBP.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@LocalizeLossReason(reizerBP.LossReason)</span></div> }
                                 <div class="bd-row bd-row-total">
                                     <span class="bd-label">@S.TotalLabel</span>
-                                    <span class="bd-val @(bp1.IsLoss ? "neg" : bp1.FinalScore > 0 ? "pos" : "zero")">
-                                        @(bp1.IsLoss || bp1.FinalScore < 0 ? "" : "+")@bp1.FinalScore
+                                    @{
+                                        int teamFinalScore = bp1.FinalScore + bp2.FinalScore;
+                                        bool teamIsLoss = bp1.IsLoss || bp2.IsLoss;
+                                    }
+                                    <span class="bd-val @(teamIsLoss ? "neg" : teamFinalScore > 0 ? "pos" : "zero")">
+                                        @(teamIsLoss || teamFinalScore < 0 ? "" : "+")@teamFinalScore
                                     </span>
                                 </div>
                             }
