@@ -90,11 +90,11 @@
                         int p2 = ti * 2 + 1;
                         var bp1 = previews[p1];
                         var bp2 = previews[p2];
-                        
+
                         int teamMeld = bp1.Meld + bp2.Meld;
                         int teamTricks = bp1.Tricks + bp2.Tricks;
                         bool isBidderTeam = _vm.IsBidder(p1) || _vm.IsBidder(p2);
-                        bool isLoss = bp1.IsLoss;
+                        bool isLoss = bp1.IsLoss || bp2.IsLoss;
 
                         <div class="@(_vm.PlayerRowClass(p1))" style="margin-bottom:10px">
                             <div class="@(_vm.PlayerNameClass(p1))" style="margin-bottom:6px">

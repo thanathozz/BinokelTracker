@@ -182,10 +182,28 @@ public class AddRoundViewModel
     }
 
     /// CSS-Klasse für die Spieler-Zeile (Reizer hervorgehoben)
-    public string PlayerRowClass(int idx) => idx == Bidder ? "bidder-highlight" : "player-row";
+    public string PlayerRowClass(int idx)
+    {
+        if (_game.Rules.TeamMode && _game.Players.Count == 4)
+        {
+            int teamIdx = idx / 2;
+            bool teamIsBidder = (Bidder / 2 == teamIdx);
+            return teamIsBidder ? "bidder-highlight" : "player-row";
+        }
+        return idx == Bidder ? "bidder-highlight" : "player-row";
+    }
 
     /// CSS-Klasse für den Spielernamen (Reizer in Akzentfarbe)
-    public string PlayerNameClass(int idx) => idx == Bidder ? "bidder-name" : "bidder-name is-player";
+    public string PlayerNameClass(int idx)
+    {
+        if (_game.Rules.TeamMode && _game.Players.Count == 4)
+        {
+            int teamIdx = idx / 2;
+            bool teamIsBidder = (Bidder / 2 == teamIdx);
+            return teamIsBidder ? "bidder-name" : "bidder-name is-player";
+        }
+        return idx == Bidder ? "bidder-name" : "bidder-name is-player";
+    }
 
     /// Ist dieser Spieler der aktuelle Reizer?
     public bool IsBidder(int idx) => idx == Bidder;
