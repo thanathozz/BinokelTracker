@@ -235,14 +235,14 @@
                             <span class="mod-value">+@bd2.Bonus</span>
                         </span>
                     }
-                    @if (bd1 != null && bd1.LastTrickBonus > 0)
+                    @if (bd1 != null && bd1.LastTrickBonus > 0 && !bd1.IsLoss)
                     {
                         <span class="mod-pill mod-pos">
                             <span class="mod-label">@S.LastTrickBonus</span>
                             <span class="mod-value">+@bd1.LastTrickBonus</span>
                         </span>
                     }
-                    @if (bd2 != null && bd2.LastTrickBonus > 0)
+                    @if (bd2 != null && bd2.LastTrickBonus > 0 && !bd2.IsLoss)
                     {
                         <span class="mod-pill mod-pos">
                             <span class="mod-label">@S.LastTrickBonus</span>
@@ -335,7 +335,7 @@
                             <span class="mod-value">+@bd.Bonus</span>
                         </span>
                     }
-                    @if (bd != null && bd.LastTrickBonus > 0)
+                    @if (bd != null && bd.LastTrickBonus > 0 && !bd.IsLoss)
                     {
                         <span class="mod-pill mod-pos">
                             <span class="mod-label">@S.LastTrickBonus</span>

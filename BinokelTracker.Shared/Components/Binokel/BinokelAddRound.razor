@@ -117,7 +117,7 @@
                                 <div class="bd-row"><span class="bd-label">@S.MeldLabel</span><span class="bd-val">+@teamMeld</span></div>
                                 <div class="bd-row"><span class="bd-label">@S.TricksLabel</span><span class="bd-val">+@teamTricks</span></div>
                                 @if (bp1.Bonus > 0 || bp2.Bonus > 0) { <div class="bd-row"><span class="bd-label">@S.BidderFoldedBonus</span><span class="bd-val pos">+@(bp1.Bonus + bp2.Bonus)</span></div> }
-                                @if (bp1.LastTrickBonus > 0 || bp2.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">@S.LastTrickLabel</span, la_bonus: @(bp1.LastTrickBonus + bp2.LastTrickBonus)</span><span class="bd-val pos">+@(bp1.LastTrickBonus + bp2.LastTrickBonus)</span></div> }
+@if (bp1.LastTrickBonus > 0 || bp2.LastTrickBonus > 0) { <div class="bd-row"><span class="bd-label">@S.LastTrickLabel</span><span class="bd-val pos">+@(bp1.LastTrickBonus + bp2.LastTrickBonus)</span></div> }
                                 @if (reizerBP.LossReason != null) { <div class="bd-row"><span class="bd-label bd-note">@LocalizeLossReason(reizerBP.LossReason)</span></div> }
                                 <div class="bd-row bd-row-total">
                                     <span class="bd-label">@S.TotalLabel</span>
